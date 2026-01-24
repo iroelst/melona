@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Melon Monitor System V2 - Pro</title>
+    <link rel="manifest" href="manifest.json">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2909/2909841.png">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #f4f7f4; margin: 0; padding: 0; color: #333; }
+        .header { background: #1b5e20; color: white; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .gh-manager { display: flex; gap: 5px; justify-content: center; align-items: center; margin-top: 10px; }
+        #gh-selector { width: 60%; background: #0d3d0f; color: white; border: 1px solid #81c784; padding: 8px; border-radius: 8px; font-weight: bold; }
+        .btn-add-gh { background: #81c784; color: #0d3d0f; border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        .btn-report { background: #fff; color: #1b5e20; border: none; padding: 5px 10px; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        
+        .progress-container { width: 80%; background: #0d3d0f; height: 10px; border-radius: 5px; margin: 10px auto 0; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: #81c784; transition: width 0.5s; }
+        .container { padding: 10px; padding-bottom: 90px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .notif-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #ffc107; font-size: 13px; display: none; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 1000; height: 75px; }
+        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 10px; font-weight: bold; color: #666; cursor: pointer; }
+        .nav-item.active { color: #2e7d32; border-top: 4px solid #2e7d32; background: #f9f9f9; }
+        
+        label { font-size: 11px; font-weight: bold; color: #2e7d32; text-transform: uppercase; margin-top: 10px; display: block; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; margin-top: 5px; }
+        .input-row { display: flex; gap: 8px; align-items: flex-end; }
+        .btn { background: #2e7d32; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+        .btn-ph { background: #2980b9; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .history-card { border-left: 5px solid #2e7d32; padding: 12px; margin-bottom: 10px; background: #fff; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 12px; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 20% auto; padding: 20px; border-radius: 12px; width: 85%; }
+        
+        .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .summary-card { background: #fff; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .roi-positive { color: #2e7d32; font-weight: bold; }
+        .roi-negative { color: #c62828; font-weight: bold; }
+        .v-tag { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-right: 5px; display: inline-block; border: 1px solid #81c784; }
+        .trans-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 11px; }
+        .badge-in { color: #2e7d32; font-weight: bold; }
+        .badge-out { color: #c62828; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        th, td { border: 1px solid #eee; padding: 10px 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top" style="display: flex; justify-content: center; align-items: center;">
+        <h3 style="margin:0; text-align: center;">Melon Monitoring System</h3>
+    </div>
+    <div class="gh-manager">
+        <select id="gh-selector" onchange="switchGH()"></select>
+        <button class="btn-add-gh" onclick="promptAddGH()">+</button>
+        <button class="btn-add-gh" style="background:#e74c3c; color:white;" onclick="promptRemoveGH()">-</button>
+    </div>
+    <div id="top-info" style="font-size: 12px; margin-top:8px;">Memuat data...</div>
+    <div class="progress-container"><div id="progress-bar"></div>
+    </div>
+    </div>
+</div>
+<div class="container">
+    <div id="nutrisi" class="tab-content active">
+        <div id="notif-banner" class="notif-banner">
+            <strong>📢 Info:</strong> <span id="notif-text"></span>
+        </div>
+         <div class="card" style="background:#fffde7; border: 1px dashed #fbc02d;">
+    <strong>💾 Backup & Keamanan Data</strong>
+    <p style="font-size: 10px;">Simpan cadangan data secara berkala untuk menghindari kehilangan data.</p>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" style="background:#fbc02d; color:#333; flex:1;" onclick="exportData()">BACKUP DATA</button>
+        <button class="btn" style="background:#cfd8dc; color:#333; flex:1;" onclick="importData()">RESTORE DATA</button>
+    </div>
+    </div>
+        <div class="card">
+            <strong>🌱 Periode Tanam Baru</strong>
+            <label>Varietas & Populasi</label>
+            <div class="input-row">
+                <input type="text" id="v-nama" placeholder="Varietas">
+                <input type="number" id="v-pop" placeholder="Pohon" style="width: 80px;">
+                <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
+            </div>
+            <div id="v-list-display" style="margin-top:10px;"></div>
+            <button class="btn" style="background:#1b5e20;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
+        </div>
+        <div class="card" style="padding: 5px;">
+    <div style="height: 250px; width: 100%;">
+        <canvas id="ppmChart"></canvas>
+    </div>
+</div>
+
+        
+        <div class="card">
+            <strong>🧮 Nutrisi & pH</strong>
+            <label>Liter Air & PPM Kini</label>
+            <div class="input-row">
+                <input type="number" id="liters" placeholder="Liter">
+                <input type="number" id="ppm-now" placeholder="PPM">
+            </div>
+            <button class="btn" onclick="hitungAB()">HITUNG DOSIS PPM</button>
+            <div id="hasil-calc" style="margin-top:10px; font-weight:bold; color:#1b5e20; text-align:center;"></div>
+            <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+            <label>Koreksi pH</label>
+            <div class="input-row">
+                <input type="number" id="ph-now" step="0.1" placeholder="pH Kini">
+                <select id="ph-concentrate">
+                    <option value="0.5">Konsentrasi 50%</option>
+                    <option value="0.2">Konsentrasi 20%</option>
+                </select>
+            </div>
+            <button class="btn-ph" onclick="hitungPH()">HITUNG DOSIS pH</button>
+            <div id="hasil-ph" style="margin-top:10px; font-weight:bold; color:#2980b9; text-align:center;"></div>
+        
+<button class="btn" style="background:#2ecc71; margin-top: 20px;" onclick="simpanNutrisiRiil()">
+    💾 SIMPAN DATA RIIL HARI INI
+</button>
+</div>
+
+        <table>
+            <thead><tr><th>HST</th><th>PPM</th><th>pH</th><th>Fase</th></tr></thead>
+            <tbody id="tabel-nutrisi"></tbody>
+        </table>
+    </div>
+
+    <div id="semprot" class="tab-content">
+        <div class="card">
+            <strong>🚿 Log Penyemprotan</strong>
+            <label>Tanggal</label><input type="date" id="semprot-tgl">
+            <label>Insektisida</label><div class="input-row"><input type="text" id="ins-nama" placeholder="Merk"><input type="text" id="ins-dosis" placeholder="Dosis"></div>
+            <label>Fungisida</label><div class="input-row"><input type="text" id="fun-nama" placeholder="Merk"><input type="text" id="fun-dosis" placeholder="Dosis"></div>
+            <label>Nutrisi Tambahan</label><div class="input-row"><input type="text" id="nut-nama" placeholder="Merk"><input type="text" id="nut-dosis" placeholder="Dosis"></div>
+            <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA</button>
+        </div>
+        <div id="riwayat-semprot"></div>
+    </div>
+
+    <div id="kerja" class="tab-content">
+        <div class="card">
+            <strong>🛠️ Aktivitas Pekerja</strong>
+            <label>Tanggal</label><input type="date" id="kerja-tgl">
+            <div style="display:flex; justify-content:space-between; margin-top:10px;"><label>Pilih Pekerja</label><button onclick="toggleModal(true)" style="font-size:10px;">Pekerja</button></div>
+            <div id="worker-checkbox-list" style="border:1px solid #ddd; border-radius:8px; padding:10px; max-height:100px; overflow-y:auto; background:#f9f9f9;"></div>
+            <label>Jenis Pekerjaan</label>
+            <select id="kerja-jenis">
+                <option value="Semai">Semai</option><option value="Pindah Tanam">Pindah Tanam</option>
+                <option value="Pembersihan">Pembersihan</option><option value="Perambatan">Perambatan</option>
+                <option value="Pruning">Pruning</option><option value="Seleksi Buah">Seleksi Buah</option>
+                <option value="Penyemprotan">Penyemprotan</option><option value="Panen">Panen</option><option value="Lainnya">Lainnya</option>
+            </select>
+            <textarea id="kerja-ket" rows="2" placeholder="Catatan..." style="margin-top:10px;"></textarea>
+            <button class="btn" style="background:#f39c12;" onclick="simpanLog('kerja')">SIMPAN AKTIVITAS</button>
+        </div>
+        <div id="riwayat-kerja"></div>
+    </div>
+
+    <div id="keuangan" class="tab-content">
+      <div class="card" style="background:#f1f8e9; border-left:5px solid #2980b9;">
+            <strong>📊 Laba Rugi & ROI (<span id="f-active-v">-</span>)</strong>
+            <div class="summary-box">
+                <div class="summary-card"><small>Total Biaya</small><br><strong id="res-biaya">0</strong></div>
+                <div class="summary-card"><small>Total Jual</small><br><strong id="res-jual">0</strong></div>
+                <div class="summary-card" ><small>Laba/Rugi Bersih</small><br><strong id="res-laba">0</h3></div>
+                <div class="summary-card" ><small>ROI</small><br><strong id="res-roi">0%</strong></div>
+            </div>
+        </div>
+     <div class="card" style="background:#f1f8e9; border-left:5px solid #2e7d32; padding: 15px;">
+    <strong style="display: block; margin-bottom: 12px;">💰 Biaya Produksi</strong>
+    
+    <div style="margin-bottom: 8px;">
+        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Jenis Biaya</label>
+        <select id="f-kat" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: white;">
+            <option value="Benih/Bibit">Benih/Bibit</option>
+            <option value="Nutrisi AB Mix">Nutrisi AB Mix</option>
+            <option value="Nutrisi Tambahan">Nutrisi Tambahan</option>
+            <option value="Pestisida">Pestisida</option>
+            <option value="Listrik/Air">Listrik/Air</option>
+            <option value="Gaji Pekerja">Gaji Pekerja</option>
+            <option value="Perlengkapan">Perlengkapan</option>
+            <option value="Lain-lain">Lain-lain</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom: 8px;">
+        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Keterangan</label>
+        <input type="text" id="f-ket" placeholder="Merk benih, Nama toko, dll..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Qty</label>
+            <input type="number" id="f-qty" placeholder="0" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+        </div>
+        <div style="flex: 2;">
+            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Harga Satuan</label>
+            <input type="number" id="f-harga" placeholder="Rp 0" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+        </div>
+    </div>
+    
+    <button class="btn" onclick="simpanTransaksi('biaya')" style="width: 100%; background: #2e7d32; color: white; padding: 10px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
+        + TAMBAH PENGELUARAN
+    </button>
+</div>
+
+
+<div class="card" style="background:#fff3e0; border: 2px solid #ff9800;">
+    <strong>⏳ Akumulasi Gaji (Belum Terbayar)</strong>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <div>
+            <small>Total Hutang Gaji:</small><br>
+            <strong id="display-akumulasi-gaji" style="font-size: 18px; color: #e65100;">Rp 0</strong>
+        </div>
+        <button class="btn" style="background:#ff9800; margin:0; width:auto; padding: 10px;" onclick="postingGajiKeBiaya()">POSTING KE BIAYA</button>
+    </div>
+    <p style="font-size: 9px; color: #666; margin-top: 5px;">*Klik posting jika gaji sudah dibayarkan secara manual saat panen.</p>
+</div>
+
+<div class="card" style="background:#fce4ec; border-left:5px solid #d81b60;">
+    <strong>💸 Catat Kasbon Pekerja</strong>
+    <label>Pilih Pekerja & Nominal</label>
+    <div style="display: flex; gap: 5px; margin-top: 5px; flex-direction: column;">
+        <select id="nama-kasbon-select" style="margin-bottom: 5px;"></select>
+        <div style="display: flex; gap: 5px;">
+            <input type="number" id="nominal-kasbon" placeholder="Rp Nominal">
+            <button class="btn" style="background:#d81b60; margin:0; width:auto;" onclick="catatKasbon()">SIMPAN</button>
+        </div>
+    </div>
+    <div id="list-kasbon-nama" style="margin-top:10px; font-size: 10px; color: #880e4f;"></div>
+</div>
+
+
+        <div class="card" style="background:#fff3e0; border-left:5px solid #ef6c00;">
+            <strong>🛒 Penjualan Hasil Panen</strong>
+            <label>Grade Buah</label>
+            <select id="s-grade">
+                <option>Grade A</option><option>Grade B</option><option>Grade C</option><option>Grade BS</option>
+            </select>
+            <div class="input-row">
+                <input type="number" id="s-berat" placeholder="Berat (kg)">
+                <input type="number" id="s-harga" placeholder="Harga/kg">
+            </div>
+            <button class="btn" style="background:#ef6c00;" onclick="simpanTransaksi('jual')">SIMPAN PENJUALAN</button>
+        </div>
+
+        <div class="card">
+            <strong>📑 Detail Arus Kas</strong>
+            <div id="transaksi-detail-list" style="margin-top:10px;"></div>
+        </div>
+        <hr style="margin: 20px 0;">
+<strong style="color: #666; display: block; margin-bottom: 10px;">📜 Riwayat Periode Sebelumnya</strong>
+        <div id="riwayat-finance"></div>
+        <button onclick="bersihkanSemuaRiwayat()" style="background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 5px 10px; border-radius: 5px; font-size: 11px; margin-bottom: 10px; cursor: pointer;">
+    🗑️ Bersihkan Semua Riwayat
+</button>
+    </div>
+</div>
+
+<div class="nav-bar">
+    <div class="nav-item active" onclick="openTab(event, 'nutrisi')"><span>📊</span><span>NUTRISI</span></div>
+    <div class="nav-item" onclick="openTab(event, 'semprot')"><span>🚿</span><span>SEMPROT</span></div>
+    <div class="nav-item" onclick="openTab(event, 'kerja')"><span>🛠️</span><span>KERJA</span></div>
+    <div class="nav-item" onclick="openTab(event, 'keuangan')"><span>💰</span><span>KEUANGAN</span></div>
+</div>
+
+<div id="modalMaster" class="modal"><div class="modal-content">
+    <strong>👥 Data Pekerja</strong>
+    <input type="text" id="new-worker-name" placeholder="Nama baru..."><button class="btn" onclick="addWorker()">TAMBAH</button>
+    <div id="worker-list-master" style="margin-top:15px; max-height:150px; overflow-y:auto;"></div>
+    <button class="btn" onclick="toggleModal(false)" style="background:#666;">TUTUP</button>
+</div></div>
+
+<script>
+    let ghList = JSON.parse(localStorage.getItem('gh_list')) || ["GH 1"];
+    let currentGH = localStorage.getItem('active_gh') || ghList[0];
+    let varietasTemp = [];
+    let myChart = null;
+
+    const jadwal = [
+        {h: 7, p: 600, ph: 6.0, i: "Adaptasi"}, {h: 14, p: 800, ph: 6.0, i: "Vegetatif"},
+        {h: 21, p: 1100, ph: 6.1, i: "Pruning"}, {h: 30, p: 1300, ph: 6.2, i: "Polinasi"},
+        {h: 40, p: 1600, ph: 6.2, i: "Seleksi"}, {h: 55, p: 1900, ph: 6.2, i: "Netting"},
+        {h: 65, p: 1200, ph: 6.2, i: "Panen"}
+    ];
+    let targetPPM = 0; let targetPH = 6.2;
+
+    function getActiveData() {
+        let d = localStorage.getItem(currentGH + '_active_period');
+        return d ? JSON.parse(d) : { v: "-", pop: 0, v_list: [], biaya: [], jual: [] };
+    }
+
+    function saveActiveData(data) {
+        localStorage.setItem(currentGH + '_active_period', JSON.stringify(data));
+        renderFinance();
+    }
+
+
+// --- FITUR DOWNLOAD LAPORAN LENGKAP (VERSI STABIL MOBILE) ---
+function downloadFullReport() {
+    try {
+        let d = getActiveData();
+        let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+        let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+        // Sheet 1: Ringkasan Varietas
+        let summaryData = [
+            ["INFO GREENHOUSE", "KETERANGAN"],
+            ["Nama GH", currentGH],
+            ["Varietas", d.v],
+            ["Total Populasi", d.pop + " Pohon"],
+            ["Status Tanam", localStorage.getItem(currentGH + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"]
+        ];
+        let ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+
+        // Sheet 2: Data Semprot
+        let ws_semprot = XLSX.utils.json_to_sheet(sLog.map(x => ({
+            Tanggal: x.tgl, HST: x.hst, Insektisida: x.ins, Fungisida: x.fun, Nutrisi: x.nut
+        })));
+
+        // Sheet 3: Data Aktivitas Kerja
+        let ws_kerja = XLSX.utils.json_to_sheet(kLog.map(x => ({
+            Tanggal: x.tgl, HST: x.hst, Aktivitas: x.jenis, Pekerja: x.nama, Catatan: x.ket
+        })));
+
+        // Sheet 4: Keuangan
+        let finData = [];
+        (d.jual || []).forEach(x => finData.push({ TANGGAL: x.tgl, TIPE: "MASUK", KATEGORI: x.g, QTY: x.b, HARGA: x.h, TOTAL: x.total }));
+        (d.biaya || []).forEach(x => finData.push({ 
+    TANGGAL: x.tgl, 
+    TIPE: "KELUAR", 
+    KATEGORI: x.k, 
+    KETERANGAN: x.ket || "-", // Kolom baru yang Anda minta
+    QTY: x.q, 
+    HARGA: x.h, 
+    TOTAL: x.total 
+}));
+let ws_keuangan = XLSX.utils.json_to_sheet(finData);
+
+        // Membuat Workbook dan menggabungkan sheet
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws_summary, "Ringkasan");
+        XLSX.utils.book_append_sheet(wb, ws_semprot, "Penyemprotan");
+        XLSX.utils.book_append_sheet(wb, ws_kerja, "Aktivitas");
+        XLSX.utils.book_append_sheet(wb, ws_keuangan, "Keuangan");
+        // Tambahkan Sheet Rekap Nutrisi Riil
+// --- BAGIAN REKAP NUTRISI HARIAN ---
+let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+
+// Kita buat mapping yang lebih detail agar target muncul di Excel
+let dataRiilExcel = dailyLogs.map(x => {
+    // Mencari target yang sesuai dengan HST saat ini dari array 'jadwal'
+    let targetHarian = jadwal.find(j => x.hst <= j.h) || {p: 0, ph: 0};
+    
+    return {
+        "Tanggal": x.tgl,
+        "HST": x.hst,
+        "PPM Riil": x.ppm,
+        "Target PPM": targetHarian.p, // Penambahan Target PPM
+        "pH Riil": x.ph,
+        "Target pH": targetHarian.ph  // Penambahan Target pH
+    };
+});
+
+let ws_riil = XLSX.utils.json_to_sheet(dataRiilExcel);
+XLSX.utils.book_append_sheet(wb, ws_riil, "Rekap_Nutrisi_Harian");
+// -----------------------------------
+
+        // Proses Download
+        XLSX.writeFile(wb, `Laporan_Melon_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err) {
+        alert("Gagal mengunduh Excel: " + err.message);
+    }
+}
+
+
+
+    function refreshAll() {
+        updateUI(); renderLogs(); renderFinance();
+        if(myChart) myChart.destroy(); initChart();
+    }
+
+    function updateUI() {
+        const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
+        const infoEl = document.getElementById('top-info');
+        const progEl = document.getElementById('progress-bar');
+        const banner = document.getElementById('notif-banner');
+        const text = document.getElementById('notif-text');
+        let activeData = getActiveData();
+        let hst = 0; targetPPM = 0;
+        if (savedDate) {
+        const skrg = new Date();
+        skrg.setHours(0,0,0,0);
+
+        const tanam = new Date(savedDate);
+        tanam.setHours(0,0,0,0);
+
+        // UBAH BARIS DI BAWAH INI: Tambahkan + 1
+        hst = Math.floor((skrg - tanam) / (1000 * 60 * 60 * 24)) + 1; 
+
+        if (hst < 1) hst = 1;
+            infoEl.innerText = `${currentGH}: ${hst} HST | ${new Date().toLocaleDateString('id-ID')}`;
+            infoEl.innerHTML = `<strong>${currentGH}</strong>: ${hst} HST | ${activeData.v} (${activeData.pop} Pohon)`;
+            progEl.style.width = Math.min((hst/65)*100, 100) + "%";
+            banner.style.display = (hst >= 28 && hst <= 32 || hst >= 38 && hst <= 42 || hst >= 53 && hst <= 57) ? "block" : "none";
+            if(hst >= 28 && hst <= 32) text.innerText = "Masa Polinasi!";
+            else if(hst >= 38 && hst <= 42) text.innerText = "Seleksi Buah!";
+            else if(hst >= 53 && hst <= 57) text.innerText = "Fase Netting!";
+        } else {
+            infoEl.innerText = `${currentGH}: Belum Tanam`;
+            progEl.style.width = "0%";
+            banner.style.display = "none";
+        }
+        let tableHtml = "";
+        jadwal.forEach((item, idx) => {
+            let prevH = idx === 0 ? 0 : jadwal[idx-1].h + 1;
+            let active = (savedDate && hst >= prevH && hst <= item.h);
+            if(active) { targetPPM = item.p; targetPH = item.ph; }
+            tableHtml += `<tr style="${active ? 'background:#e8f5e9; font-weight:bold; border: 2px solid #2e7d32;' : ''}"><td>${item.h}</td><td>${item.p}</td><td>${item.ph}</td><td>${item.i}</td></tr>`;
+        });
+        document.getElementById('tabel-nutrisi').innerHTML = tableHtml;
+    }
+
+    function switchGH() {
+        currentGH = document.getElementById('gh-selector').value;
+        localStorage.setItem('active_gh', currentGH);
+        refreshAll();
+    }
+
+    function promptAddGH() {
+        const name = prompt("Nama GH Baru:");
+        if (name && !ghList.includes(name)) {
+            ghList.push(name);
+            localStorage.setItem('gh_list', JSON.stringify(ghList));
+            currentGH = name;
+            localStorage.setItem('active_gh', currentGH);
+            updateGHSelector();
+            refreshAll();
+        }
+    }
+
+    function promptRemoveGH() {
+        if (ghList.length <= 1) return alert("Minimal 1 GH.");
+        if (confirm(`Hapus ${currentGH}?`)) {
+            ghList = ghList.filter(g => g !== currentGH);
+            localStorage.setItem('gh_list', JSON.stringify(ghList));
+            currentGH = ghList[0];
+            localStorage.setItem('active_gh', currentGH);
+            updateGHSelector();
+            refreshAll();
+        }
+    }
+
+    function updateGHSelector() {
+        document.getElementById('gh-selector').innerHTML = ghList.map(gh => `<option value="${gh}" ${gh === currentGH ? 'selected' : ''}>${gh}</option>`).join("");
+    }
+
+    function tambahVarietasTemp() {
+        let n = document.getElementById('v-nama').value;
+        let p = document.getElementById('v-pop').value;
+        if(!n || !p) return alert("Isi varietas & populasi!");
+        varietasTemp.push({ nama: n, pop: parseInt(p) });
+        document.getElementById('v-nama').value = ""; document.getElementById('v-pop').value = "";
+        renderVarietasTemp();
+    }
+
+    function renderVarietasTemp() {
+        document.getElementById('v-list-display').innerHTML = varietasTemp.map((x, i) => `<span class="v-tag">${x.nama} (${x.pop}) <b onclick="varietasTemp.splice(${i},1);renderVarietasTemp()" style="color:red">×</b></span>`).join("");
+    }
+
+function mulaiPeriode() {
+    if(varietasTemp.length === 0) return alert("Tambahkan varietas dulu!");
+    
+    if(confirm("Mulai periode baru? Data saat ini akan dipindahkan ke RIWAYAT dan data aktif akan dibersihkan.")) {
+        
+        // --- PROSES PENGARSIPAN DATA LAMA ---
+        let oldData = getActiveData();
+        let tglTanamLama = localStorage.getItem(currentGH + '_tgl_tanam');
+        
+        // Jika ada data varietas (berarti periode sebelumnya memang ada)
+        if (oldData.v !== "-") {
+            let history = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
+            
+            // Masukkan data aktif ke dalam arsip riwayat
+            history.unshift({
+                v: oldData.v,
+                pop: oldData.pop,
+                tgl_mulai: tglTanamLama || "Tidak tercatat",
+                tgl_selesai: new Date().toLocaleDateString('id-ID'),
+                biaya: oldData.biaya,
+                jual: oldData.jual
+            });
+            
+            localStorage.setItem(currentGH + '_history_periods', JSON.stringify(history));
+        }
+
+        // --- PROSES PEMBERSIHAN DATA AKTIF UNTUK PERIODE BARU ---
+        localStorage.removeItem(currentGH + '_daily_records'); 
+        localStorage.removeItem(currentGH + '_tgl_tanam');
+        localStorage.setItem(currentGH + '_logs', "[]");
+        localStorage.setItem(currentGH + '_kerja', "[]");
+
+        let newData = { 
+            v_list: varietasTemp, 
+            v: varietasTemp.map(x => x.nama).join(", "), 
+            pop: varietasTemp.reduce((s, x) => s + x.pop, 0), 
+            biaya: [], 
+            jual: [] 
+        };
+        saveActiveData(newData);
+
+        varietasTemp = [];
+        document.getElementById('v-list-display').innerHTML = "";
+        refreshAll(); 
+        alert("Periode baru dimulai! Data lama berhasil diarsipkan ke riwayat.");
+    }
+}
+
+function simpanTransaksi(tipe) {
+    let data = getActiveData();
+    let tgl = new Date().toLocaleDateString('id-ID');
+    
+    if(tipe === 'biaya') {
+        let k = document.getElementById('f-kat').value;
+        let q = parseFloat(document.getElementById('f-qty').value);
+        let h = parseFloat(document.getElementById('f-harga').value);
+        let ket = document.getElementById('f-ket').value; // Mengambil keterangan
+        
+        if(!q || !h) return alert("Mohon isi jumlah dan harga!");
+        
+        // Simpan data dengan properti 'ket'
+        data.biaya.unshift({ 
+            tgl: tgl, 
+            k: k, 
+            q: q, 
+            h: h, 
+            total: q * h, 
+            ket: ket || "-" 
+        });
+        
+        // Reset Input
+        document.getElementById('f-qty').value = "";
+        document.getElementById('f-harga').value = "";
+        document.getElementById('f-ket').value = ""; 
+    } else {
+        // Logika untuk penjualan (tetap sama)
+        let g = document.getElementById('s-grade').value;
+        let b = parseFloat(document.getElementById('s-berat').value);
+        let h = parseFloat(document.getElementById('s-harga').value);
+        if(!b || !h) return alert("Isi berat dan harga!");
+        data.jual.unshift({ tgl: tgl, g: g, b: b, h: h, total: b*h });
+        document.getElementById('s-berat').value = "";
+        document.getElementById('s-harga').value = "";
+    }
+    
+    saveActiveData(data);
+    renderFinance(); // Refresh tampilan keuangan
+    alert("Biaya berhasil dicatat!");
+}
+
+function renderFinance() {
+    let d = getActiveData();
+    document.getElementById('f-active-v').innerText = d.v;
+    
+    // 1. Perhitungan Dasar Keuangan
+    let tBiaya = (d.biaya || []).reduce((sum, item) => sum + item.total, 0);
+    let tJual = (d.jual || []).reduce((sum, item) => sum + item.total, 0);
+    let laba = tJual - tBiaya;
+    let roi = tBiaya > 0 ? (laba / tBiaya) * 100 : 0;
+
+    document.getElementById('res-biaya').innerText = "Rp " + tBiaya.toLocaleString();
+    document.getElementById('res-jual').innerText = "Rp " + tJual.toLocaleString();
+    document.getElementById('res-laba').innerText = "Rp " + laba.toLocaleString();
+    document.getElementById('res-laba').style.color = laba >= 0 ? "#2e7d32" : "#c62828";
+    
+    // 2. LOGIKA GAJI & KASBON (PENAMBAHAN BARU)
+    let totalGajiGross = d.akumulasiGaji || 0;
+    let totalKasbon = d.totalKasbon || 0;
+    let sisaBayar = totalGajiGross - totalKasbon;
+    d.tempSisaBayar = sisaBayar; // Simpan untuk fungsi posting nanti
+
+    // Update Kotak Oranye Akumulasi Gaji
+    document.getElementById('display-akumulasi-gaji').innerHTML = `
+        <div style="font-size: 11px; color: #666; text-align: left;">
+            Total Hak Gaji: Rp ${totalGajiGross.toLocaleString()}<br>
+            Total Kasbon: <span style="color:red;">- Rp ${totalKasbon.toLocaleString()}</span>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 5px 0;">
+        <div style="font-size: 14px; font-weight: bold; color: #2e7d32; text-align: left;">
+            Sisa Bayar: Rp ${sisaBayar.toLocaleString()}
+        </div>
+    `;
+
+    // Tampilkan List Nama yang Kasbon (di bawah form kasbon)
+    let listKasbonHtml = (d.detailKasbon || []).map(k => 
+        `<div style="border-bottom: 1px dashed #eee; padding: 3px 0;">• ${k.nama}: Rp ${k.nominal.toLocaleString()} <small>(${k.tgl})</small></div>`
+    ).join("");
+    const listKasbonEl = document.getElementById('list-kasbon-nama');
+    if(listKasbonEl) listKasbonEl.innerHTML = listKasbonHtml || "<small>Belum ada riwayat kasbon.</small>";
+    
+    // 3. Update ROI Badge
+    let roiEl = document.getElementById('res-roi');
+    roiEl.innerText = roi.toFixed(1) + "%";
+    roiEl.className = roi >= 0 ? "roi-positive" : "roi-negative";
+
+    // 4. Detail Transaksi (In & Out)
+    let detailHtml = "";
+    (d.jual || []).forEach((x, i) => {
+        detailHtml += `
+        <div class="trans-item">
+            <span class="badge-in">[IN] ${x.g}</span>
+            <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('jual', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+        </div>`;
+    });
+    (d.biaya || []).forEach((x, i) => {
+    detailHtml += `
+    <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <span class="badge-out">[OUT] ${x.k}</span>
+            <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+        </div>
+        <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">
+            Ket: ${x.ket}
+        </div>
+        <div style="font-size: 10px; color: #888;">
+            Detail: ${x.q} x Rp ${x.h.toLocaleString()} pada ${x.tgl}
+        </div>
+    </div>`;
+});
+    document.getElementById('transaksi-detail-list').innerHTML = detailHtml || "<small>Belum ada transaksi</small>";
+
+    // 5. Riwayat Periode Sebelumnya (Arsip)
+    let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
+    document.getElementById('riwayat-finance').innerHTML = hist.map((h, index) => {
+        let b = (h.biaya || []).reduce((s, i) => s + i.total, 0);
+        let j = (h.jual || []).reduce((s, i) => s + i.total, 0);
+        return `
+        <div class="history-card" style="border-left-color:#666; position: relative;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <b>${h.v}</b><br>
+                    <small>${h.tgl_mulai} - ${h.tgl_selesai || 'Selesai'}</small>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="lihatDetailArsip(${index})" style="font-size:10px; padding:5px; background:#2e7d32; color:white; border:none; border-radius:4px;">DETAIL</button>
+                    <button onclick="hapusRiwayatPeriode(${index})" style="font-size:10px; padding:5px; background:#e74c3c; color:white; border:none; border-radius:4px;">HAPUS</button>
+                </div>
+            </div>
+            <br>Laba: Rp ${(j-b).toLocaleString()}
+        </div>`;
+    }).join("");
+}
+
+
+function simpanLog(tipe) {
+    let valTgl = document.getElementById(tipe + '-tgl').value; 
+    if(!valTgl) return alert("Pilih tanggal dulu!");
+    
+    let key = currentGH + (tipe === 'semprot' ? '_logs' : '_kerja');
+    
+    const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
+    let hstLog = 0;
+    
+    if(savedDate) {
+        let d1 = new Date(savedDate).setHours(0,0,0,0);
+        let d2 = new Date(valTgl).setHours(0,0,0,0);
+        hstLog = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    
+    let data = { 
+        tgl: new Date(valTgl).toLocaleDateString('id-ID'),
+        hst: (hstLog <= 0) ? 0 : hstLog 
+    };
+
+    if(tipe === 'semprot') {
+        // ... (Kode semprot Anda tetap sama)
+        data.ins = document.getElementById('ins-nama').value + " (" + document.getElementById('ins-dosis').value + ")";
+        data.fun = document.getElementById('fun-nama').value + " (" + document.getElementById('fun-dosis').value + ")";
+        data.nut = document.getElementById('nut-nama').value + " (" + document.getElementById('nut-dosis').value + ")";
+        
+        document.getElementById('ins-nama').value = "";
+        document.getElementById('ins-dosis').value = "";
+        document.getElementById('fun-nama').value = "";
+        document.getElementById('fun-dosis').value = "";
+        document.getElementById('nut-nama').value = "";
+        document.getElementById('nut-dosis').value = "";
+    } else {
+        let biayaGajiSesiIni = 0;
+        let detailPekerja = [];
+        const selectedCheckboxes = document.querySelectorAll('input[name="worker_choice"]:checked');
+        
+        selectedCheckboxes.forEach((cb) => {
+            let parentRow = cb.closest('.worker-item-row');
+            let durasi = parentRow.querySelector('.worker-duration').value;
+            let gajiPerHari = parseFloat(cb.getAttribute('data-gaji')) || 0;
+            
+            biayaGajiSesiIni += (gajiPerHari * parseFloat(durasi));
+            detailPekerja.push(`${cb.value} (${durasi} H)`);
+        });
+
+        data.nama = detailPekerja.join(", ") || "Tanpa Pekerja";
+        data.jenis = document.getElementById('kerja-jenis').value;
+        data.ket = document.getElementById('kerja-ket').value;
+
+        // SIMPAN ESTIMASI GAJI KE DATA AKTIF (Bukan sebagai biaya riil dulu)
+        let activeData = getActiveData();
+        activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
+        saveActiveData(activeData);
+
+        if(data.jenis === 'Pindah Tanam') {
+            localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
+            data.hst = 1;
+        }
+        document.getElementById('kerja-ket').value = "";
+        
+        // Reset checkbox setelah simpan
+        selectedCheckboxes.forEach(cb => cb.checked = false);
+    }
+
+    let log = JSON.parse(localStorage.getItem(key) || "[]");
+    log.unshift(data); 
+    localStorage.setItem(key, JSON.stringify(log));
+    
+    updateUI(); 
+    renderLogs();
+    renderFinance(); // Tambahkan ini agar angka di tab keuangan langsung update
+    alert("Data berhasil disimpan! HST: " + data.hst);
+}
+
+
+function renderLogs() {
+    let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+    let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+    // Render Log Semprot
+    document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
+        <div class="history-card">
+            <div style="display:flex; justify-content:space-between;">
+                <b>${i.tgl} (HST ${i.hst})</b>
+                <div>
+                    <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
+                </div>
+            </div>
+            <br>🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}
+        </div>`).join("");
+
+    // Render Log Kerja
+    document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
+        <div class="history-card" style="border-left-color:#f39c12;">
+            <div style="display:flex; justify-content:space-between;">
+                <b>${i.tgl} (HST ${i.hst})</b>
+                <div>
+                    <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
+                </div>
+            </div>
+            <br>🛠️ ${i.jenis} | 👥 ${i.nama}<br><small>${i.ket}</small>
+        </div>`).join("");
+}
+
+
+    function hitungAB() {
+        let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
+        if(!targetPPM || !l) return alert("Isi data!");
+        let selisih = targetPPM - (p || 0);
+        document.getElementById('hasil-calc').innerText = selisih <= 0 ? "PPM CUKUP" : "A & B: " + ((selisih/1000)*5*l).toFixed(0) + " ml";
+    }
+
+    function hitungPH() {
+        let l = parseFloat(document.getElementById('liters').value);
+        let cur = parseFloat(document.getElementById('ph-now').value);
+        let kon = parseFloat(document.getElementById('ph-concentrate').value);
+        if(!l || !cur) return alert("Isi data!");
+        let diff = cur - targetPH;
+        let dosis = Math.abs(diff) * l * (kon === 0.5 ? 0.1 : 0.25);
+        document.getElementById('hasil-ph').innerText = diff > 0 ? `pH DOWN: ${dosis.toFixed(1)} ml` : `pH UP: ${dosis.toFixed(1)} ml`;
+    }
+
+    function openTab(evt, name) {
+        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+        document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+        document.getElementById(name).style.display = "block"; evt.currentTarget.classList.add("active");
+    }
+
+    function initChart() {
+    const ctx = document.getElementById('ppmChart').getContext('2d');
+    const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+    
+    // Urutkan data riil berdasarkan HST
+    dailyLogs.sort((a, b) => a.hst - b.hst);
+
+    if(myChart) myChart.destroy();
+
+    // KUNCI PERBAIKAN: Gunakan label yang konsisten (Angka HST saja)
+    // Kita buat label dari H1 sampai H65 agar urut
+    const labels = Array.from({length: 65}, (_, i) => i + 1);
+
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels, 
+            datasets: [
+                {
+                    label: 'Target PPM',
+                    // Mapping data target agar berada di titik H yang sesuai
+                    data: labels.map(h => {
+                        let target = jadwal.find(j => h <= j.h);
+                        return target ? {x: h, y: target.p} : null;
+                    }),
+                    borderColor: '#2e7d32',
+                    borderDash: [5, 5],
+                    pointRadius: 0, // Sembunyikan titik target agar tidak ramai
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Riil PPM',
+                    data: dailyLogs.map(l => ({x: l.hst, y: l.ppm})),
+                    backgroundColor: 'rgba(27, 94, 32, 0.2)',
+                    borderColor: '#1b5e20',
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Target pH',
+                    data: labels.map(h => {
+                        let target = jadwal.find(j => h <= j.h);
+                        return target ? {x: h, y: target.ph} : null;
+                    }),
+                    borderColor: '#f39c12',
+                    borderDash: [2, 2],
+                    pointRadius: 0,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: 'Riil pH',
+                    data: dailyLogs.map(l => ({x: l.hst, y: l.ph})),
+                    borderColor: '#e67e22',
+                    pointRadius: 4,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Hari Setelah Tanam (HST)', font: { size: 8 } },
+                    ticks: {
+                        // Hanya tampilkan label kelipatan 5 atau 10 agar tidak penuh
+                        callback: function(val, index) {
+                            return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                        }
+                    }
+                },
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'PPM' }
+                },
+                y1: {
+                    position: 'right',
+                    min: 4, max: 8,
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'pH' }
+                }
+            }
+        }
+    });
+}
+
+    function toggleModal(s) { document.getElementById('modalMaster').style.display = s ? 'block' : 'none'; if(s) renderWorkerMaster(); }
+    function addWorker() {
+    let n = document.getElementById('new-worker-name').value;
+    if(!n) return;
+
+    // Meminta input gaji
+    let g = prompt("Masukkan Gaji per Hari untuk " + n + ":", "100000"); 
+    if(g === null) return; // Jika klik cancel, batalkan
+
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    
+    // Simpan sebagai Objek, tapi pastikan strukturnya benar
+    w.push({ nama: n, gaji: parseFloat(g) || 0 });
+    
+    localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
+    document.getElementById('new-worker-name').value = "";
+    
+    renderWorkerMaster();
+    loadWorkerCheckboxes();
+}
+
+function renderWorkerMaster() {
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    // Perhatikan bagian x.nama di bawah ini, bukan hanya x
+    document.getElementById('worker-list-master').innerHTML = w.map((x, i) => `
+        <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee; font-size:12px;">
+            <span>${x.nama} (Rp ${parseFloat(x.gaji).toLocaleString()})</span>
+            <span onclick="removeWorker(${i})" style="color:red; cursor:pointer; font-weight:bold;">✖</span>
+        </div>`).join("");
+}
+
+    function removeWorker(i) {
+        let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]"); w.splice(i, 1);
+        localStorage.setItem('master_pekerja_v2', JSON.stringify(w)); renderWorkerMaster(); loadWorkerCheckboxes();
+    }
+    function loadWorkerCheckboxes() {
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    let container = document.getElementById('worker-checkbox-list');
+    
+    if (w.length === 0) {
+        container.innerHTML = "<small style='color:red;'>Belum ada master pekerja. Tambah di menu Pekerja.</small>";
+        return;
+    }
+    let opt = w.map(x => `<option value="${x.nama}">${x.nama}</option>`).join("");
+document.getElementById('nama-kasbon-select').innerHTML = `<option value="">-- Pilih Pekerja --</option>` + opt;
+
+    container.innerHTML = w.map(x => `
+        <div class="worker-item-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; background:#fff; padding:5px; border-radius:5px; border:1px solid #eee;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:auto; margin:0;">
+                <span style="font-size:12px; font-weight:bold;">${x.nama}</span>
+            </div>
+            <select class="worker-duration" style="width:80px; padding:2px; font-size:11px; margin:0; border:1px solid #2e7d32;">
+                <option value="1">1 Hari</option>
+                <option value="0.5">1/2 Hari</option>
+            </select>
+        </div>
+    `).join("");
+}
+
+    
+    // Fungsi Hapus untuk Log Semprot dan Log Kerja
+function hapusItem(key, index) {
+    if(confirm("Hapus data ini?")) {
+        let data = JSON.parse(localStorage.getItem(key) || "[]");
+        let itemDihapus = data[index];
+
+        // LOGIKA BARU: Cek jika yang dihapus adalah aktivitas Pindah Tanam
+        if(itemDihapus.jenis === "Pindah Tanam") {
+            if(confirm("Anda menghapus data 'Pindah Tanam'. Reset HST menjadi 0/Belum Tanam?")) {
+                localStorage.removeItem(currentGH + '_tgl_tanam');
+            }
+        }
+
+        data.splice(index, 1);
+        localStorage.setItem(key, JSON.stringify(data));
+        
+        // Refresh semua tampilan
+        renderLogs();
+        updateUI(); 
+    }
+}
+
+// Fungsi Hapus untuk Transaksi Keuangan
+function hapusFinance(tipe, index) {
+    if(confirm("Hapus transaksi ini?")) {
+        let d = getActiveData();
+        if(tipe === 'jual') d.jual.splice(index, 1);
+        else d.biaya.splice(index, 1);
+        saveActiveData(d);
+        renderFinance();
+    }
+}
+function lihatDetailArsip(index) {
+    let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
+    let data = hist[index];
+    
+    // Kita susun ringkasan aktivitas dalam format teks agar mudah dibaca
+    let detailMsg = `DETAIL PERIODE: ${data.v}\n`;
+    detailMsg += `---------------------------\n`;
+    detailMsg += `Populasi: ${data.pop} pohon\n`;
+    detailMsg += `Total Biaya: Rp ${(data.biaya || []).reduce((s, i) => s + i.total, 0).toLocaleString()}\n`;
+    detailMsg += `Total Jual: Rp ${(data.jual || []).reduce((s, i) => s + i.total, 0).toLocaleString()}\n\n`;
+    
+    detailMsg += `Ingin melihat detail lengkap aktivitas? \nSilakan gunakan fitur 'Download Laporan' saat periode ini sedang aktif.`;
+
+    alert(detailMsg);
+    
+    // Alternatif: Tampilkan di Console Log untuk pengembang
+    console.log("Data Lengkap Arsip:", data);
+}
+// Fungsi mengekspor seluruh isi LocalStorage ke file JSON
+function exportData() {
+    try {
+        // 1. Ambil semua data dari LocalStorage
+        const activeData = getActiveData();
+        const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+        const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+        const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+        // Urutkan data harian berdasarkan HST agar kronologis
+        dailyLogs.sort((a, b) => a.hst - b.hst);
+
+        // Buat Workbook baru
+        const wb = XLSX.utils.book_new();
+
+        // --- SHEET 1: RINGKASAN PRODUKSI ---
+        const terakhir = dailyLogs.length > 0 ? dailyLogs[dailyLogs.length - 1] : { hst: "-", ppm: "-", ph: "-" };
+        const summaryData = [
+            ["LAPORAN RINGKASAN PRODUKSI MELON", ""],
+            ["Nama GreenHouse", currentGH],
+            ["Varietas Tanam", activeData.v],
+            ["Populasi", activeData.pop + " Pohon"],
+            ["Tanggal Laporan", new Date().toLocaleString('id-ID')],
+            ["", ""],
+            ["UPDATE STATUS TERAKHIR", ""],
+            ["HST Terakhir", terakhir.hst],
+            ["PPM Terakhir", terakhir.ppm],
+            ["pH Terakhir", terakhir.ph],
+            ["Total Hari Tercatat", dailyLogs.length + " Hari"]
+        ];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
+
+        // --- SHEET 2: LAPORAN NUTRISI HARIAN (PPM & PH) ---
+        const nutrisiExcel = dailyLogs.map(x => ({
+            "HST": "H" + x.hst,
+            "TANGGAL": x.tgl,
+            "PPM RIIL": x.ppm,
+            "PH RIIL": x.ph,
+            "STATUS": (x.ppm < 800) ? "RENDAH" : (x.ppm > 1500 ? "TINGGI" : "OPTIMAL")
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(nutrisiExcel), "Laporan_Harian_Nutrisi");
+
+        // --- SHEET 3: LOG PENYEMPROTAN & HAMA ---
+        const semprotExcel = sLog.map(x => ({
+            "HST": "H" + x.hst,
+            "TANGGAL": x.tgl,
+            "INSEKTISIDA": x.ins,
+            "FUNGISIDA": x.fun,
+            "NUTRISI TAMBAHAN": x.nut
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(semprotExcel), "Log_Semprot");
+
+        // --- SHEET 4: AKTIVITAS KERJA PEKERJA ---
+        const kerjaExcel = kLog.map(x => ({
+            "HST": "H" + x.hst,
+            "TANGGAL": x.tgl,
+            "JENIS PEKERJAAN": x.jenis,
+            "NAMA PEKERJA": x.nama,
+            "CATATAN/KETERANGAN": x.ket
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kerjaExcel), "Log_Kerja");
+
+        // --- SHEET 5: LAPORAN KEUANGAN & LABA RUGI ---
+        let finData = [];
+        let totalJual = 0;
+        let totalBiaya = 0;
+
+        (activeData.jual || []).forEach(x => {
+            finData.push({ "TANGGAL": x.tgl, "TIPE": "PENJUALAN", "KATEGORI/GRADE": x.g, "QTY": x.b, "HARGA": x.h, "TOTAL": x.total });
+            totalJual += x.total;
+        });
+        (activeData.biaya || []).forEach(x => {
+            finData.push({ "TANGGAL": x.tgl, "TIPE": "BIAYA", "KATEGORI": x.k, "QTY": x.q, "HARGA": x.h, "TOTAL": x.total });
+            totalBiaya += x.total;
+        });
+
+        const ws_finance = XLSX.utils.json_to_sheet(finData);
+        // Tambahkan ringkasan perhitungan di bawah tabel keuangan
+        XLSX.utils.sheet_add_aoa(ws_finance, [
+            [],
+            ["", "", "", "", "TOTAL PENJUALAN", totalJual],
+            ["", "", "", "", "TOTAL BIAYA", totalBiaya],
+            ["", "", "", "", "LABA / RUGI BERSIH", totalJual - totalBiaya]
+        ], { origin: -1 });
+        XLSX.utils.book_append_sheet(wb, ws_finance, "Laporan_Keuangan");
+
+        // --- DOWNLOAD FILE ---
+        const fileName = `REKAP_FULL_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        alert("Berhasil! Laporan lengkap per hari dan keuangan telah diunduh.");
+    } catch (err) {
+        alert("Terjadi kesalahan saat export: " + err.message);
+        console.error(err);
+    }
+}
+
+
+// Fungsi mengimpor k
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+        reader.onload = readerEvent => {
+            try {
+                const content = JSON.parse(readerEvent.target.result);
+                if (confirm("Hapus data saat ini dan ganti dengan data cadangan?")) {
+                    localStorage.clear();
+                    for (const key in content) {
+                        localStorage.setItem(key, content[key]);
+                    }
+                    alert("Data berhasil dipulihkan! Aplikasi akan dimuat ulang.");
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert("File tidak valid!");
+            }
+        }
+    }
+    input.click();
+}
+
+function simpanNutrisiRiil() {
+    // 1. Ambil elemen input dari HTML
+    const inputPPM = document.getElementById('ppm-now');
+    const inputPH = document.getElementById('ph-now');
+    const inputLiters = document.getElementById('liters'); // Menggunakan ID sesuai milik Anda
+
+    // Validasi: PPM dan pH wajib diisi
+    if (!inputPPM.value || !inputPH.value) {
+        return alert("Mohon isi angka PPM dan pH saat ini!");
+    }
+
+    // 2. Hitung HST (Logika sinkron dengan Header: +1)
+    const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
+    let hst = 0;
+    if (savedDate) {
+        const d1 = new Date(savedDate).setHours(0, 0, 0, 0);
+        const d2 = new Date().setHours(0, 0, 0, 0);
+        hst = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    // 3. Ambil data lama atau buat array baru jika belum ada
+    let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+
+    // 4. Siapkan objek data baru
+    let record = {
+        hst: hst,
+        tgl: new Date().toLocaleDateString('id-ID'),
+        ppm: parseFloat(inputPPM.value),
+        ph: parseFloat(inputPH.value),
+        liter: inputLiters ? inputLiters.value : "0" // Ambil nilai liter jika kolom tersedia
+    };
+
+    // 5. Cek apakah hari ini sudah ada data (Update jika sudah ada, Push jika baru)
+    let index = dailyLogs.findIndex(l => l.hst === hst);
+    if (index > -1) {
+        dailyLogs[index] = record;
+    } else {
+        dailyLogs.push(record);
+    }
+
+    // 6. Simpan kembali ke LocalStorage
+    localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
+
+    // 7. KOSONGKAN KOLOM INPUT
+    inputPPM.value = "";
+    inputPH.value = "";
+    if (inputLiters) {
+        inputLiters.value = ""; // Kolom liters sekarang otomatis kosong
+    }
+
+    // 8. Refresh tampilan grafik dan tabel
+    alert("Data Nutrisi HST " + hst + " Berhasil Disimpan!");
+    
+    if (typeof refreshAll === "function") {
+        refreshAll();
+    } else {
+        // Fallback jika tidak ada fungsi refreshAll
+        initChart();
+        renderRekapNutrisi();
+    }
+}
+
+function bersihkanSemuaRiwayat() {
+    if(confirm("Hapus seluruh riwayat periode sebelumnya di Greenhouse ini? Tindakan ini tidak bisa dibatalkan.")) {
+        localStorage.removeItem(currentGH + '_history_periods');
+        renderFinance();
+    }
+}
+ function hapusRiwayatPeriode(index) {
+    if(confirm("Apakah Anda yakin ingin menghapus riwayat periode ini secara permanen?")) {
+        let history = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
+        history.splice(index, 1);
+        localStorage.setItem(currentGH + '_history_periods', JSON.stringify(history));
+        renderFinance(); // Refresh tampilan
+    }
+}
+function postingGajiKeBiaya() {
+    let data = getActiveData();
+    let totalGaji = data.akumulasiGaji || 0;
+
+    if (totalGaji <= 0) return alert("Belum ada akumulasi gaji untuk diposting.");
+
+    if (confirm(`Posting total gaji Rp ${totalGaji.toLocaleString()} ke pengeluaran periode ini?`)) {
+        // 1. Masukkan ke daftar biaya riil
+        data.biaya.unshift({
+            tgl: new Date().toLocaleDateString('id-ID'),
+            k: "PELUNASAN GAJI PERIODE",
+            q: 1,
+            h: totalGaji,
+            total: totalGaji
+        });
+
+        // 2. Reset kantung akumulasi
+        data.akumulasiGaji = 0;
+
+        saveActiveData(data);
+        renderFinance();
+        alert("Gaji berhasil diposting ke laporan keuangan!");
+    }
+}
+
+function catatKasbon() {
+    let nama = document.getElementById('nama-kasbon-select').value;
+    let nominal = parseFloat(document.getElementById('nominal-kasbon').value);
+    
+    if(!nama) return alert("Pilih nama pekerja!");
+    if(!nominal || nominal <= 0) return alert("Masukkan nominal kasbon!");
+
+    if(confirm(`Catat kasbon ${nama} sebesar Rp ${nominal.toLocaleString()}?`)) {
+        let data = getActiveData();
+        let tgl = new Date().toLocaleDateString('id-ID');
+
+        // 1. Simpan ke daftar biaya riil (Keuangan)
+        data.biaya.unshift({
+            tgl: tgl,
+            k: `KASBON: ${nama}`,
+            q: 1,
+            h: nominal,
+            total: nominal
+        });
+
+        // 2. Simpan ke database kasbon internal periode ini
+        if(!data.detailKasbon) data.detailKasbon = [];
+        data.detailKasbon.push({ nama, nominal, tgl });
+        
+        data.totalKasbon = (data.totalKasbon || 0) + nominal;
+
+        saveActiveData(data);
+        document.getElementById('nominal-kasbon').value = "";
+        renderFinance();
+        alert(`Kasbon ${nama} berhasil dicatat!`);
+    }
+}
+
+    window.onload = () => {
+        updateGHSelector();
+        document.getElementById('semprot-tgl').valueAsDate = new Date();
+        document.getElementById('kerja-tgl').valueAsDate = new Date();
+        initChart(); updateUI(); renderLogs(); loadWorkerCheckboxes(); renderFinance();
+    };
+</script>
+</body>
+</html>

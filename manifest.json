@@ -1,0 +1,21 @@
+{
+  "name": "Melon Monitor V2 Pro",
+  "short_name": "MelonMon",
+  "description": "Sistem Monitoring Budidaya Melon",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f1f8e9",
+  "theme_color": "#2e7d32",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2909/2909841.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2909/2909841.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
