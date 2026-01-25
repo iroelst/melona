@@ -887,7 +887,7 @@ function renderLogs() {
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-    // Render Semprot
+    // 1. Render Riwayat Semprot
     document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
         <div class="history-card">
             <div style="display:flex; justify-content:space-between;">
@@ -895,18 +895,20 @@ function renderLogs() {
                 <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
             </div>
             <div style="margin-top:5px;">🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}</div>
+            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Catatan: ${i.ket}</div>` : ''}
             ${i.img ? `<img src="${i.img}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid #ddd;">` : ''}
         </div>`).join("");
     checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
 
-    // Render Kerja
+    // 2. Render Riwayat Kerja
     document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
         <div class="history-card" style="border-left-color:#f39c12;">
             <div style="display:flex; justify-content:space-between;">
                 <b>${i.tgl} (HST ${i.hst})</b>
                 <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
             </div>
-            <br>🛠️ ${i.jenis} | 👥 ${i.nama}
+            <div style="margin-top:5px;">🛠️ <b>${i.jenis}</b> | 👥 ${i.nama}</div>
+            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
         </div>`).join("");
     checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
 }
