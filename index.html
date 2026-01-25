@@ -1099,8 +1099,6 @@ function exportData() {
     }
 }
 
-
-// Fungsi mengimpor k
 function importData() {
     const input = document.createElement('input');
     input.type = 'file';
@@ -1108,22 +1106,28 @@ function importData() {
     input.onchange = e => {
         const file = e.target.files[0];
         const reader = new FileReader();
-        reader.readAsText(file, 'UTF-8');
+        
         reader.onload = readerEvent => {
             try {
+                // Parse file JSON hasil backup
                 const content = JSON.parse(readerEvent.target.result);
-                if (confirm("Hapus data saat ini dan ganti dengan data cadangan?")) {
-                    localStorage.clear();
-                    for (const key in content) {
+                
+                if (confirm("⚠️ Peringatan: Restore akan menimpa data saat ini. Lanjutkan?")) {
+                    // Jangan pakai localStorage.clear() jika ingin aman
+                    // Kita masukkan data satu per satu
+                    Object.keys(content).forEach(key => {
                         localStorage.setItem(key, content[key]);
-                    }
-                    alert("Data berhasil dipulihkan! Aplikasi akan dimuat ulang.");
-                    window.location.reload();
+                    });
+
+                    alert("✅ Data berhasil dipulihkan! Aplikasi akan dimuat ulang.");
+                    window.location.reload(); // Wajib reload untuk memperbarui state UI
                 }
             } catch (err) {
-                alert("File tidak valid!");
+                alert("❌ Gagal membaca file: Pastikan file adalah format .json yang benar.");
+                console.error(err);
             }
         }
+        reader.readAsText(file); // Pastikan ini ada di akhir
     }
     input.click();
 }
