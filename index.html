@@ -58,6 +58,29 @@
         .badge-out { color: #c62828; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 10px 5px; text-align: center; }
+        .storage-info {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 12px;
+    border: 1px solid #ddd;
+}
+.progress-container {
+    background: #eee;
+    border-radius: 5px;
+    height: 10px;
+    width: 100%;
+    margin-top: 5px;
+}
+.progress-bar {
+    background: #2e7d32;
+    height: 100%;
+    border-radius: 5px;
+    width: 0%;
+    transition: width 0.3s;
+}
+
     </style>
 </head>
 <body>
@@ -81,31 +104,55 @@
         <div id="notif-banner" class="notif-banner">
             <strong>📢 Info:</strong> <span id="notif-text"></span>
         </div>
-<div class="card" style="background:#fffde7; border: 1px dashed #fbc02d;">
-    <strong>💾 Backup & Keamanan Data</strong>
-    <p style="font-size: 10px;">Simpan cadangan (.json) untuk restore, atau unduh laporan (.xlsx / .pdf).</p>
-    
-    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <button class="btn" style="background:#2e7d32; color:white; flex:1; margin-top:0;" onclick="backupDataJSON()">💾 BACKUP (JSON)</button>
-        <button class="btn" style="background:#cfd8dc; color:#333; flex:1; margin-top:0;" onclick="importData()">🔄 RESTORE</button>
+<div class="card" style="background:#fffde7; border: 1px dashed #fbc02d; padding: 10px;">
+    <div onclick="toggleBackup()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <strong style="font-size: 13px;">💾 Backup & Keamanan Data</strong>
+        <span id="arrow-icon" style="transition: transform 0.3s;">▼</span>
     </div>
 
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 11px;" onclick="exportData()">📊 EXCEL</button>
-        <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 11px;" onclick="exportPDF()">📄 PDF</button>
+    <div id="backup-content" style="display: none; margin-top: 15px; border-top: 1px solid #fbc02d; pt-10">
+        <p style="font-size: 10px; margin-top: 10px;">Simpan cadangan (.json) untuk restore, atau unduh laporan (.xlsx / .pdf).</p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button class="btn" style="background:#2e7d32; color:white; flex:1; margin-top:0;" onclick="backupDataJSON()">💾 BACKUP (JSON)</button>
+            <button class="btn" style="background:#cfd8dc; color:#333; flex:1; margin-top:0;" onclick="importData()">🔄 RESTORE</button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 11px;" onclick="exportData()">📊 EXCEL</button>
+            <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 11px;" onclick="exportPDF()">📄 PDF</button>
+        </div>
+
+        <div class="storage-info">
+            <strong>💾 Kapasitas Memori HP</strong>
+            <div id="storage-text">Digunakan: 0 KB</div>
+            <div class="progress-container">
+                <div id="storage-bar" class="progress-bar"></div>
+            </div>
+            <small style="color: #666;">*Jika memori penuh segera melakukan Backup</small>
+        </div>
     </div>
 </div>
-        <div class="card">
-            <strong>🌱 Periode Tanam Baru</strong>
-            <label>Varietas & Populasi</label>
-            <div class="input-row">
-                <input type="text" id="v-nama" placeholder="Varietas">
-                <input type="number" id="v-pop" placeholder="Pohon" style="width: 80px;">
-                <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
-            </div>
-            <div id="v-list-display" style="margin-top:10px;"></div>
-            <button class="btn" style="background:#1b5e20;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
+
+        <div class="card" style="border: 1px solid #1b5e20; padding: 10px;">
+    <div onclick="togglePeriodeBaru()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+        <strong>🌱 Periode Tanam Baru</strong>
+        <span id="arrow-periode" style="transition: transform 0.3s;">▼</span>
+    </div>
+
+    <div id="periode-baru-content" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+        <label>Varietas & Populasi</label>
+        <div class="input-row">
+            <input type="text" id="v-nama" placeholder="Varietas">
+            <input type="number" id="v-pop" placeholder="Pohon" style="width: 80px;">
+            <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
         </div>
+        <div id="v-list-display" style="margin-top:10px;"></div>
+        <button class="btn" style="background:#1b5e20;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
+        <p style="font-size: 9px; color: #666; margin-top: 8px;">*Memulai periode baru akan mengarsipkan data saat ini ke Riwayat.</p>
+    </div>
+</div>
+
         <div class="card" style="padding: 5px;">
     <div style="height: 250px; width: 100%;">
         <canvas id="ppmChart"></canvas>
@@ -144,19 +191,24 @@
             <tbody id="tabel-nutrisi"></tbody>
         </table>
     </div>
-
     <div id="semprot" class="tab-content">
-        <div class="card">
-            <strong>🚿 Log Penyemprotan</strong>
-            <label>Tanggal</label><input type="date" id="semprot-tgl">
-            <label>Insektisida</label><div class="input-row"><input type="text" id="ins-nama" placeholder="Merk"><input type="text" id="ins-dosis" placeholder="Dosis"></div>
-            <label>Fungisida</label><div class="input-row"><input type="text" id="fun-nama" placeholder="Merk"><input type="text" id="fun-dosis" placeholder="Dosis"></div>
-            <label>Nutrisi Tambahan</label><div class="input-row"><input type="text" id="nut-nama" placeholder="Merk"><input type="text" id="nut-dosis" placeholder="Dosis"></div>
-            <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA</button>
-        </div>
-        <div id="riwayat-semprot"></div>
+    <div class="card">
+    <strong>🚿 Log Penyemprotan</strong>
+    <label>Tanggal</label><input type="date" id="semprot-tgl">
+    <label>Insektisida</label><div class="input-row"><input type="text" id="ins-nama" placeholder="Merk"><input type="text" id="ins-dosis" placeholder="Dosis"></div>
+    <label>Fungisida</label><div class="input-row"><input type="text" id="fun-nama" placeholder="Merk"><input type="text" id="fun-dosis" placeholder="Dosis"></div>
+    <label>Nutrisi Tambahan</label><div class="input-row"><input type="text" id="nut-nama" placeholder="Merk"><input type="text" id="nut-dosis" placeholder="Dosis"></div>
+    
+    <label>Keterangan</label>
+    <textarea id="semprot-ket" rows="2" placeholder="Keterangan"></textarea>
+    
+    <label>Foto Dokumentasi (Maks 2MB)</label>
+    <input type="file" id="semprot-img" accept="image/*" capture="environment">
+    
+    <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
     </div>
-
+    <div id="riwayat-semprot"></div>
+  </div>
     <div id="kerja" class="tab-content">
         <div class="card">
             <strong>🛠️ Aktivitas Pekerja</strong>
@@ -439,6 +491,7 @@ XLSX.utils.book_append_sheet(wb, ws_riil, "Rekap_Nutrisi_Harian");
             tableHtml += `<tr style="${active ? 'background:#e8f5e9; font-weight:bold; border: 2px solid #2e7d32;' : ''}"><td>${item.h}</td><td>${item.p}</td><td>${item.ph}</td><td>${item.i}</td></tr>`;
         });
         document.getElementById('tabel-nutrisi').innerHTML = tableHtml;
+        updateStorageInfo();
     }
 
     function switchGH() {
@@ -676,107 +729,155 @@ function simpanLog(tipe) {
     let valTgl = document.getElementById(tipe + '-tgl').value; 
     if(!valTgl) return alert("Pilih tanggal dulu!");
     
-    let key = currentGH + (tipe === 'semprot' ? '_logs' : '_kerja');
-    
     const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
     let hstLog = 0;
-    
     if(savedDate) {
         let d1 = new Date(savedDate).setHours(0,0,0,0);
         let d2 = new Date(valTgl).setHours(0,0,0,0);
         hstLog = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
     }
-    
-    let data = { 
-        tgl: new Date(valTgl).toLocaleDateString('id-ID'),
-        hst: (hstLog <= 0) ? 0 : hstLog 
-    };
 
     if(tipe === 'semprot') {
-        // ... (Kode semprot Anda tetap sama)
-        data.ins = document.getElementById('ins-nama').value + " (" + document.getElementById('ins-dosis').value + ")";
-        data.fun = document.getElementById('fun-nama').value + " (" + document.getElementById('fun-dosis').value + ")";
-        data.nut = document.getElementById('nut-nama').value + " (" + document.getElementById('nut-dosis').value + ")";
-        
-        document.getElementById('ins-nama').value = "";
-        document.getElementById('ins-dosis').value = "";
-        document.getElementById('fun-nama').value = "";
-        document.getElementById('fun-dosis').value = "";
-        document.getElementById('nut-nama').value = "";
-        document.getElementById('nut-dosis').value = "";
+        const imgInput = document.getElementById('semprot-img');
+        const file = imgInput.files[0];
+
+        if (file) {
+            // Validasi ukuran awal
+            if (file.size > 2 * 1024 * 1024) return alert("File terlalu besar! Maksimal 2MB");
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function () {
+    // --- PROSES CROPPING & KOMPRESI 1:1 ---
+    const canvas = document.createElement('canvas');
+    const SIZE = 600; // Ukuran standar kotak 600x600 px
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+
+    // Hitung koordinat untuk memotong bagian tengah (center crop)
+    let sourceX, sourceY, sourceSize;
+    if (img.width > img.height) {
+        // Foto Landscape
+        sourceSize = img.height;
+        sourceX = (img.width - img.height) / 2;
+        sourceY = 0;
     } else {
+        // Foto Portrait
+        sourceSize = img.width;
+        sourceX = 0;
+        sourceY = (img.height - img.width) / 2;
+    }
+
+    // Gambar ke canvas dengan teknik cropping:
+    // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+    ctx.drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, SIZE, SIZE);
+    
+    // Simpan hasil kompresi
+    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+    prosesSimpanSemprot(valTgl, hstLog, compressedBase64);
+};
+            };
+        } else {
+            prosesSimpanSemprot(valTgl, hstLog, null);
+        }
+    } else {
+        // Logika Kerja (tetap seperti kode lama Anda)
         let biayaGajiSesiIni = 0;
         let detailPekerja = [];
         const selectedCheckboxes = document.querySelectorAll('input[name="worker_choice"]:checked');
-        
         selectedCheckboxes.forEach((cb) => {
             let parentRow = cb.closest('.worker-item-row');
             let durasi = parentRow.querySelector('.worker-duration').value;
             let gajiPerHari = parseFloat(cb.getAttribute('data-gaji')) || 0;
-            
             biayaGajiSesiIni += (gajiPerHari * parseFloat(durasi));
             detailPekerja.push(`${cb.value} (${durasi} H)`);
         });
 
-        data.nama = detailPekerja.join(", ") || "Tanpa Pekerja";
-        data.jenis = document.getElementById('kerja-jenis').value;
-        data.ket = document.getElementById('kerja-ket').value;
+        let dataKerja = {
+            tgl: new Date(valTgl).toLocaleDateString('id-ID'),
+            hst: (hstLog <= 0) ? 0 : hstLog,
+            nama: detailPekerja.join(", ") || "Tanpa Pekerja",
+            jenis: document.getElementById('kerja-jenis').value,
+            ket: document.getElementById('kerja-ket').value
+        };
 
-        // SIMPAN ESTIMASI GAJI KE DATA AKTIF (Bukan sebagai biaya riil dulu)
         let activeData = getActiveData();
         activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
         saveActiveData(activeData);
 
-        if(data.jenis === 'Pindah Tanam') {
+        if(dataKerja.jenis === 'Pindah Tanam') {
             localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
-            data.hst = 1;
+            dataKerja.hst = 1;
         }
-        document.getElementById('kerja-ket').value = "";
-        
-        // Reset checkbox setelah simpan
-        selectedCheckboxes.forEach(cb => cb.checked = false);
-    }
 
-    let log = JSON.parse(localStorage.getItem(key) || "[]");
-    log.unshift(data); 
-    localStorage.setItem(key, JSON.stringify(log));
-    
-    updateUI(); 
-    renderLogs();
-    renderFinance(); // Tambahkan ini agar angka di tab keuangan langsung update
-    alert("Data berhasil disimpan! HST: " + data.hst);
+        let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+        logK.unshift(dataKerja);
+        localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+        document.getElementById('kerja-ket').value = "";
+        selectedCheckboxes.forEach(cb => cb.checked = false);
+        finishSave();
+    }
 }
 
+// Fungsi pembantu khusus simpan semprot agar kode rapi
+function prosesSimpanSemprot(tgl, hst, imgBase64) {
+    let data = {
+        tgl: new Date(tgl).toLocaleDateString('id-ID'),
+        hst: (hst <= 0) ? 0 : hst,
+        ins: document.getElementById('ins-nama').value + " (" + document.getElementById('ins-dosis').value + ")",
+        fun: document.getElementById('fun-nama').value + " (" + document.getElementById('fun-dosis').value + ")",
+        nut: document.getElementById('nut-nama').value + " (" + document.getElementById('nut-dosis').value + ")",
+        ket: document.getElementById('semprot-ket').value,
+        img: imgBase64
+    };
+
+    let logS = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+    logS.unshift(data);
+    localStorage.setItem(currentGH + '_logs', JSON.stringify(logS));
+    
+    // Reset Form
+    ["ins-nama","ins-dosis","fun-nama","fun-dosis","nut-nama","nut-dosis","semprot-ket"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById('semprot-img').value = "";
+    
+    finishSave();
+}
+
+function finishSave() {
+    updateUI(); 
+    renderLogs();
+    renderFinance();
+    alert("Data berhasil disimpan!");
+}
 
 function renderLogs() {
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-    // Render Log Semprot
     document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
         <div class="history-card">
             <div style="display:flex; justify-content:space-between;">
                 <b>${i.tgl} (HST ${i.hst})</b>
-                <div>
-                    <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
-                </div>
+                <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
             </div>
-            <br>🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}
+            <div style="margin-top:5px;">🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}</div>
+            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Catatan: ${i.ket}</div>` : ''}
+            ${i.img ? `<img src="${i.img}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid #ddd;">` : ''}
         </div>`).join("");
 
-    // Render Log Kerja
+    // Render Log Kerja (sesuaikan dengan kode lama Anda)
     document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
         <div class="history-card" style="border-left-color:#f39c12;">
             <div style="display:flex; justify-content:space-between;">
                 <b>${i.tgl} (HST ${i.hst})</b>
-                <div>
-                    <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
-                </div>
+                <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
             </div>
             <br>🛠️ ${i.jenis} | 👥 ${i.nama}<br><small>${i.ket}</small>
         </div>`).join("");
 }
-
 
     function hitungAB() {
         let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
@@ -1291,7 +1392,6 @@ function backupDataJSON() {
     URL.revokeObjectURL(url);
 }
 
-
 async function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -1335,12 +1435,31 @@ async function exportPDF() {
 
     // --- 2. Tabel Penyemprotan ---
     doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
-    doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 13,
-        head: [['HST', 'Tanggal', 'Insektisida', 'Fungisida', 'Nutrisi']],
-        body: sLog.map(x => [x.hst, x.tgl, x.ins, x.fun, x.nut]),
-        headStyles: { fillColor: [46, 125, 50] }
-    });
+doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 13,
+    head: [['HST', 'Tanggal', 'Produk (I|F|N)', 'Keterangan', 'Foto']],
+    body: sLog.map(x => [
+        x.hst, 
+        x.tgl, 
+        `${x.ins}\n${x.fun}\n${x.nut}`, 
+        x.ket || "-", 
+        "" // Tempat foto
+    ]),
+    headStyles: { fillColor: [46, 125, 50] },
+    columnStyles: {
+        3: { cellWidth: 40 }, // Kolom keterangan
+        4: { cellWidth: 30, minCellHeight: 22 } // Kolom foto
+    },
+    didDrawCell: function(data) {
+        if (data.column.index === 4 && data.cell.section === 'body') {
+            let imgData = sLog[data.row.index].img;
+            if (imgData) {
+    // Ukuran 20x20 mm (persegi) agar simetris di dalam sel
+    doc.addImage(imgData, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+            }
+        }
+    }
+});
 
     // --- 3. Tabel Aktivitas Kerja ---
     doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
@@ -1393,6 +1512,57 @@ async function exportPDF() {
     doc.text(`LABA/RUGI BERSIH: Rp ${(tJual - tBiaya).toLocaleString()}`, 14, finalY + 16);
 
     doc.save(`LAPORAN_MELONA_${currentGH}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+function updateStorageInfo() {
+    let total = 0;
+    // Menghitung besar karakter dalam localStorage (1 karakter ≈ 2 bytes)
+    for (let key in localStorage) {
+        if (!localStorage.hasOwnProperty(key)) continue;
+        total += ((localStorage[key].length + key.length) * 2);
+    }
+    
+    // Konversi ke KB atau MB
+    let usedKB = (total / 1024).toFixed(2);
+    let usedMB = (total / (1024 * 1024)).toFixed(2);
+    
+    // Estimasi limit browser adalah 5MB (beberapa HP bisa 10MB)
+    let limit = 5 * 1024 * 1024; 
+    let percent = (total / limit) * 100;
+    if(percent > 100) percent = 100;
+
+    // Update UI
+    document.getElementById('storage-text').innerText = `Digunakan: ${usedMB} MB / 5.00 MB`;
+    const bar = document.getElementById('storage-bar');
+    bar.style.width = percent + '%';
+    
+    // Ubah warna bar jika hampir penuh
+    if(percent > 80) bar.style.background = "#e74c3c"; // Merah
+    else if(percent > 50) bar.style.background = "#f39c12"; // Oranye
+    else bar.style.background = "#2e7d32"; // Hijau
+}
+function toggleBackup() {
+    const content = document.getElementById('backup-content');
+    const arrow = document.getElementById('arrow-icon');
+    
+    if (content.style.display === "none") {
+        content.style.display = "block";
+        arrow.style.transform = "rotate(180deg)"; // Panah jadi ke atas
+    } else {
+        content.style.display = "none";
+        arrow.style.transform = "rotate(0deg)"; // Panah kembali ke bawah
+    }
+}
+function togglePeriodeBaru() {
+    const content = document.getElementById('periode-baru-content');
+    const arrow = document.getElementById('arrow-periode');
+    
+    if (content.style.display === "none") {
+        content.style.display = "block";
+        arrow.style.transform = "rotate(180deg)";
+    } else {
+        content.style.display = "none";
+        arrow.style.transform = "rotate(0deg)";
+    }
 }
 
     window.onload = () => {
