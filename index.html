@@ -1005,19 +1005,16 @@ function lihatDetailArsip(index) {
 // Fungsi mengekspor seluruh isi LocalStorage ke file JSON
 function exportData() {
     try {
-        // 1. Ambil semua data dari LocalStorage
         const activeData = getActiveData();
         const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
         const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
         const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-        // Urutkan data harian berdasarkan HST agar kronologis
         dailyLogs.sort((a, b) => a.hst - b.hst);
 
-        // Buat Workbook baru
         const wb = XLSX.utils.book_new();
 
-        // --- SHEET 1: RINGKASAN PRODUKSI ---
+        // --- SHEET 1: RINGKASAN ---
         const terakhir = dailyLogs.length > 0 ? dailyLogs[dailyLogs.length - 1] : { hst: "-", ppm: "-", ph: "-" };
         const summaryData = [
             ["LAPORAN RINGKASAN PRODUKSI MELON", ""],
@@ -1026,76 +1023,84 @@ function exportData() {
             ["Populasi", activeData.pop + " Pohon"],
             ["Tanggal Laporan", new Date().toLocaleString('id-ID')],
             ["", ""],
-            ["UPDATE STATUS TERAKHIR", ""],
+            ["STATUS TERAKHIR", ""],
             ["HST Terakhir", terakhir.hst],
             ["PPM Terakhir", terakhir.ppm],
-            ["pH Terakhir", terakhir.ph],
-            ["Total Hari Tercatat", dailyLogs.length + " Hari"]
+            ["pH Terakhir", terakhir.ph]
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
 
-        // --- SHEET 2: LAPORAN NUTRISI HARIAN (PPM & PH) ---
+        // --- SHEET 2: NUTRISI ---
         const nutrisiExcel = dailyLogs.map(x => ({
-            "HST": "H" + x.hst,
+            "HST": x.hst,
             "TANGGAL": x.tgl,
             "PPM RIIL": x.ppm,
-            "PH RIIL": x.ph,
-            "STATUS": (x.ppm < 800) ? "RENDAH" : (x.ppm > 1500 ? "TINGGI" : "OPTIMAL")
+            "PH RIIL": x.ph
         }));
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(nutrisiExcel), "Laporan_Harian_Nutrisi");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(nutrisiExcel), "Nutrisi_Harian");
 
-        // --- SHEET 3: LOG PENYEMPROTAN & HAMA ---
+        // --- SHEET 3: PENYEMPROTAN ---
         const semprotExcel = sLog.map(x => ({
-            "HST": "H" + x.hst,
+            "HST": x.hst,
             "TANGGAL": x.tgl,
             "INSEKTISIDA": x.ins,
             "FUNGISIDA": x.fun,
-            "NUTRISI TAMBAHAN": x.nut
+            "NUTRISI": x.nut
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(semprotExcel), "Log_Semprot");
 
-        // --- SHEET 4: AKTIVITAS KERJA PEKERJA ---
+        // --- SHEET 4: AKTIVITAS KERJA (Penyesuaian Urutan) ---
         const kerjaExcel = kLog.map(x => ({
-            "HST": "H" + x.hst,
+            "HST": x.hst,
             "TANGGAL": x.tgl,
             "JENIS PEKERJAAN": x.jenis,
-            "NAMA PEKERJA": x.nama,
-            "CATATAN/KETERANGAN": x.ket
+            "CATATAN/KETERANGAN": x.ket || "-",
+            "NAMA PEKERJA": x.nama
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kerjaExcel), "Log_Kerja");
 
-        // --- SHEET 5: LAPORAN KEUANGAN & LABA RUGI ---
+        // --- SHEET 5: KEUANGAN (Penyesuaian Kolom Keterangan) ---
         let finData = [];
         let totalJual = 0;
         let totalBiaya = 0;
 
         (activeData.jual || []).forEach(x => {
-            finData.push({ "TANGGAL": x.tgl, "TIPE": "PENJUALAN", "KATEGORI/GRADE": x.g, "QTY": x.b, "HARGA": x.h, "TOTAL": x.total });
+            finData.push({ 
+                "TANGGAL": x.tgl, 
+                "TIPE": "MASUK (JUAL)", 
+                "KATEGORI": x.g, 
+                "KETERANGAN": "-", 
+                "TOTAL": x.total 
+            });
             totalJual += x.total;
         });
         (activeData.biaya || []).forEach(x => {
-            finData.push({ "TANGGAL": x.tgl, "TIPE": "BIAYA", "KATEGORI": x.k, "QTY": x.q, "HARGA": x.h, "TOTAL": x.total });
+            finData.push({ 
+                "TANGGAL": x.tgl, 
+                "TIPE": "KELUAR (BIAYA)", 
+                "KATEGORI": x.k, 
+                "KETERANGAN": x.ket || "-", 
+                "TOTAL": x.total 
+            });
             totalBiaya += x.total;
         });
 
         const ws_finance = XLSX.utils.json_to_sheet(finData);
-        // Tambahkan ringkasan perhitungan di bawah tabel keuangan
         XLSX.utils.sheet_add_aoa(ws_finance, [
             [],
-            ["", "", "", "", "TOTAL PENJUALAN", totalJual],
-            ["", "", "", "", "TOTAL BIAYA", totalBiaya],
-            ["", "", "", "", "LABA / RUGI BERSIH", totalJual - totalBiaya]
+            ["", "", "TOTAL PENJUALAN", "", totalJual],
+            ["", "", "TOTAL BIAYA", "", totalBiaya],
+            ["", "", "LABA / RUGI BERSIH", "", totalJual - totalBiaya]
         ], { origin: -1 });
-        XLSX.utils.book_append_sheet(wb, ws_finance, "Laporan_Keuangan");
+        XLSX.utils.book_append_sheet(wb, ws_finance, "Keuangan");
 
-        // --- DOWNLOAD FILE ---
-        const fileName = `REKAP_FULL_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        // --- DOWNLOAD ---
+        const fileName = `LAPORAN_MELON_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
 
-        alert("Berhasil! Laporan lengkap per hari dan keuangan telah diunduh.");
+        alert("Download Data Laporan Excel");
     } catch (err) {
-        alert("Terjadi kesalahan saat export: " + err.message);
-        console.error(err);
+        alert("Gagal export Excel: " + err.message);
     }
 }
 
