@@ -2077,12 +2077,31 @@ function syncOldData(namaLama, namaBaru) {
     });
 }
 
-    window.onload = () => {
+        window.onload = () => {
         updateGHSelector();
+        
+        // Atur tanggal default ke hari ini
         document.getElementById('semprot-tgl').valueAsDate = new Date();
         document.getElementById('kerja-tgl').valueAsDate = new Date();
-        initChart(); updateUI(); renderLogs(); loadWorkerCheckboxes(); renderFinance();
+
+        // --- TAMBAHAN: PEMICU KONVERSI DATA LAMA KE FORMAT BARU ---
+        const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+        if (masterPekerja.length > 0) {
+            masterPekerja.forEach(p => {
+                // Jalankan sinkronisasi otomatis untuk setiap pekerja yang ada di Master
+                syncOldData(p.nama, p.nama); 
+            });
+            console.log("Sinkronisasi format data selesai.");
+        }
+        // ---------------------------------------------------------
+
+        initChart(); 
+        updateUI(); 
+        renderLogs(); 
+        loadWorkerCheckboxes(); 
+        renderFinance();
     };
+
 </script>
 </body>
 </html>
