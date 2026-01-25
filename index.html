@@ -1105,32 +1105,30 @@ function importData() {
     input.accept = '.json';
     input.onchange = e => {
         const file = e.target.files[0];
+        if (!file) return;
+
         const reader = new FileReader();
-        
-        reader.onload = readerEvent => {
+        reader.onload = function(event) {
             try {
-                // Parse file JSON hasil backup
-                const content = JSON.parse(readerEvent.target.result);
-                
-                if (confirm("⚠️ Peringatan: Restore akan menimpa data saat ini. Lanjutkan?")) {
-                    // Jangan pakai localStorage.clear() jika ingin aman
-                    // Kita masukkan data satu per satu
+                const content = JSON.parse(event.target.result);
+                if (confirm("Timpa semua data dengan file backup ini?")) {
+                    // Masukkan data ke LocalStorage
                     Object.keys(content).forEach(key => {
                         localStorage.setItem(key, content[key]);
                     });
-
-                    alert("✅ Data berhasil dipulihkan! Aplikasi akan dimuat ulang.");
-                    window.location.reload(); // Wajib reload untuk memperbarui state UI
+                    alert("✅ Restore Berhasil! Aplikasi akan memuat ulang.");
+                    window.location.reload();
                 }
             } catch (err) {
-                alert("❌ Gagal membaca file: Pastikan file adalah format .json yang benar.");
-                console.error(err);
+                alert("❌ File rusak atau bukan format JSON yang benar!");
             }
-        }
-        reader.readAsText(file); // Pastikan ini ada di akhir
-    }
+        };
+        // Baris ini harus ada agar file dibaca sebagai teks
+        reader.readAsText(file);
+    };
     input.click();
 }
+
 
 function simpanNutrisiRiil() {
     // 1. Ambil elemen input dari HTML
@@ -1272,12 +1270,22 @@ function backupDataJSON() {
         const key = localStorage.key(i);
         allData[key] = localStorage.getItem(key);
     }
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData));
+    
+    // Gunakan Blob agar file tidak rusak
+    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const tgl = new Date().toISOString().split('T')[0];
     const dlAnchor = document.createElement('a');
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download", `BACKUP_SISTEM_MELONA_${currentGH}.json`);
+    dlAnchor.href = url;
+    dlAnchor.download = `BACKUP_MELON_ALL_DATA_${tgl}.json`;
+    
+    document.body.appendChild(dlAnchor);
     dlAnchor.click();
+    document.body.removeChild(dlAnchor);
+    URL.revokeObjectURL(url);
 }
+
 
 async function exportPDF() {
     const { jsPDF } = window.jspdf;
