@@ -35,8 +35,11 @@
         .notif-banner { background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #ffc107; font-size: 13px; display: none; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 1000; height: 100px; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; z-index: 1000; height: 75px; }
         .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 12px; font-weight: bold; color: #666; cursor: pointer; }
+        .nav-item span:first-child {
+         font-size: 16px; /* Ikon diperbesar signifikan */
+         margin-bottom: 2px; /* Jarak antara ikon dan teks */ }
         .nav-item.active { color: #2e7d32; border-top: 4px solid #2e7d32; background: #f9f9f9; }
         
         label { font-size: 11px; font-weight: bold; color: #2e7d32; text-transform: uppercase; margin-top: 10px; display: block; }
@@ -80,6 +83,26 @@
     width: 0%;
     transition: width 0.3s;
 }
+/* Batasi tampilan maksimal 5 item jika class 'limit-view' aktif */
+.riwayat-list.limit-view .history-card:nth-child(n+6),
+.riwayat-list.limit-view .trans-item:nth-child(n+6) {
+    display: none;
+}
+
+.btn-show-more {
+    width: 100%;
+    background: #f1f1f1;
+    border: 1px solid #ddd;
+    color: #2e7d32;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+    display: none; /* Sembunyikan jika data <= 5 */
+}
+
 
     </style>
 </head>
@@ -207,7 +230,8 @@
     
     <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
     </div>
-    <div id="riwayat-semprot"></div>
+    <div id="riwayat-semprot" class="riwayat-list limit-view"></div>
+<button id="btn-semprot-more" class="btn-show-more" onclick="toggleExpand('riwayat-semprot', 'btn-semprot-more')">Tampilkan Semua ▼</button>
   </div>
     <div id="kerja" class="tab-content">
         <div class="card">
@@ -225,7 +249,9 @@
             <textarea id="kerja-ket" rows="2" placeholder="Catatan..." style="margin-top:10px;"></textarea>
             <button class="btn" style="background:#f39c12;" onclick="simpanLog('kerja')">SIMPAN AKTIVITAS</button>
         </div>
-        <div id="riwayat-kerja"></div>
+        <div id="riwayat-kerja" class="riwayat-list limit-view"></div>
+<button id="btn-kerja-more" class="btn-show-more" onclick="toggleExpand('riwayat-kerja', 'btn-kerja-more')">Tampilkan Semua ▼</button>
+
     </div>
 
     <div id="keuangan" class="tab-content">
@@ -257,7 +283,7 @@
 
     <div style="margin-bottom: 8px;">
         <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Keterangan</label>
-        <input type="text" id="f-ket" placeholder="Merk benih, Nama toko, dll..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+        <input type="text" id="f-ket" placeholder="Merk, jenis, dll..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
     </div>
 
     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -318,7 +344,9 @@
 
         <div class="card">
             <strong>📑 Detail Arus Kas</strong>
-            <div id="transaksi-detail-list" style="margin-top:10px;"></div>
+            <div id="transaksi-detail-list" class="riwayat-list limit-view" style="margin-top:10px;"></div>
+<button id="btn-trans-more" class="btn-show-more" onclick="toggleExpand('transaksi-detail-list', 'btn-trans-more')">Tampilkan Semua ▼</button>
+
         </div>
         <hr style="margin: 20px 0;">
 <strong style="color: #666; display: block; margin-bottom: 10px;">📜 Riwayat Periode Sebelumnya</strong>
@@ -701,6 +729,8 @@ function renderFinance() {
     </div>`;
 });
     document.getElementById('transaksi-detail-list').innerHTML = detailHtml || "<small>Belum ada transaksi</small>";
+    const totalDataFin = (d.jual || []).length + (d.biaya || []).length;
+    checkLimit('transaksi-detail-list', 'btn-trans-more', totalDataFin);
 
     // 5. Riwayat Periode Sebelumnya (Arsip)
     let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
@@ -857,6 +887,7 @@ function renderLogs() {
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
+    // Render Semprot
     document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
         <div class="history-card">
             <div style="display:flex; justify-content:space-between;">
@@ -864,19 +895,20 @@ function renderLogs() {
                 <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
             </div>
             <div style="margin-top:5px;">🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}</div>
-            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Catatan: ${i.ket}</div>` : ''}
             ${i.img ? `<img src="${i.img}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid #ddd;">` : ''}
         </div>`).join("");
+    checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
 
-    // Render Log Kerja (sesuaikan dengan kode lama Anda)
+    // Render Kerja
     document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
         <div class="history-card" style="border-left-color:#f39c12;">
             <div style="display:flex; justify-content:space-between;">
                 <b>${i.tgl} (HST ${i.hst})</b>
                 <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
             </div>
-            <br>🛠️ ${i.jenis} | 👥 ${i.nama}<br><small>${i.ket}</small>
+            <br>🛠️ ${i.jenis} | 👥 ${i.nama}
         </div>`).join("");
+    checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
 }
 
     function hitungAB() {
@@ -1562,6 +1594,27 @@ function togglePeriodeBaru() {
     } else {
         content.style.display = "none";
         arrow.style.transform = "rotate(0deg)";
+    }
+}
+function toggleExpand(listId, btnId) {
+    const list = document.getElementById(listId);
+    const btn = document.getElementById(btnId);
+    if (list.classList.contains('limit-view')) {
+        list.classList.remove('limit-view');
+        btn.innerText = "Sembunyikan ▲";
+    } else {
+        list.classList.add('limit-view');
+        btn.innerText = "Tampilkan Semua ▼";
+    }
+}
+
+// Fungsi pembantu untuk cek jumlah data
+function checkLimit(listId, btnId, length) {
+    const btn = document.getElementById(btnId);
+    if (length > 5) {
+        btn.style.display = "block";
+    } else {
+        btn.style.display = "none";
     }
 }
 
