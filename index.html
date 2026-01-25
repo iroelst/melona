@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Melon Monitor System V2 - Pro</title>
-    <link rel="icon" type="image/png" sizes="192x192" href="https://i.ibb.co.com/ZpFfjmqv/1769265302196.png">
-    <link rel="apple-touch-icon" href="https://i.ibb.co.com/ZpFfjmqv/1769265302196.png">
-    <meta name="theme-color" content="#1b5e20">
     <link rel="manifest" href="manifest.json">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="https://i.ibb.co.com/ZpFfjmqv/1769265302196.png">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2909/2909841.png">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -79,13 +79,21 @@
         <div id="notif-banner" class="notif-banner">
             <strong>📢 Info:</strong> <span id="notif-text"></span>
         </div>
-         <div class="card" style="background:#fffde7; border: 1px dashed #fbc02d;">
+<div class="card" style="background:#fffde7; border: 1px dashed #fbc02d;">
     <strong>💾 Backup & Keamanan Data</strong>
-    <p style="font-size: 10px;">Simpan cadangan data secara berkala untuk menghindari kehilangan data.</p>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" style="background:#fbc02d; color:#333; flex:1;" onclick="exportData()">BACKUP DATA</button>
-        <button class="btn" style="background:#cfd8dc; color:#333; flex:1;" onclick="importData()">RESTORE DATA</button>
+    <p style="font-size: 10px;">Simpan cadangan (.json) untuk restore, atau unduh laporan (.xlsx / .pdf).</p>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <button class="btn" style="background:#2e7d32; color:white; flex:1; margin-top:0;" onclick="backupDataJSON()">💾 BACKUP (JSON)</button>
+        <button class="btn" style="background:#cfd8dc; color:#333; flex:1; margin-top:0;" onclick="importData()">🔄 RESTORE</button>
     </div>
+
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 11px;" onclick="exportData()">📊 EXCEL</button>
+        <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 11px;" onclick="exportPDF()">📄 PDF</button>
+    </div>
+</div>
+
     </div>
         <div class="card">
             <strong>🌱 Periode Tanam Baru</strong>
@@ -270,10 +278,10 @@
 </div>
 
 <div class="nav-bar">
-    <div class="nav-item active" onclick="openTab(event, 'nutrisi')"><span style="font-size: 20px; display: block;">📊</span><span>NUTRISI</span></div>
-    <div class="nav-item" onclick="openTab(event, 'semprot')"><span style="font-size: 20px; display: block;">🚿</span><span>SEMPROT</span></div>
-    <div class="nav-item" onclick="openTab(event, 'kerja')"><span style="font-size: 20px; display: block;">🛠️</span><span>KERJA</span></div>
-    <div class="nav-item" onclick="openTab(event, 'keuangan')"><span style="font-size: 20px; display: block;">💰</span><span>KEUANGAN</span></div>
+    <div class="nav-item active" onclick="openTab(event, 'nutrisi')"><span>📊</span><span>NUTRISI</span></div>
+    <div class="nav-item" onclick="openTab(event, 'semprot')"><span>🚿</span><span>SEMPROT</span></div>
+    <div class="nav-item" onclick="openTab(event, 'kerja')"><span>🛠️</span><span>KERJA</span></div>
+    <div class="nav-item" onclick="openTab(event, 'keuangan')"><span>💰</span><span>KEUANGAN</span></div>
 </div>
 
 <div id="modalMaster" class="modal"><div class="modal-content">
@@ -1253,6 +1261,109 @@ function catatKasbon() {
         alert(`Kasbon ${nama} berhasil dicatat!`);
     }
 }
+
+function backupDataJSON() {
+    const allData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        allData[key] = localStorage.getItem(key);
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allData));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `BACKUP_SISTEM_MELONA_${currentGH}.json`);
+    dlAnchor.click();
+}
+
+async function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const d = getActiveData();
+    const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+    const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+    const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+    // --- FUNGSI TAMBAH LOGO ---
+    const logoUrl = 'melona_logo.png'; // Mengambil file dari folder yang sama di GitHub
+    
+    try {
+        // Menambahkan gambar logo di pojok kanan atas (x: 160, y: 10, width: 35, height: 35)
+        // Kita gunakan try-catch agar jika gambar gagal dimuat, laporan tetap terunduh
+        doc.addImage(logoUrl, 'PNG', 160, 10, 35, 35);
+    } catch (e) {
+        console.error("Logo tidak ditemukan, melanjutkan tanpa logo.");
+    }
+
+    // --- Judul & Ringkasan ---
+    doc.setFontSize(22);
+    doc.setTextColor(27, 94, 32); // Warna Hijau Gelap (#1b5e20)
+    doc.text("LAPORAN PRODUKSI MELON", 14, 25);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Greenhouse: ${currentGH}`, 14, 35);
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Varietas: ${d.v} | Populasi: ${d.pop} Pohon`, 14, 42);
+    doc.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 47);
+
+    // --- 1. Tabel Nutrisi Harian ---
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text("1. Rekap Nutrisi Harian (PPM & pH)", 14, 60);
+    doc.autoTable({
+        startY: 63,
+        head: [['HST', 'Tanggal', 'PPM Riil', 'pH Riil']],
+        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, x.tgl, x.ppm, x.ph]),
+        headStyles: { fillColor: [46, 125, 50] } // Warna Hijau
+    });
+
+    // --- 2. Tabel Penyemprotan ---
+    doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 13,
+        head: [['HST', 'Tanggal', 'Insektisida', 'Fungisida', 'Nutrisi']],
+        body: sLog.map(x => [x.hst, x.tgl, x.ins, x.fun, x.nut]),
+        headStyles: { fillColor: [46, 125, 50] }
+    });
+
+    // --- 3. Tabel Aktivitas Kerja ---
+    doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 13,
+        head: [['HST', 'Tanggal', 'Pekerjaan', 'Pekerja']],
+        body: kLog.map(x => [x.hst, x.tgl, x.jenis, x.nama]),
+        headStyles: { fillColor: [46, 125, 50] }
+    });
+
+    // --- 4. Tabel Keuangan (Halaman Baru) ---
+    doc.addPage();
+    doc.text("4. Laporan Keuangan & Laba Rugi", 14, 20);
+    
+    let finData = [];
+    let tBiaya = 0; let tJual = 0;
+    (d.jual || []).forEach(x => { finData.push([x.tgl, "PENJUALAN", x.g, `Rp ${x.total.toLocaleString()}`]); tJual += x.total; });
+    (d.biaya || []).forEach(x => { finData.push([x.tgl, "BIAYA", x.k, `Rp ${x.total.toLocaleString()}`]); tBiaya += x.total; });
+
+    doc.autoTable({
+        startY: 25,
+        head: [['Tanggal', 'Tipe', 'Kategori', 'Total']],
+        body: finData,
+        headStyles: { fillColor: [239, 108, 0] } // Warna Oranye untuk Keuangan
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(11);
+    doc.text(`Total Penjualan: Rp ${tJual.toLocaleString()}`, 14, finalY);
+    doc.text(`Total Biaya Produksi: Rp ${tBiaya.toLocaleString()}`, 14, finalY + 7);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(13);
+    doc.text(`LABA/RUGI BERSIH: Rp ${(tJual - tBiaya).toLocaleString()}`, 14, finalY + 16);
+
+    doc.save(`LAPORAN_MELONA_${currentGH}_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
 
     window.onload = () => {
         updateGHSelector();
