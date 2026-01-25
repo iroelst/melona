@@ -225,20 +225,22 @@
     <label>Keterangan</label>
     <textarea id="semprot-ket" rows="2" placeholder="Keterangan"></textarea>
     
-    <label>Foto Dokumentasi (Maks 2MB)</label>
-    <input type="file" id="semprot-img" accept="image/*" data-direct="true">
+<label>Foto Dokumentasi (Maks 2MB)</label>
+<input type="file" id="semprot-img" accept="image/*">
     
     <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
     </div>
     <div id="riwayat-semprot" class="riwayat-list limit-view"></div>
 <button id="btn-semprot-more" class="btn-show-more" onclick="toggleExpand('riwayat-semprot', 'btn-semprot-more')">Tampilkan Semua ▼</button>
   </div>
+  
     <div id="kerja" class="tab-content">
         <div class="card">
             <strong>🛠️ Aktivitas Pekerja</strong>
             <label>Tanggal</label><input type="date" id="kerja-tgl">
             <div style="display:flex; justify-content:space-between; margin-top:10px;"><label>Pilih Pekerja</label><button onclick="toggleModal(true)" style="font-size:10px;">Pekerja</button></div>
             <div id="worker-checkbox-list" style="border:1px solid #ddd; border-radius:8px; padding:10px; max-height:100px; overflow-y:auto; background:#f9f9f9;"></div>
+            
             <label>Jenis Pekerjaan</label>
             <select id="kerja-jenis">
                 <option value="Semai">Semai</option><option value="Pindah Tanam">Pindah Tanam</option>
@@ -249,6 +251,7 @@
             <textarea id="kerja-ket" rows="2" placeholder="Catatan..." style="margin-top:10px;"></textarea>
             <button class="btn" style="background:#f39c12;" onclick="simpanLog('kerja')">SIMPAN AKTIVITAS</button>
         </div>
+
         <div id="riwayat-kerja" class="riwayat-list limit-view"></div>
 <button id="btn-kerja-more" class="btn-show-more" onclick="toggleExpand('riwayat-kerja', 'btn-kerja-more')">Tampilkan Semua ▼</button>
 
@@ -328,7 +331,28 @@
     <div id="list-kasbon-nama" style="margin-top:10px; font-size: 10px; color: #880e4f;"></div>
 </div>
 
+<div class="card" style="background:#e8f5e9; border: 1px solid #2e7d32;">
+    <strong>🎫 Cetak Slip Gaji</strong>
+    <label>Pilih Pekerja</label>
+    <select id="select-slip-pekerja" style="margin-bottom: 10px;"></select>
+    <button class="btn" style="background:#2e7d32;" onclick="generateSlipGaji()">LIHAT SLIP GAJI</button>
+</div>
 
+<div id="modalSlip" class="modal">
+    <div class="modal-content" style="width: 90%; max-width: 400px; font-family: monospace;">
+        <div id="slip-printable" style="padding: 10px; border: 1px solid #eee; background: #fff; color: #000;">
+            <center>
+                <small>Slip Gaji Karyawan - Periode Aktif</small>
+            </center>
+            <hr style="border: 0; border-top: 1px dashed #000;">
+            <div id="slip-detail-content"></div>
+            <hr style="border: 0; border-top: 1px dashed #000;">
+            <center><small>Terima kasih atas kerja kerasnya!</small></center>
+        </div>
+        <button class="btn" onclick="printSlip()" style="background:#1b5e20;">CETAK / PDF</button>
+        <button class="btn" onclick="document.getElementById('modalSlip').style.display='none'" style="background:#666;">TUTUP</button>
+    </div>
+</div>
         <div class="card" style="background:#fff3e0; border-left:5px solid #ef6c00;">
             <strong>🛒 Penjualan Hasil Panen</strong>
             <label>Grade Buah</label>
@@ -364,12 +388,47 @@
     <div class="nav-item" onclick="openTab(event, 'keuangan')"><span>💰</span><span>KEUANGAN</span></div>
 </div>
 
-<div id="modalMaster" class="modal"><div class="modal-content">
-    <strong>👥 Data Pekerja</strong>
-    <input type="text" id="new-worker-name" placeholder="Nama baru..."><button class="btn" onclick="addWorker()">TAMBAH</button>
-    <div id="worker-list-master" style="margin-top:15px; max-height:150px; overflow-y:auto;"></div>
-    <button class="btn" onclick="toggleModal(false)" style="background:#666;">TUTUP</button>
-</div></div>
+<div id="modalMaster" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <strong style="display:block; margin-bottom:15px; font-size:16px;">👥 Master Data Pekerja</strong>
+        
+        <div style="background: #f1f1f1; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+            <input type="text" id="new-worker-name" placeholder="Nama Pekerja" style="width:100%; margin-bottom:8px; padding:8px; box-sizing:border-box;">
+            
+            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+                <input type="number" id="worker-salary" placeholder="Gaji (Rp/Hari)" style="flex:1; padding:8px; box-sizing:border-box;">
+                <input type="number" id="worker-ot-rate" placeholder="Lembur (Rp/Jam)" style="flex:1; padding:8px; box-sizing:border-box;">
+            </div>
+            
+            <button class="btn" onclick="addWorker()" style="width:100%; font-weight:bold;">+ TAMBAH PEKERJA</button>
+        </div>
+
+        <div id="worker-list-master" style="margin-top:10px; max-height:200px; overflow-y:auto; border:1px solid #ddd; border-radius:5px; padding:5px;">
+            </div>
+        
+        <button class="btn" onclick="toggleModal(false)" style="background:#666; width:100%; margin-top:10px;">TUTUP</button>
+    </div>
+</div>
+<div id="modalEditWorker" class="modal">
+    <div class="modal-content" style="max-width: 350px; border-top: 5px solid #fbc02d;">
+        <strong style="display:block; margin-bottom:15px; font-size:16px;">✏️ Edit Data Pekerja</strong>
+        
+        <input type="hidden" id="edit-worker-index">
+        <label>Nama Pekerja</label>
+        <input type="text" id="edit-worker-name" style="margin-bottom:10px;">
+        
+        <label>Gaji Harian (Rp)</label>
+        <input type="number" id="edit-worker-salary" style="margin-bottom:10px;">
+        
+        <label>Tarif Lembur (Rp/Jam)</label>
+        <input type="number" id="edit-worker-ot" style="margin-bottom:20px;">
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" onclick="saveWorkerEdit()" style="background:#2e7d32; flex:1; margin-top:0;">SIMPAN</button>
+            <button class="btn" onclick="closeEditModal()" style="background:#666; flex:1; margin-top:0;">BATAL</button>
+        </div>
+    </div>
+</div>
 
 <script>
     let ghList = JSON.parse(localStorage.getItem('gh_list')) || ["GH 1"];
@@ -815,22 +874,65 @@ function simpanLog(tipe) {
             prosesSimpanSemprot(valTgl, hstLog, null);
         }
     } else {
-        // Logika Kerja (tetap seperti kode lama Anda)
         let biayaGajiSesiIni = 0;
         let detailPekerja = [];
+        let masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
         const selectedCheckboxes = document.querySelectorAll('input[name="worker_choice"]:checked');
+        
+        if(selectedCheckboxes.length === 0) return alert("Pilih minimal satu pekerja!");
+
+        // --- VALIDASI BATAS MAKSIMAL 1 HARI ---
+        const tglInputIndo = new Date(valTgl).toLocaleDateString('id-ID');
+        
+        for (let cb of selectedCheckboxes) {
+            let namaPekerja = cb.value;
+            let parentRow = cb.closest('.worker-item-row');
+            let durasiBaru = parseFloat(parentRow.querySelector('.worker-duration').value);
+            let totalDurasiLama = 0;
+
+            // Scan seluruh GreenHouse
+            ghList.forEach(gh => {
+                const logs = JSON.parse(localStorage.getItem(gh + '_kerja') || "[]");
+                logs.filter(l => l.tgl === tglInputIndo).forEach(log => {
+                    const regex = new RegExp(`${namaPekerja.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s\\(([^|]+)`, "g");
+                    let match;
+                    while ((match = regex.exec(log.nama)) !== null) {
+                        totalDurasiLama += parseFloat(match[1]);
+                    }
+                });
+            });
+
+            // Cek jika total melebihi 1.0
+            if ((totalDurasiLama + durasiBaru) > 1.0) {
+                alert(`SIMPAN GAGAL!\n\n${namaPekerja} sudah bekerja ${totalDurasiLama} hari pada ${tglInputIndo}.\nAnda mencoba menambah ${durasiBaru} hari.\nTotal melebihi batas 1 hari kerja.`);
+                return; // Batalkan proses simpan secara keseluruhan
+            }
+        }
+        // --- SELESAI VALIDASI ---
+
+        // Lanjutkan proses hitung gaji jika lolos validasi
         selectedCheckboxes.forEach((cb) => {
             let parentRow = cb.closest('.worker-item-row');
-            let durasi = parentRow.querySelector('.worker-duration').value;
+            let namaPekerja = cb.value;
+            let dataMaster = masterPekerja.find(p => p.nama === namaPekerja);
+            let tarifLemburPerJam = dataMaster ? parseFloat(dataMaster.tarifLembur || 0) : 0;
+            
+            let durasi = parseFloat(parentRow.querySelector('.worker-duration').value);
+            let lemburJam = parseFloat(parentRow.querySelector('.worker-overtime').value) || 0;
+            let bonusNominal = parseFloat(parentRow.querySelector('.worker-bonus').value) || 0;
             let gajiPerHari = parseFloat(cb.getAttribute('data-gaji')) || 0;
-            biayaGajiSesiIni += (gajiPerHari * parseFloat(durasi));
-            detailPekerja.push(`${cb.value} (${durasi} H)`);
+            
+            let totalGajiIndividu = (gajiPerHari * durasi) + (lemburJam * tarifLemburPerJam) + bonusNominal;
+            biayaGajiSesiIni += totalGajiIndividu;
+
+            let detailStr = `${namaPekerja} (${durasi}H|L:${lemburJam}|B:${bonusNominal})`;
+            detailPekerja.push(detailStr);
         });
 
         let dataKerja = {
-            tgl: new Date(valTgl).toLocaleDateString('id-ID'),
+            tgl: tglInputIndo,
             hst: (hstLog <= 0) ? 0 : hstLog,
-            nama: detailPekerja.join(", ") || "Tanpa Pekerja",
+            nama: detailPekerja.join(", "),
             jenis: document.getElementById('kerja-jenis').value,
             ket: document.getElementById('kerja-ket').value
         };
@@ -847,12 +949,12 @@ function simpanLog(tipe) {
         let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
         logK.unshift(dataKerja);
         localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+        
         document.getElementById('kerja-ket').value = "";
-        selectedCheckboxes.forEach(cb => cb.checked = false);
+        loadWorkerCheckboxes();
         finishSave();
     }
 }
-
 // Fungsi pembantu khusus simpan semprot agar kode rapi
 function prosesSimpanSemprot(tgl, hst, imgBase64) {
     let data = {
@@ -1026,25 +1128,77 @@ function renderLogs() {
     });
 }
 
-    function toggleModal(s) { document.getElementById('modalMaster').style.display = s ? 'block' : 'none'; if(s) renderWorkerMaster(); }
-    function addWorker() {
-    let n = document.getElementById('new-worker-name').value;
-    if(!n) return;
+function toggleModal(s) { 
+    document.getElementById('modalMaster').style.display = s ? 'block' : 'none'; 
+    if(s) renderMasterPekerja(); // Pastikan memanggil renderMasterPekerja, bukan renderWorkerMaster
+}
+    
+function addWorker() {
+    const nama = document.getElementById('new-worker-name').value.trim();
+    const gaji = parseFloat(document.getElementById('worker-salary').value) || 0;
+    const lembur = parseFloat(document.getElementById('worker-ot-rate').value) || 0;
 
-    // Meminta input gaji
-    let g = prompt("Masukkan Gaji per Hari untuk " + n + ":", "100000"); 
-    if(g === null) return; // Jika klik cancel, batalkan
+    if (nama === "") {
+        alert("Nama pekerja harus diisi!");
+        return;
+    }
 
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     
-    // Simpan sebagai Objek, tapi pastikan strukturnya benar
-    w.push({ nama: n, gaji: parseFloat(g) || 0 });
+    // Simpan sebagai objek lengkap
+    w.push({ 
+        nama: nama, 
+        gaji: gaji, 
+        tarifLembur: lembur 
+    });
     
     localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
+
+    // Reset Form Input
     document.getElementById('new-worker-name').value = "";
+    document.getElementById('worker-salary').value = "";
+    document.getElementById('worker-ot-rate').value = "";
     
-    renderWorkerMaster();
-    loadWorkerCheckboxes();
+    renderMasterPekerja(); // Panggil fungsi refresh list
+    if(typeof loadWorkerCheckboxes === "function") loadWorkerCheckboxes();
+}
+
+function renderMasterPekerja() {
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    let container = document.getElementById('worker-list-master');
+    
+    if (w.length === 0) {
+        container.innerHTML = "<div style='text-align:center; padding:20px; color:gray;'><small>Belum ada data pekerja.</small></div>";
+        return;
+    }
+
+    let html = `
+        <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left; background: white;">
+            <tr style="background:#f4f4f4; color: #333;">
+                <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Nama</th>
+                <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Gaji/H</th>
+                <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Lembur/J</th>
+                <th style="padding:10px 5px; border-bottom:2px solid #ddd; text-align:center;">Aksi</th>
+            </tr>`;
+            
+    w.forEach((x, index) => {
+        let gajiHarian = x.gaji || 0;
+        let tarifLembur = x.tarifLembur || 0;
+
+        html += `
+        <tr>
+            <td style="padding:10px 5px; border-bottom:1px solid #eee;"><b>${x.nama}</b></td>
+            <td style="padding:10px 5px; border-bottom:1px solid #eee;">Rp ${gajiHarian.toLocaleString()}</td>
+            <td style="padding:10px 5px; border-bottom:1px solid #eee;">Rp ${tarifLembur.toLocaleString()}</td>
+            <td style="padding:10px 5px; border-bottom:1px solid #eee; text-align:center; white-space:nowrap;">
+                <button onclick="editWorker(${index})" style="background:#fbc02d; color:black; border:none; border-radius:4px; padding:5px 8px; cursor:pointer; font-size:10px; margin-right:4px;">EDIT</button>
+                <button onclick="removeWorker(${index})" style="background:#e53935; color:white; border:none; border-radius:4px; padding:5px 8px; cursor:pointer; font-size:10px;">HAPUS</button>
+            </td>
+        </tr>`;
+    });
+    
+    html += `</table>`;
+    container.innerHTML = html;
 }
 
 function renderWorkerMaster() {
@@ -1061,7 +1215,7 @@ function renderWorkerMaster() {
         let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]"); w.splice(i, 1);
         localStorage.setItem('master_pekerja_v2', JSON.stringify(w)); renderWorkerMaster(); loadWorkerCheckboxes();
     }
-    function loadWorkerCheckboxes() {
+function loadWorkerCheckboxes() {
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     let container = document.getElementById('worker-checkbox-list');
     
@@ -1069,24 +1223,38 @@ function renderWorkerMaster() {
         container.innerHTML = "<small style='color:red;'>Belum ada master pekerja. Tambah di menu Pekerja.</small>";
         return;
     }
+
     let opt = w.map(x => `<option value="${x.nama}">${x.nama}</option>`).join("");
-document.getElementById('nama-kasbon-select').innerHTML = `<option value="">-- Pilih Pekerja --</option>` + opt;
+    document.getElementById('nama-kasbon-select').innerHTML = `<option value="">-- Pilih Pekerja --</option>` + opt;
+    document.getElementById('select-slip-pekerja').innerHTML = `<option value="">-- Pilih Pekerja --</option>` + opt;
 
     container.innerHTML = w.map(x => `
-        <div class="worker-item-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; background:#fff; padding:5px; border-radius:5px; border:1px solid #eee;">
-            <div style="display:flex; align-items:center; gap:8px;">
-                <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:auto; margin:0;">
-                <span style="font-size:12px; font-weight:bold;">${x.nama}</span>
+        <div class="worker-item-row" style="display:flex; flex-direction:column; gap:5px; margin-bottom:10px; background:#fff; padding:8px; border-radius:5px; border:1px solid #eee;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:auto; margin:0;">
+                    <span style="font-size:12px; font-weight:bold;">${x.nama}</span>
+                </div>
+                <select class="worker-duration" style="width:80px; padding:2px; font-size:11px; border:1px solid #2e7d32;">
+                    <option value="1">1 Hari</option>
+                    <option value="0.5">1/2 Hari</option>
+                </select>
             </div>
-            <select class="worker-duration" style="width:80px; padding:2px; font-size:11px; margin:0; border:1px solid #2e7d32;">
-                <option value="1">1 Hari</option>
-                <option value="0.5">1/2 Hari</option>
-            </select>
+            
+            <div style="display:flex; gap:5px; margin-left:25px;">
+                <div style="flex:1;">
+                    <label style="font-size:9px; color:#666; display:block;">Lembur (Jam)</label>
+                    <input type="number" class="worker-overtime" placeholder="0" style="width:100%; font-size:11px; padding:2px; border:1px solid #ccc; border-radius:3px;">
+                </div>
+                <div style="flex:1;">
+                    <label style="font-size:9px; color:#666; display:block;">Bonus (Rp)</label>
+                    <input type="number" class="worker-bonus" placeholder="Rp" style="width:100%; font-size:11px; padding:2px; border:1px solid #ccc; border-radius:3px;">
+                </div>
+            </div>
         </div>
     `).join("");
 }
 
-    
     // Fungsi Hapus untuk Log Semprot dan Log Kerja
 function hapusItem(key, index) {
     if(confirm("Hapus data ini?")) {
@@ -1113,12 +1281,31 @@ function hapusItem(key, index) {
 function hapusFinance(tipe, index) {
     if(confirm("Hapus transaksi ini?")) {
         let d = getActiveData();
-        if(tipe === 'jual') d.jual.splice(index, 1);
-        else d.biaya.splice(index, 1);
+        let itemDihapus;
+        
+        if(tipe === 'jual') {
+            d.jual.splice(index, 1);
+        } else {
+            itemDihapus = d.biaya[index];
+            
+            // --- LOGIKA PENGEMBALIAN SALDO GAJI ---
+            // Mengecek apakah yang dihapus adalah postingan gaji
+            if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
+                let kembaliGaji = confirm("Anda menghapus catatan pelunasan gaji. Kembalikan nominal ini ke kotak Akumulasi Gaji (Belum Terbayar)?");
+                if (kembaliGaji) {
+                    // Mengembalikan nominal ke variabel akumulasiGaji
+                    d.akumulasiGaji = (d.akumulasiGaji || 0) + itemDihapus.total;
+                }
+            }
+            
+            d.biaya.splice(index, 1);
+        }
+        
         saveActiveData(d);
         renderFinance();
     }
 }
+
 function lihatDetailArsip(index) {
     let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
     let data = hist[index];
@@ -1618,6 +1805,276 @@ function checkLimit(listId, btnId, length) {
     } else {
         btn.style.display = "none";
     }
+}
+function generateSlipGaji() {
+    const workerName = document.getElementById('select-slip-pekerja').value;
+    if (!workerName) return alert("Pilih pekerja terlebih dahulu!");
+
+    const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    const pInfo = masterPekerja.find(x => x.nama === workerName);
+    
+    const gajiPokok = pInfo ? pInfo.gaji : 0;
+    const tarifLembur = pInfo ? (pInfo.tarifLembur || 0) : 0; 
+
+    let hitung1Hari = 0;
+    let hitungSetengahHari = 0;
+    let totalLemburJam = 0;
+    let totalBonus = 0;
+    let detailPerGHHtml = "";
+
+    const allKeys = Object.keys(localStorage).filter(key => key.endsWith('_kerja'));
+
+    allKeys.forEach(key => {
+        const ghName = key.replace('_kerja', '');
+        const kLog = JSON.parse(localStorage.getItem(key) || "[]");
+        let subTotalHarianGH = 0;
+
+        kLog.forEach(log => {
+            // Regex untuk mengambil data di dalam kurung: Nama (Durasi|L:Lembur|B:Bonus)
+            const regex = new RegExp(`${workerName}\\s\\(([^|]+)\\|L:([^|]+)\\|B:([^)]+)\\)`, "g");
+            let match;
+            while ((match = regex.exec(log.nama)) !== null) {
+                let durasi = parseFloat(match[1]);
+                
+                // LOGIKA BARU: Memisahkan hitungan hari
+                if (durasi === 1) {
+                    hitung1Hari++;
+                } else if (durasi === 0.5) {
+                    hitungSetengahHari++;
+                }
+
+                totalLemburJam += parseFloat(match[2]);
+                totalBonus += parseFloat(match[3]);
+                subTotalHarianGH += durasi;
+            }
+        });
+
+        if (subTotalHarianGH > 0) {
+            detailPerGHHtml += `<tr><td>Akumulasi ${ghName}</td><td align="right">${subTotalHarianGH} Hari</td></tr>`;
+        }
+    });
+
+    const totalHariKerja = hitung1Hari + (hitungSetengahHari * 0.5);
+    const subtotalPokok = totalHariKerja * gajiPokok;
+    const subtotalLembur = totalLemburJam * tarifLembur;
+    const totalGajiKotor = subtotalPokok + subtotalLembur + totalBonus;
+
+    // Hitung Kasbon
+    let totalKasbon = 0;
+    ghList.forEach(gh => {
+        let d = JSON.parse(localStorage.getItem(gh + '_active_period'));
+        if (d && d.detailKasbon) {
+            d.detailKasbon.forEach(k => { if (k.nama === workerName) totalKasbon += k.nominal; });
+        }
+    });
+
+    const sisaGaji = totalGajiKotor - totalKasbon;
+
+    // UPDATE TAMPILAN: Menambahkan baris detail 1 hari dan 0.5 hari
+    const content = `
+        <table style="width:100%; font-size:12px;">
+            <tr><td>Nama</td><td>: <b>${workerName}</b></td></tr>
+            <tr><td>Tanggal</td><td>: ${new Date().toLocaleDateString('id-ID')}</td></tr>
+        </table>
+        <hr style="border: 0; border-top: 1px dashed #000;">
+        <table style="width:100%; font-size:11px; color: #444;">
+            <tr><td>Kerja Penuh (1.0)</td><td align="right">${hitung1Hari}x</td></tr>
+            <tr><td>Setengah Hari (0.5)</td><td align="right">${hitungSetengahHari}x</td></tr>
+            <tr style="font-weight:bold; color:#000;"><td>TOTAL DURASI</td><td align="right">${totalHariKerja} Hari</td></tr>
+        </table>
+        <hr style="border: 0; border-top: 1px dashed #000;">
+        <table style="width:100%; font-size:12px;">
+            <tr><td>Gaji Pokok (@Rp ${gajiPokok.toLocaleString()})</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
+            <tr><td>Lembur (${totalLemburJam} jam)</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
+            <tr><td>Bonus</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
+            <tr style="font-weight:bold;"><td>Subtotal Gaji</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
+            <tr><td>Total Kasbon</td><td align="right" style="color:red;">- Rp ${totalKasbon.toLocaleString()}</td></tr>
+            <tr><td colspan="2"><hr style="border: 0; border-top: 1px solid #000;"></td></tr>
+            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA TERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
+        </table>
+    `;
+
+    document.getElementById('slip-detail-content').innerHTML = content;
+    document.getElementById('modalSlip').style.display = 'block';
+}
+
+function printSlip() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        unit: 'mm',
+        format: [80, 160] // Tinggi ditambah sedikit untuk menampung rincian baru
+    });
+
+    const workerName = document.getElementById('select-slip-pekerja').value;
+    if (!workerName) return;
+
+    // --- SETUP HEADER ---
+    doc.setFont("courier", "bold");
+    doc.setFontSize(10);
+    doc.text("SLIP GAJI KARYAWAN", 40, 10, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("--------------------------------", 40, 15, { align: "center" });
+
+    // --- DATA IDENTITAS ---
+    doc.setFont("courier", "normal");
+    doc.text(`Nama    : ${workerName}`, 10, 22);
+    doc.text(`Tanggal : ${new Date().toLocaleDateString('id-ID')}`, 10, 27);
+    doc.text("--------------------------------", 40, 32, { align: "center" });
+
+    // --- LOGIKA EKSTRAKSI DATA DARI MODAL ---
+    // Kita ambil langsung teks dari elemen slip-detail-content yang sudah di-generate sebelumnya
+    const rows = document.querySelectorAll("#slip-detail-content table tr");
+    let y = 38;
+
+    rows.forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 2) return; // Lewati baris kosong atau garis
+
+        const label = cells[0].innerText.trim();
+        const value = cells[1].innerText.trim();
+
+        // Lewati label Nama dan Tanggal karena sudah dibuat di header atas
+        if (label === "Nama" || label === "Tanggal") return;
+
+        // Styling Dinamis
+        doc.setFont("courier", "normal");
+        doc.setFontSize(8);
+
+        // Tebalkan teks jika baris Total, Subtotal, atau Sisa Terima
+        if (label.includes("TOTAL") || label.includes("Subtotal") || label.includes("SISA")) {
+            doc.setFont("courier", "bold");
+            if (label.includes("SISA")) {
+                y += 2; // Beri jarak sedikit sebelum baris akhir
+                doc.setFontSize(10);
+            }
+        }
+
+        // Cetak Baris (Kiri: Label, Kanan: Nilai)
+        doc.text(label, 10, y);
+        doc.text(value, 70, y, { align: "right" });
+        
+        y += 6; // Jarak baris standar
+
+        // Tambahkan garis putus-putus setelah Total Durasi dan Subtotal Gaji
+        if (label === "TOTAL DURASI" || label === "Subtotal Gaji") {
+            doc.setFont("courier", "normal");
+            doc.setFontSize(8);
+            doc.text("--------------------------------", 40, y - 1, { align: "center" });
+            y += 4;
+        }
+    });
+
+    // --- FOOTER ---
+    y += 4;
+    doc.setFont("courier", "normal");
+    doc.setFontSize(7);
+    doc.text("--------------------------------", 40, y, { align: "center" });
+    doc.text("Terima kasih atas kerja kerasnya!", 40, y + 5, { align: "center" });
+    doc.text("Printed by Melon Monitor System", 40, y + 9, { align: "center" });
+
+    // --- GENERATE FILE ---
+    const fileName = `Slip_${workerName.replace(/\s+/g, '_')}.pdf`;
+    doc.save(fileName);
+}
+
+function editWorker(index) {
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    let p = w[index];
+
+    document.getElementById('edit-worker-index').value = index;
+    document.getElementById('edit-worker-name').value = p.nama;
+    document.getElementById('edit-worker-salary').value = p.gaji;
+    document.getElementById('edit-worker-ot').value = p.tarifLembur || 0;
+
+    document.getElementById('modalEditWorker').style.display = 'block';
+}
+
+// 2. Menutup Modal Edit
+function closeEditModal() {
+    document.getElementById('modalEditWorker').style.display = 'none';
+}
+
+// 3. Menyimpan Perubahan dan Sinkronisasi Data Lama
+function saveWorkerEdit() {
+    const index = document.getElementById('edit-worker-index').value;
+    const namaBaru = document.getElementById('edit-worker-name').value.trim();
+    const gajiBaru = parseFloat(document.getElementById('edit-worker-salary').value) || 0;
+    const lemburBaru = parseFloat(document.getElementById('edit-worker-ot').value) || 0;
+
+    if (!namaBaru) return alert("Nama tidak boleh kosong!");
+
+    let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    const namaLama = w[index].nama;
+
+    // Simpan ke Master
+    w[index] = { nama: namaBaru, gaji: gajiBaru, tarifLembur: lemburBaru };
+    localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
+
+    // OTOMATIS SINKRON KE AKTIVITAS LAMA
+    syncAllOldData(namaLama, namaBaru);
+
+    alert("Data Berhasil Diperbarui & Disinkronkan!");
+    closeEditModal();
+    renderMasterPekerja(); // Refresh tabel master
+    loadWorkerCheckboxes(); // Refresh checkbox di form input
+}
+
+// 4. Fungsi Sinkronisasi (Deep Search & Replace)
+function syncAllOldData(namaLama, namaBaru) {
+    // Cari semua key localStorage yang mengandung data kerja (untuk semua GH)
+    const allKeys = Object.keys(localStorage).filter(key => key.endsWith('_kerja'));
+    
+    allKeys.forEach(key => {
+        let logs = JSON.parse(localStorage.getItem(key) || "[]");
+        let isChanged = false;
+
+        logs = logs.map(log => {
+            // Regex untuk mencari nama di dalam format: Nama (1H|L:0|B:0)
+            // Mengganti nama tapi mempertahankan angka durasi, lembur, dan bonusnya
+            if (log.nama.includes(namaLama)) {
+                log.nama = log.nama.split(', ').map(p => {
+                    if (p.includes(namaLama)) {
+                        return p.replace(namaLama, namaBaru);
+                    }
+                    return p;
+                }).join(', ');
+                isChanged = true;
+            }
+            return log;
+        });
+
+        if (isChanged) {
+            localStorage.setItem(key, JSON.stringify(logs));
+        }
+    });
+}
+
+function syncOldData(namaLama, namaBaru) {
+    const allKeys = Object.keys(localStorage).filter(key => key.endsWith('_kerja'));
+    
+    allKeys.forEach(key => {
+        let logs = JSON.parse(localStorage.getItem(key) || "[]");
+        let updated = false;
+
+        logs = logs.map(log => {
+            // Cek jika nama lama ada tanpa format kurung (Format Sangat Lama)
+            // Misal: "Budi, Siti" -> menjadi "Budi (1H|L:0|B:0), Siti"
+            if (log.nama.includes(namaLama) && !log.nama.includes(`${namaLama} (`)) {
+                log.nama = log.nama.replace(namaLama, `${namaBaru} (1H|L:0|B:0)`);
+                updated = true;
+            } 
+            // Cek jika nama lama ada dengan format kurung (Format Baru tapi ganti nama)
+            else if (log.nama.includes(`${namaLama} (`)) {
+                log.nama = log.nama.replace(new RegExp(namaLama + " \\(", "g"), `${namaBaru} (`);
+                updated = true;
+            }
+            return log;
+        });
+
+        if (updated) {
+            localStorage.setItem(key, JSON.stringify(logs));
+        }
+    });
 }
 
     window.onload = () => {
