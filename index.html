@@ -1295,20 +1295,17 @@ async function exportPDF() {
     const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-    // --- FUNGSI TAMBAH LOGO ---
-    const logoUrl = 'melona_logo.png'; // Mengambil file dari folder yang sama di GitHub
-    
+    // --- LOGO ---
+    const logoUrl = 'melona_logo.png'; 
     try {
-        // Menambahkan gambar logo di pojok kanan atas (x: 160, y: 10, width: 35, height: 35)
-        // Kita gunakan try-catch agar jika gambar gagal dimuat, laporan tetap terunduh
         doc.addImage(logoUrl, 'PNG', 160, 10, 35, 35);
     } catch (e) {
-        console.error("Logo tidak ditemukan, melanjutkan tanpa logo.");
+        console.error("Logo tidak ditemukan.");
     }
 
-    // --- Judul & Ringkasan ---
+    // --- Header Laporan ---
     doc.setFontSize(22);
-    doc.setTextColor(27, 94, 32); // Warna Hijau Gelap (#1b5e20)
+    doc.setTextColor(27, 94, 32);
     doc.text("LAPORAN PRODUKSI MELON", 14, 25);
     
     doc.setFontSize(14);
@@ -1320,15 +1317,15 @@ async function exportPDF() {
     doc.text(`Varietas: ${d.v} | Populasi: ${d.pop} Pohon`, 14, 42);
     doc.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 47);
 
-    // --- 1. Tabel Nutrisi Harian ---
+    // --- 1. Tabel Nutrisi ---
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text("1. Rekap Nutrisi Harian (PPM & pH)", 14, 60);
+    doc.text("1. Rekap Nutrisi Harian", 14, 60);
     doc.autoTable({
         startY: 63,
         head: [['HST', 'Tanggal', 'PPM Riil', 'pH Riil']],
         body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, x.tgl, x.ppm, x.ph]),
-        headStyles: { fillColor: [46, 125, 50] } // Warna Hijau
+        headStyles: { fillColor: [46, 125, 50] }
     });
 
     // --- 2. Tabel Penyemprotan ---
@@ -1340,18 +1337,31 @@ async function exportPDF() {
         headStyles: { fillColor: [46, 125, 50] }
     });
 
-    // --- 3. Tabel Aktivitas Kerja ---
+    // --- 3. Tabel Aktivitas Kerja (URUTAN DIUBAH) ---
     doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
-        head: [['HST', 'Tanggal', 'Pekerjaan', 'Pekerja']],
-        body: kLog.map(x => [x.hst, x.tgl, x.jenis, x.nama]),
-        headStyles: { fillColor: [46, 125, 50] }
+        // Header sesuai permintaan: Pekerjaan -> Catatan -> Pekerja
+        head: [['HST', 'Tanggal', 'Pekerjaan', 'Catatan', 'Pekerja']], 
+        body: kLog.map(x => [
+            x.hst, 
+            x.tgl, 
+            x.jenis, 
+            x.ket || "-", 
+            x.nama
+        ]),
+        headStyles: { fillColor: [46, 125, 50] },
+        styles: { fontSize: 8, overflow: 'linebreak' },
+        columnStyles: {
+            2: { cellWidth: 30 }, // Pekerjaan
+            3: { cellWidth: 55 }, // Catatan (Lebih lebar)
+            4: { cellWidth: 40 }  // Pekerja
+        }
     });
 
-    // --- 4. Tabel Keuangan (Halaman Baru) ---
+    // --- 4. Tabel Keuangan ---
     doc.addPage();
-    doc.text("4. Laporan Keuangan & Laba Rugi", 14, 20);
+    doc.text("4. Laporan Keuangan", 14, 20);
     
     let finData = [];
     let tBiaya = 0; let tJual = 0;
@@ -1362,7 +1372,7 @@ async function exportPDF() {
         startY: 25,
         head: [['Tanggal', 'Tipe', 'Kategori', 'Total']],
         body: finData,
-        headStyles: { fillColor: [239, 108, 0] } // Warna Oranye untuk Keuangan
+        headStyles: { fillColor: [239, 108, 0] }
     });
 
     const finalY = doc.lastAutoTable.finalY + 15;
@@ -1370,12 +1380,10 @@ async function exportPDF() {
     doc.text(`Total Penjualan: Rp ${tJual.toLocaleString()}`, 14, finalY);
     doc.text(`Total Biaya Produksi: Rp ${tBiaya.toLocaleString()}`, 14, finalY + 7);
     doc.setFont(undefined, 'bold');
-    doc.setFontSize(13);
     doc.text(`LABA/RUGI BERSIH: Rp ${(tJual - tBiaya).toLocaleString()}`, 14, finalY + 16);
 
     doc.save(`LAPORAN_MELONA_${currentGH}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
-
 
     window.onload = () => {
         updateGHSelector();
