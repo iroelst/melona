@@ -2085,27 +2085,16 @@ function syncOldData(namaLama, namaBaru) {
             let daftarBaru = daftarPekerja.map(p => {
                 let teks = p.trim();
 
-                // 1. Kasus format (1H) atau (0.5H) tanpa L dan B
-                // Mencari pola: Nama (Angka H)
-                const regexHanyaH = new RegExp(`^${namaLama}\\s\\((\\d\\.?\\d?)H\\)$`);
-                if (regexHanyaH.test(teks)) {
-                    isChanged = true;
-                    let durasi = teks.match(regexHanyaH)[1];
-                    return `${namaBaru} (${durasi}H|L:0|B:0)`;
-                }
+                // Regex ini menangkap: (1H), (1 H), (0.5H), (0.5 H)
+                const regexLama = /\((\d\.?\d?)\s?H\)(?!\|)/g;
 
-                // 2. Kasus format sangat lama (Hanya Nama saja)
-                if (teks === namaLama) {
-                    isChanged = true;
-                    return `${namaBaru} (1H|L:0|B:0)`;
+                if (teks.includes(namaLama)) {
+                    if (regexLama.test(teks)) {
+                        isChanged = true;
+                        // Mengubah "Hirul (1 H)" menjadi "Hirul (1H|L:0|B:0)"
+                        return teks.replace(regexLama, "($1H|L:0|B:0)").replace(namaLama, namaBaru);
+                    }
                 }
-                
-                // 3. Kasus ganti nama pada format yang sudah lengkap
-                if (teks.startsWith(`${namaLama} (`)) {
-                    isChanged = true;
-                    return teks.replace(namaLama, namaBaru);
-                }
-
                 return teks;
             });
 
@@ -2121,27 +2110,30 @@ function syncOldData(namaLama, namaBaru) {
 
 window.onload = () => {
     updateGHSelector();
-    
-    // ... kode tanggal default ...
 
-    // --- PERBAIKAN TRIGGER KONVERSI ---
-    const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
-    
-    // Jika ada master, sinkronkan berdasarkan nama di master
-    masterPekerja.forEach(p => {
-        syncOldData(p.nama, p.nama); 
+    // --- LOGIKA PEMBERSIH FORMAT OTOMATIS ---
+    const keys = Object.keys(localStorage).filter(k => k.endsWith('_kerja'));
+    keys.forEach(key => {
+        let logs = JSON.parse(localStorage.getItem(key) || "[]");
+        let fix = false;
+
+        logs.forEach(log => {
+            // Mencari (angka + spasi/tidak + H) yang belum punya |L:
+            const pattern = /\((\d\.?\d?)\s?H\)(?!\|L:)/g;
+            if (pattern.test(log.nama)) {
+                log.nama = log.nama.replace(pattern, "($1H|L:0|B:0)");
+                fix = true;
+            }
+        });
+
+        if (fix) {
+            localStorage.setItem(key, JSON.stringify(logs));
+            console.log("Format lama diperbaiki di: " + key);
+        }
     });
 
-    // Opsional: Jika kamu tahu ada nama-nama lama yang sering muncul tapi sudah tidak ada di master
-    // Kamu bisa panggil manual di sini sekali saja:
-    // syncOldData("NamaLamaLupaDiinput", "NamaLamaLupaDiinput");
-
-    // ... sisa kode window.onload ...
-    initChart(); 
-    updateUI(); 
+    // ... kode sisa Anda (renderLogs, updateUI, dll) ...
     renderLogs(); 
-    loadWorkerCheckboxes(); 
-    renderFinance();
 };
 
 </script>
