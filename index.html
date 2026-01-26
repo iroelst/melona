@@ -2118,12 +2118,10 @@ window.onload = () => {
     updateGHSelector();
 
     // 2. Set Tanggal Default (Hari Ini)
-    const sekarang = new Date();
-    const tglInput = document.getElementById('tanggal_kerja');
-    if (tglInput) {
-        tglInput.value = sekarang.toISOString().split('T')[0];
-    }
-
+    const hariIni = new Date().toISOString().split('T')[0];
+    document.getElementById('semprot-tgl').value = hariIni;
+    document.getElementById('kerja-tgl').value = hariIni;
+    
     // --- 3. LOGIKA PEMBERSIH FORMAT MASSAL (ANTI-SPASI) ---
     // Mencari semua data di localStorage yang berakhiran '_kerja'
     const keys = Object.keys(localStorage).filter(k => k.endsWith('_kerja'));
