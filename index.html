@@ -1563,26 +1563,40 @@ function bersihkanSemuaRiwayat() {
 }
 function postingGajiKeBiaya() {
     let data = getActiveData();
-    let totalGaji = data.akumulasiGaji || 0;
+    let totalGajiGross = data.akumulasiGaji || 0;
+    let totalKasbon = data.totalKasbon || 0;
+    
+    // Perhitungan Gaji Bersih (Kekurangan yang harus dibayar)
+    let gajiBersih = totalGajiGross - totalKasbon;
 
-    if (totalGaji <= 0) return alert("Belum ada akumulasi gaji untuk diposting.");
+    if (gajiBersih <= 0 && totalGajiGross > 0) {
+        return alert("Gaji sudah habis terpotong kasbon. Tidak ada sisa yang perlu diposting.");
+    }
+    
+    if (totalGajiGross <= 0) {
+        return alert("Belum ada akumulasi gaji untuk diposting.");
+    }
 
-    if (confirm(`Posting total gaji Rp ${totalGaji.toLocaleString()} ke pengeluaran periode ini?`)) {
-        // 1. Masukkan ke daftar biaya riil
+    if (confirm(`Total Gaji Kotor: Rp ${totalGajiGross.toLocaleString()}\nTotal Kasbon: Rp ${totalKasbon.toLocaleString()}\n\nPosting SISA GAJI sebesar Rp ${gajiBersih.toLocaleString()} ke pengeluaran periode ini?`)) {
+        
+        // 1. Masukkan ke daftar biaya riil (Hanya sisa gaji/gaji bersih)
         data.biaya.unshift({
             tgl: new Date().toLocaleDateString('id-ID'),
             k: "PELUNASAN GAJI PERIODE",
             q: 1,
-            h: totalGaji,
-            total: totalGaji
+            h: gajiBersih,
+            total: gajiBersih,
+            ket: "Gaji bersih setelah potong kasbon"
         });
 
-        // 2. Reset kantung akumulasi
+        // 2. Reset kantung akumulasi gaji dan kasbon karena sudah dianggap lunas/selesai
         data.akumulasiGaji = 0;
+        data.totalKasbon = 0;
+        data.detailKasbon = []; // Bersihkan riwayat kasbon agar tidak double di periode ini
 
         saveActiveData(data);
         renderFinance();
-        alert("Gaji berhasil diposting ke laporan keuangan!");
+        alert("Sisa gaji berhasil diposting ke laporan keuangan!");
     }
 }
 
