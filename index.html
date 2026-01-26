@@ -2080,24 +2080,33 @@ function syncOldData(namaLama, namaBaru) {
         let isChanged = false;
 
         logs = logs.map(log => {
-            // Pecah daftar nama (karena satu log bisa berisi banyak pekerja, misal: "Budi, Siti")
             let daftarPekerja = log.nama.split(', ');
             
             let daftarBaru = daftarPekerja.map(p => {
-                // Skenario 1: Format Sangat Lama (Cuma nama, misal "Budi")
-                // Kita cek jika nama mengandung namaLama TAPI tidak ada tanda kurung "("
-                if (p.trim() === namaLama) {
+                let teks = p.trim();
+
+                // 1. Kasus format (1H) atau (0.5H) tanpa L dan B
+                // Mencari pola: Nama (Angka H)
+                const regexHanyaH = new RegExp(`^${namaLama}\\s\\((\\d\\.?\\d?)H\\)$`);
+                if (regexHanyaH.test(teks)) {
+                    isChanged = true;
+                    let durasi = teks.match(regexHanyaH)[1];
+                    return `${namaBaru} (${durasi}H|L:0|B:0)`;
+                }
+
+                // 2. Kasus format sangat lama (Hanya Nama saja)
+                if (teks === namaLama) {
                     isChanged = true;
                     return `${namaBaru} (1H|L:0|B:0)`;
                 }
                 
-                // Skenario 2: Format Baru tapi mau ganti nama (Budi (1H...) -> Andi (1H...))
-                if (p.startsWith(`${namaLama} (`)) {
+                // 3. Kasus ganti nama pada format yang sudah lengkap
+                if (teks.startsWith(`${namaLama} (`)) {
                     isChanged = true;
-                    return p.replace(namaLama, namaBaru);
+                    return teks.replace(namaLama, namaBaru);
                 }
 
-                return p; // Tidak ada perubahan
+                return teks;
             });
 
             log.nama = daftarBaru.join(', ');
