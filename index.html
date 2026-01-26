@@ -1253,34 +1253,34 @@ function loadWorkerCheckboxes() {
 
     // Render baris pekerja dengan layout flex sejajar
     container.innerHTML = w.map(x => `
-        <div class="worker-item-row" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; background:#fff; padding:10px; border-radius:8px; border:1px solid #eee; justify-content: space-between;">
-            
-            <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 100px;">
-                <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:20px; height:20px; margin:0;">
-                <span style="font-size:12px; font-weight:bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${x.nama}</span>
+    <div class="worker-item-row" style="display:flex; align-items:center; gap:5px; margin-bottom:8px; background:#fff; padding:8px; border-radius:8px; border:1px solid #eee; justify-content: space-between;">
+        
+        <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 80px;">
+            <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:18px; height:18px; margin:0;">
+            <span style="font-size:12px; font-weight:bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${x.nama}</span>
+        </div>
+        
+        <div style="display:flex; gap:3px; align-items: flex-end;">
+            <div style="width:50px;">
+                <label style="font-size:8px; color:#666; display:block; margin-bottom:0px; line-height:1;">DURASI</label>
+                <select class="worker-duration" style="width:100%; padding:2px; font-size:11px; border:1px solid #2e7d32; border-radius:4px; background: #f0fdf4; height: 24px;">
+                    <option value="1">1H</option>
+                    <option value="0.5">0.5H</option>
+                </select>
             </div>
             
-            <div style="display:flex; gap:5px; align-items: flex-end;">
-                <div style="width:55px;">
-                    <label style="font-size:8px; color:#666; display:block; margin-bottom:2px;">DURASI</label>
-                    <select class="worker-duration" style="width:100%; padding:4px 2px; font-size:11px; border:1px solid #2e7d32; border-radius:4px; background: #f0fdf4;">
-                        <option value="1">1H</option>
-                        <option value="0.5">0.5H</option>
-                    </select>
-                </div>
-                
-                <div style="width:55px;">
-                    <label style="font-size:8px; color:#666; display:block; margin-bottom:2px;">LEMBUR</label>
-                    <input type="number" class="worker-overtime" placeholder="Jm" style="width:100%; font-size:11px; padding:4px; border:1px solid #ccc; border-radius:4px;">
-                </div>
+            <div style="width:50px;">
+                <label style="font-size:8px; color:#666; display:block; margin-bottom:0px; line-height:1;">LEMBUR</label>
+                <input type="number" class="worker-overtime" placeholder="Jm" style="width:100%; font-size:11px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; height: 24px;">
+            </div>
 
-                <div style="width:75px;">
-                    <label style="font-size:8px; color:#666; display:block; margin-bottom:2px;">BONUS</label>
-                    <input type="number" class="worker-bonus" placeholder="Rp" style="width:100%; font-size:11px; padding:4px; border:1px solid #ccc; border-radius:4px;">
-                </div>
+            <div style="width:65px;">
+                <label style="font-size:8px; color:#666; display:block; margin-bottom:0px; line-height:1;">BONUS</label>
+                <input type="number" class="worker-bonus" placeholder="Rp" style="width:100%; font-size:11px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; height: 24px;">
             </div>
         </div>
-    `).join("");
+    </div>
+`).join("");
 }
 
     // Fungsi Hapus untuk Log Semprot dan Log Kerja
