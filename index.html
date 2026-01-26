@@ -1253,7 +1253,7 @@ function loadWorkerCheckboxes() {
 
     // Render baris pekerja dengan layout flex sejajar
     container.innerHTML = w.map(x => `
-    <div class="worker-item-row" style="display:flex; align-items:center; gap:5px; margin-bottom:8px; background:#fff; padding:8px; border-radius:8px; border:1px solid #eee; justify-content: space-between;">
+    <div class="worker-item-row" style="display:flex; align-items:center; gap:5px; margin-bottom:6px; background:#fff; padding:6px; border-radius:6px; border:1px solid #eee; justify-content: space-between;">
         
         <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 80px;">
             <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:18px; height:18px; margin:0;">
@@ -1274,7 +1274,7 @@ function loadWorkerCheckboxes() {
                 <input type="number" class="worker-overtime" placeholder="Jm" style="width:100%; font-size:11px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; height: 24px;">
             </div>
 
-            <div style="width:65px;">
+            <div style="width:75px;">
                 <label style="font-size:8px; color:#666; display:block; margin-bottom:0px; line-height:1;">BONUS</label>
                 <input type="number" class="worker-bonus" placeholder="Rp" style="width:100%; font-size:11px; padding:2px 4px; border:1px solid #ccc; border-radius:4px; height: 24px;">
             </div>
