@@ -1255,7 +1255,7 @@ function loadWorkerCheckboxes() {
     container.innerHTML = w.map(x => `
     <div class="worker-item-row" style="display:flex; align-items:center; gap:5px; margin-bottom:8px; background:#fff; padding:8px 8px 8px 8px; border-radius:8px; border:1px solid #eee; justify-content: space-between;">
         
-        <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 80px; padding-top: 5px;">
+        <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 80px; padding-top: 3px;">
             <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:18px; height:18px; margin:0;">
             <span style="font-size:12px; font-weight:bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${x.nama}</span>
         </div>
