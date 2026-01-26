@@ -722,6 +722,18 @@ function renderFinance() {
     let d = getActiveData();
     document.getElementById('f-active-v').innerText = d.v;
     
+    // Fungsi pembantu untuk urut tanggal (Format: DD/MM/YYYY)
+    const parseDate = (dateStr) => {
+        if(!dateStr) return new Date(0);
+        const [day, month, year] = dateStr.split('/');
+        return new Date(year, month - 1, day);
+    };
+
+    // --- LOGIKA SORTING DATA KEUANGAN ---
+    // Mengurutkan Jual & Biaya dari yang TERBARU di atas (Descending)
+    if (d.jual) d.jual.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+    if (d.biaya) d.biaya.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+
     // 1. Perhitungan Dasar Keuangan
     let tBiaya = (d.biaya || []).reduce((sum, item) => sum + item.total, 0);
     let tJual = (d.jual || []).reduce((sum, item) => sum + item.total, 0);
@@ -733,13 +745,12 @@ function renderFinance() {
     document.getElementById('res-laba').innerText = "Rp " + laba.toLocaleString();
     document.getElementById('res-laba').style.color = laba >= 0 ? "#2e7d32" : "#c62828";
     
-    // 2. LOGIKA GAJI & KASBON (PENAMBAHAN BARU)
+    // 2. LOGIKA GAJI & KASBON
     let totalGajiGross = d.akumulasiGaji || 0;
     let totalKasbon = d.totalKasbon || 0;
     let sisaBayar = totalGajiGross - totalKasbon;
-    d.tempSisaBayar = sisaBayar; // Simpan untuk fungsi posting nanti
+    d.tempSisaBayar = sisaBayar;
 
-    // Update Kotak Oranye Akumulasi Gaji
     document.getElementById('display-akumulasi-gaji').innerHTML = `
         <div style="font-size: 11px; color: #666; text-align: left;">
             Total Hak Gaji: Rp ${totalGajiGross.toLocaleString()}<br>
@@ -751,47 +762,47 @@ function renderFinance() {
         </div>
     `;
 
-    // Tampilkan List Nama yang Kasbon (di bawah form kasbon)
-    let listKasbonHtml = (d.detailKasbon || []).map(k => 
+    // Urutkan detail kasbon (Terbaru di atas)
+    let listKasbonHtml = (d.detailKasbon || []).sort((a,b) => parseDate(b.tgl) - parseDate(a.tgl)).map(k => 
         `<div style="border-bottom: 1px dashed #eee; padding: 3px 0;">• ${k.nama}: Rp ${k.nominal.toLocaleString()} <small>(${k.tgl})</small></div>`
     ).join("");
+    
     const listKasbonEl = document.getElementById('list-kasbon-nama');
     if(listKasbonEl) listKasbonEl.innerHTML = listKasbonHtml || "<small>Belum ada riwayat kasbon.</small>";
     
-    // 3. Update ROI Badge
     let roiEl = document.getElementById('res-roi');
     roiEl.innerText = roi.toFixed(1) + "%";
     roiEl.className = roi >= 0 ? "roi-positive" : "roi-negative";
 
-    // 4. Detail Transaksi (In & Out)
+    // 4. Detail Transaksi (Gabungkan & Urutkan jika ingin tampilan campur, 
+    // tapi di sini saya tetap pisah sesuai struktur UI Anda namun tetap urut tanggal)
     let detailHtml = "";
     (d.jual || []).forEach((x, i) => {
         detailHtml += `
         <div class="trans-item">
-            <span class="badge-in">[IN] ${x.g}</span>
+            <span class="badge-in">[IN] ${x.tgl} - ${x.g}</span>
             <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('jual', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
         </div>`;
     });
+    
     (d.biaya || []).forEach((x, i) => {
-    detailHtml += `
-    <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
-        <div style="display: flex; justify-content: space-between; width: 100%;">
-            <span class="badge-out">[OUT] ${x.k}</span>
-            <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
-        </div>
-        <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">
-            Ket: ${x.ket}
-        </div>
-        <div style="font-size: 10px; color: #888;">
-            Detail: ${x.q} x Rp ${x.h.toLocaleString()} pada ${x.tgl}
-        </div>
-    </div>`;
-});
+        detailHtml += `
+        <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+                <span class="badge-out">[OUT] ${x.tgl} - ${x.k}</span>
+                <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+            </div>
+            <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">
+                Ket: ${x.ket}
+            </div>
+        </div>`;
+    });
+    
     document.getElementById('transaksi-detail-list').innerHTML = detailHtml || "<small>Belum ada transaksi</small>";
     const totalDataFin = (d.jual || []).length + (d.biaya || []).length;
     checkLimit('transaksi-detail-list', 'btn-trans-more', totalDataFin);
 
-    // 5. Riwayat Periode Sebelumnya (Arsip)
+    // 5. Riwayat Arsip (Berdasarkan urutan masuk ke array history)
     let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
     document.getElementById('riwayat-finance').innerHTML = hist.map((h, index) => {
         let b = (h.biaya || []).reduce((s, i) => s + i.total, 0);
@@ -812,7 +823,6 @@ function renderFinance() {
         </div>`;
     }).join("");
 }
-
 
 function simpanLog(tipe) {
     let valTgl = document.getElementById(tipe + '-tgl').value; 
@@ -988,6 +998,19 @@ function finishSave() {
 function renderLogs() {
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+    // Fungsi pembantu untuk mengubah string "DD/MM/YYYY" menjadi Object Date agar bisa dibandingkan
+    const parseDate = (dateStr) => {
+        const [day, month, year] = dateStr.split('/');
+        return new Date(year, month - 1, day);
+    };
+
+    // URUTKAN SEMPROT (Berdasarkan Tanggal Terbaru ke Terlama)
+    // Jika ingin yang terlama di atas, balik urutan a dan b di dalam return
+    sLog.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+
+    // URUTKAN KERJA (Berdasarkan Tanggal Terbaru ke Terlama)
+    kLog.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
 
     // 1. Render Riwayat Semprot
     document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
@@ -2054,53 +2077,63 @@ function syncOldData(namaLama, namaBaru) {
     
     allKeys.forEach(key => {
         let logs = JSON.parse(localStorage.getItem(key) || "[]");
-        let updated = false;
+        let isChanged = false;
 
         logs = logs.map(log => {
-            // Cek jika nama lama ada tanpa format kurung (Format Sangat Lama)
-            // Misal: "Budi, Siti" -> menjadi "Budi (1H|L:0|B:0), Siti"
-            if (log.nama.includes(namaLama) && !log.nama.includes(`${namaLama} (`)) {
-                log.nama = log.nama.replace(namaLama, `${namaBaru} (1H|L:0|B:0)`);
-                updated = true;
-            } 
-            // Cek jika nama lama ada dengan format kurung (Format Baru tapi ganti nama)
-            else if (log.nama.includes(`${namaLama} (`)) {
-                log.nama = log.nama.replace(new RegExp(namaLama + " \\(", "g"), `${namaBaru} (`);
-                updated = true;
-            }
+            // Pecah daftar nama (karena satu log bisa berisi banyak pekerja, misal: "Budi, Siti")
+            let daftarPekerja = log.nama.split(', ');
+            
+            let daftarBaru = daftarPekerja.map(p => {
+                // Skenario 1: Format Sangat Lama (Cuma nama, misal "Budi")
+                // Kita cek jika nama mengandung namaLama TAPI tidak ada tanda kurung "("
+                if (p.trim() === namaLama) {
+                    isChanged = true;
+                    return `${namaBaru} (1H|L:0|B:0)`;
+                }
+                
+                // Skenario 2: Format Baru tapi mau ganti nama (Budi (1H...) -> Andi (1H...))
+                if (p.startsWith(`${namaLama} (`)) {
+                    isChanged = true;
+                    return p.replace(namaLama, namaBaru);
+                }
+
+                return p; // Tidak ada perubahan
+            });
+
+            log.nama = daftarBaru.join(', ');
             return log;
         });
 
-        if (updated) {
+        if (isChanged) {
             localStorage.setItem(key, JSON.stringify(logs));
         }
     });
 }
 
-        window.onload = () => {
-        updateGHSelector();
-        
-        // Atur tanggal default ke hari ini
-        document.getElementById('semprot-tgl').valueAsDate = new Date();
-        document.getElementById('kerja-tgl').valueAsDate = new Date();
+window.onload = () => {
+    updateGHSelector();
+    
+    // ... kode tanggal default ...
 
-        // --- TAMBAHAN: PEMICU KONVERSI DATA LAMA KE FORMAT BARU ---
-        const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
-        if (masterPekerja.length > 0) {
-            masterPekerja.forEach(p => {
-                // Jalankan sinkronisasi otomatis untuk setiap pekerja yang ada di Master
-                syncOldData(p.nama, p.nama); 
-            });
-            console.log("Sinkronisasi format data selesai.");
-        }
-        // ---------------------------------------------------------
+    // --- PERBAIKAN TRIGGER KONVERSI ---
+    const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    
+    // Jika ada master, sinkronkan berdasarkan nama di master
+    masterPekerja.forEach(p => {
+        syncOldData(p.nama, p.nama); 
+    });
 
-        initChart(); 
-        updateUI(); 
-        renderLogs(); 
-        loadWorkerCheckboxes(); 
-        renderFinance();
-    };
+    // Opsional: Jika kamu tahu ada nama-nama lama yang sering muncul tapi sudah tidak ada di master
+    // Kamu bisa panggil manual di sini sekali saja:
+    // syncOldData("NamaLamaLupaDiinput", "NamaLamaLupaDiinput");
+
+    // ... sisa kode window.onload ...
+    initChart(); 
+    updateUI(); 
+    renderLogs(); 
+    loadWorkerCheckboxes(); 
+    renderFinance();
+};
 
 </script>
 </body>
