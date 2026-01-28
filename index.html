@@ -217,6 +217,35 @@
     <div id="semprot" class="tab-content">
     <div class="card">
     <strong>🚿 Log Penyemprotan</strong>
+    <div id="kalkulator-dosis" style="padding: 10px; font-family: sans-serif; background-color: #ffffff; border: 2px solid #1b5e20; border-radius: 10px; margin: 2px;">
+    
+    <div style="text-align: center; margin-bottom: 15px;">
+        <strong style="font-size: 16px; color: #1b5e20;">🧮 Kalkulator Dosis Cepat</strong>
+        <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">Hitung kebutuhan pestisida/nutrisi per tangki</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+        <div>
+            <label style="font-size: 12px; font-weight: bold; color: #333;">Dosis per Liter:</label>
+            <input type="number" id="input-dosis" step="0.1" placeholder="Misal: 0.5" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 5px;">
+        </div>
+        <div>
+            <label style="font-size: 12px; font-weight: bold; color: #333;">Vol. Tangki (Ltr):</label>
+            <input type="number" id="input-tangki" placeholder="Misal: 16" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-top: 5px;">
+        </div>
+    </div>
+<div style="display: flex; gap: 10px;">
+        <div onclick="hitungCepat()" style="flex: 2; background-color: #1b5e20; color: white; text-align: center; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+            HITUNG DOSIS
+        </div>
+        </div>
+        
+    <div id="hasil-hitung" style="display: none; margin-top: 15px; padding: 15px; background-color: #e8f5e9; border-radius: 6px; text-align: center;">
+        <span style="font-size: 12px; color: #2e7d32; display: block;">Kebutuhan per Tangki:</span>
+        <strong id="total-dosis" style="font-size: 18px; color: #1b5e20;">0</strong>
+        <span id="satuan-hasil" style="font-size: 14px; color: #1b5e20; font-weight: bold;">ml / gr</span>
+    </div>
+</div>
     <label>Tanggal</label><input type="date" id="semprot-tgl">
     <label>Insektisida</label><div class="input-row"><input type="text" id="ins-nama" placeholder="Merk"><input type="text" id="ins-dosis" placeholder="Dosis"></div>
     <label>Fungisida</label><div class="input-row"><input type="text" id="fun-nama" placeholder="Merk"><input type="text" id="fun-dosis" placeholder="Dosis"></div>
@@ -232,8 +261,51 @@
     </div>
     <div id="riwayat-semprot" class="riwayat-list limit-view"></div>
 <button id="btn-semprot-more" class="btn-show-more" onclick="toggleExpand('riwayat-semprot', 'btn-semprot-more')">Tampilkan Semua ▼</button>
-  </div>
   
+  <div onclick="toggleTabel()" style="background-color: #1b5e20; color: white; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-radius: 8px; margin-bottom: 10px; font-weight: bold;">
+    <div style="display: flex; flex-direction: column; gap: 2px; width:100%; text-align:center;">
+        <span style="font-size: 14px;">JADWAL PENYEMPROTAN RUTIN</span>
+        <span style="font-size: 11px; font-weight: normal; color: #d1d1d1; font-style: italic;">Catatan : jadwal ini bukan sebagai acuan baku.</span>
+        </div>
+        <span id="panah-tabel">▼</span>
+    </div>
+
+    <div id="kontainer-tabel" style="overflow-x: auto; display:none; transition: all 0.3s ease;">
+        <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 10px;">
+            <thead>
+                <tr style="background-color: #1b5e20; color: white; text-align: left;">
+                    <th style="padding: 10px; border: 1px solid #444;">HST</th>
+                    <th style="padding: 10px; border: 1px solid #444;">Waktu</th>
+                    <th style="padding: 10px; border: 1px solid #444;">Jenis</th>
+                    <th style="padding: 10px; border: 1px solid #444;">Merk Terpilih</th>
+                    <th style="padding: 10px; border: 1px solid #444;">Kegunaan</th>
+                    <th style="padding: 10px; border: 1px solid #444;">Dosis/Lt</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">1</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Ambition</td><td style="padding: 8px; border: 1px solid #ddd;">Recovery & Anti-stres pindah tanam</td><td style="padding: 8px; border: 1px solid #ddd;">2 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">4</td><td style="padding: 8px; border: 1px solid #ddd; color: #2980b9; font-weight: bold;">Sore</td><td style="padding: 8px; border: 1px solid #ddd;">Insektisida</td><td style="padding: 8px; border: 1px solid #ddd;">Simodis + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Proteksi total Thrips & Kutu</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">7</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Fungisida</td><td style="padding: 8px; border: 1px solid #ddd;">Antracol + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Perlindungan jamur & Imun (Zinc)</td><td style="padding: 8px; border: 1px solid #ddd;">1 gr + 0.5 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">10</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Java Green</td><td style="padding: 8px; border: 1px solid #ddd;">Memacu pertumbuhan daun hijau</td><td style="padding: 8px; border: 1px solid #ddd;">1 gr</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">13</td><td style="padding: 8px; border: 1px solid #ddd; color: #2980b9; font-weight: bold;">Sore</td><td style="padding: 8px; border: 1px solid #ddd;">Insektisida</td><td style="padding: 8px; border: 1px solid #ddd;">Zephyr + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Rolling agar hama tidak kebal</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">16</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Bakterisida</td><td style="padding: 8px; border: 1px solid #ddd;">Bactocyn / Agrept</td><td style="padding: 8px; border: 1px solid #ddd;">Cegah layu bakteri di sistem NFT</td><td style="padding: 8px; border: 1px solid #ddd;">1 ml / 1 gr</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">19</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Java Higros + Boron</td><td style="padding: 8px; border: 1px solid #ddd;">Batang kokoh & cegah buah pecah</td><td style="padding: 8px; border: 1px solid #ddd;">2 gr + 1 gr</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">22</td><td style="padding: 8px; border: 1px solid #ddd; color: #2980b9; font-weight: bold;">Sore</td><td style="padding: 8px; border: 1px solid #ddd;">Insektisida</td><td style="padding: 8px; border: 1px solid #ddd;">Samite + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Basmi Tungau agar daun mulus</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">25</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">MKP Pak Tani</td><td style="padding: 8px; border: 1px solid #ddd;">Merangsang bakal bunga</td><td style="padding: 8px; border: 1px solid #ddd;">2 gr</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">28</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Fungisida</td><td style="padding: 8px; border: 1px solid #ddd;">Amistartop + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Booster bunga & Daun tebal kilap</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">31</td><td style="padding: 8px; border: 1px solid #ddd; color: #2980b9; font-weight: bold;">Sore</td><td style="padding: 8px; border: 1px solid #ddd;">Insektisida</td><td style="padding: 8px; border: 1px solid #ddd;">Simodis + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Jaga bunga dari gangguan hama</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">34</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Big Grow + Boron</td><td style="padding: 8px; border: 1px solid #ddd;">Pompa ukuran buah & kulit kuat</td><td style="padding: 8px; border: 1px solid #ddd;">1 tab/40L + 1gr</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">37</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Fungisida</td><td style="padding: 8px; border: 1px solid #ddd;">Pemulus</td><td style="padding: 8px; border: 1px solid #ddd;">Cegah embun tepung (Oidium)</td><td style="padding: 8px; border: 1px solid #ddd;">1 gr</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">40</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Mix</td><td style="padding: 8px; border: 1px solid #ddd;">Amistartop + KNO3</td><td style="padding: 8px; border: 1px solid #ddd;">Jaga net buah & pengisian awal</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 2 gr</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">43</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Java Bloom + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi pengisian bobot buah</td><td style="padding: 8px; border: 1px solid #ddd;">2 gr + 0.5 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">46</td><td style="padding: 8px; border: 1px solid #ddd; color: #2980b9; font-weight: bold;">Sore</td><td style="padding: 8px; border: 1px solid #ddd;">Insektisida</td><td style="padding: 8px; border: 1px solid #ddd;">Simodis + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Proteksi akhir dari lalat buah</td><td style="padding: 8px; border: 1px solid #ddd;">0.5 ml + 0.5 ml</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">49</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">KNO3 Putih + Perekat</td><td style="padding: 8px; border: 1px solid #ddd;">Menaikkan kadar gula (Brix)</td><td style="padding: 8px; border: 1px solid #ddd;">3 gr + 0.5 ml</td></tr>
+                <tr style="background-color: #f2f2f2;"><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">52</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">Meroke Mag-S</td><td style="padding: 8px; border: 1px solid #ddd;">Jaga daun tetap hijau</td><td style="padding: 8px; border: 1px solid #ddd;">2 gr</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">55</td><td style="padding: 8px; border: 1px solid #ddd; color: #e67e22; font-weight: bold;">Pagi</td><td style="padding: 8px; border: 1px solid #ddd;">Nutrisi</td><td style="padding: 8px; border: 1px solid #ddd;">KNO3 Putih</td><td style="padding: 8px; border: 1px solid #ddd;">Finishing rasa manis & warna net</td><td style="padding: 8px; border: 1px solid #ddd;">3 gr</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
     <div id="kerja" class="tab-content">
         <div class="card">
             <strong>🛠️ Aktivitas Pekerja</strong>
@@ -2126,6 +2198,36 @@ function syncOldData(namaLama, namaBaru) {
         }
     });
 }
+
+function toggleTabel() {
+        var x = document.getElementById("kontainer-tabel");
+        var panah = document.getElementById("panah-tabel");
+        
+        // Cek kondisi display saat ini
+        if (x.style.display === "none" || x.style.display === "") {
+            x.style.display = "block";
+            panah.innerHTML = "▲";
+        } else {
+            x.style.display = "none";
+            panah.innerHTML = "▼";
+        }
+    }
+    
+    function hitungCepat() {
+        const dosis = parseFloat(document.getElementById('input-dosis').value);
+        const tangki = parseFloat(document.getElementById('input-tangki').value);
+        const hasilDiv = document.getElementById('hasil-hitung');
+        const totalDisplay = document.getElementById('total-dosis');
+
+        if (dosis > 0 && tangki > 0) {
+            const total = dosis * tangki;
+            // Menampilkan maksimal 2 angka di belakang koma jika perlu
+            totalDisplay.innerText = Number.isInteger(total) ? total : total.toFixed(1);
+            hasilDiv.style.display = 'block';
+        } else {
+            alert("Harap masukkan angka dosis dan volume tangki yang valid.");
+        }
+    }
 
 window.onload = () => {
     // 1. Inisialisasi Dasar UI
