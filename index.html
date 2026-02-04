@@ -185,6 +185,8 @@
         
         <div class="card">
             <strong>🧮 Nutrisi & pH</strong>
+            <label>Tanggal Pencatatan</label>
+    <input type="date" id="tgl-nutrisi-input" style="margin-bottom: 10px;">
             <label>Liter Air & PPM Kini</label>
             <div class="input-row">
                 <input type="number" id="liters" placeholder="Liter">
@@ -341,6 +343,11 @@
         </div>
      <div class="card" style="background:#f1f8e9; border-left:5px solid #2e7d32; padding: 15px;">
     <strong style="display: block; margin-bottom: 12px;">💰 Biaya Produksi</strong>
+        <div style="margin-bottom: 8px;">
+        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Tanggal Transaksi</label>
+        <input type="date" id="f-tgl" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+    </div>
+
     
     <div style="margin-bottom: 8px;">
         <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Jenis Biaya</label>
@@ -509,9 +516,9 @@
     let myChart = null;
 
     const jadwal = [
-        {h: 7, p: 600, ph: 6.0, i: "Adaptasi"}, {h: 14, p: 800, ph: 6.0, i: "Vegetatif"},
-        {h: 21, p: 1100, ph: 6.1, i: "Pruning"}, {h: 30, p: 1300, ph: 6.2, i: "Polinasi"},
-        {h: 40, p: 1600, ph: 6.2, i: "Seleksi"}, {h: 55, p: 1900, ph: 6.2, i: "Netting"},
+        {h: 7, p: 600, ph: 6.0, i: "Adaptasi"}, {h: 14, p: 700, ph: 6.0, i: "Vegetatif"},
+        {h: 21, p: 800, ph: 6.1, i: "Pruning"}, {h: 30, p: 1000, ph: 6.2, i: "Polinasi"},
+        {h: 40, p: 1300, ph: 6.2, i: "Seleksi"}, {h: 55, p: 1500, ph: 6.2, i: "Netting"},
         {h: 65, p: 1200, ph: 6.2, i: "Panen"}
     ];
     let targetPPM = 0; let targetPH = 6.2;
@@ -528,13 +535,34 @@
 
 
 // --- FITUR DOWNLOAD LAPORAN LENGKAP (VERSI STABIL MOBILE) ---
-function downloadFullReport() {
+async function downloadFullReport() {
     try {
         let d = getActiveData();
         let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
         let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+        let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
 
-        // Sheet 1: Ringkasan Varietas
+        // --- 1. FUNGSI INTERNAL UNTUK FIX TANGGAL ---
+        const parseDate = (dateStr) => {
+            if(!dateStr) return new Date(0);
+            const sep = dateStr.includes('-') ? '-' : '/';
+            const p = dateStr.split(sep);
+            // Handle format YYYY-MM-DD vs DD/MM/YYYY
+            return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
+        };
+
+        const formatIndo = (dateStr) => {
+            const dObj = parseDate(dateStr);
+            if (dObj.getTime() === 0) return "-";
+            const dd = String(dObj.getDate()).padStart(2, '0');
+            const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+            const yyyy = dObj.getFullYear();
+            return `${dd}-${mm}-${yyyy}`; // Hasil: dd-mm-yyyy
+        };
+
+        let wb = XLSX.utils.book_new();
+
+        // --- SHEET 1: RINGKASAN ---
         let summaryData = [
             ["INFO GREENHOUSE", "KETERANGAN"],
             ["Nama GH", currentGH],
@@ -542,69 +570,71 @@ function downloadFullReport() {
             ["Total Populasi", d.pop + " Pohon"],
             ["Status Tanam", localStorage.getItem(currentGH + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"]
         ];
-        let ws_summary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
+        
+        // --- SHEET 2: NUTRISI HARIAN (URUT & FORMAT) ---
+        let dataNutrisi = dailyLogs.sort((a,b) => a.hst - b.hst).map(x => {
+            let targetHarian = (typeof jadwal !== 'undefined') ? jadwal.find(j => x.hst <= j.h) : null;
+            return {
+                "Tanggal": formatIndo(x.tgl),
+                "HST": x.hst,
+                "PPM Riil": x.ppm,
+                "Target PPM": targetHarian ? targetHarian.p : "-",
+                "pH Riil": x.ph,
+                "Target pH": targetHarian ? targetHarian.ph : "-"
+            };
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataNutrisi), "Rekap_Nutrisi_Harian");
 
-        // Sheet 2: Data Semprot
-        let ws_semprot = XLSX.utils.json_to_sheet(sLog.map(x => ({
-            Tanggal: x.tgl, HST: x.hst, Insektisida: x.ins, Fungisida: x.fun, Nutrisi: x.nut
-        })));
+        // --- SHEET 3: PENYEMPROTAN (URUT & FORMAT) ---
+        let dataSemprot = sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
+            "Tanggal": formatIndo(x.tgl),
+            "HST": x.hst,
+            "Insektisida": x.ins,
+            "Fungisida": x.fun,
+            "Nutrisi": x.nut
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataSemprot), "Penyemprotan");
 
-        // Sheet 3: Data Aktivitas Kerja
-        let ws_kerja = XLSX.utils.json_to_sheet(kLog.map(x => ({
-            Tanggal: x.tgl, HST: x.hst, Aktivitas: x.jenis, Pekerja: x.nama, Catatan: x.ket
-        })));
+        // --- SHEET 4: AKTIVITAS (URUT & FORMAT) ---
+        let dataKerja = kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
+            "Tanggal": formatIndo(x.tgl),
+            "HST": x.hst,
+            "Aktivitas": x.jenis,
+            "Pekerja": x.nama,
+            "Catatan": x.ket
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataKerja), "Aktivitas");
 
-        // Sheet 4: Keuangan
-        let finData = [];
-        (d.jual || []).forEach(x => finData.push({ TANGGAL: x.tgl, TIPE: "MASUK", KATEGORI: x.g, QTY: x.b, HARGA: x.h, TOTAL: x.total }));
-        (d.biaya || []).forEach(x => finData.push({ 
-    TANGGAL: x.tgl, 
-    TIPE: "KELUAR", 
-    KATEGORI: x.k, 
-    KETERANGAN: x.ket || "-", // Kolom baru yang Anda minta
-    QTY: x.q, 
-    HARGA: x.h, 
-    TOTAL: x.total 
-}));
-let ws_keuangan = XLSX.utils.json_to_sheet(finData);
+        // --- SHEET 5: KEUANGAN (GABUNG, URUT & FORMAT) ---
+        let finData = [
+            ...(d.jual || []).map(x => ({ tgl: x.tgl, tipe: "MASUK", kat: x.g, ket: "-", qty: x.b, harga: x.h, total: x.total })),
+            ...(d.biaya || []).map(x => ({ tgl: x.tgl, tipe: "KELUAR", kat: x.k, ket: x.ket || "-", qty: x.q, harga: x.h, total: x.total }))
+        ];
+        
+        // Urutkan dari tanggal terlama ke terbaru
+        finData.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
 
-        // Membuat Workbook dan menggabungkan sheet
-        let wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws_summary, "Ringkasan");
-        XLSX.utils.book_append_sheet(wb, ws_semprot, "Penyemprotan");
-        XLSX.utils.book_append_sheet(wb, ws_kerja, "Aktivitas");
-        XLSX.utils.book_append_sheet(wb, ws_keuangan, "Keuangan");
-        // Tambahkan Sheet Rekap Nutrisi Riil
-// --- BAGIAN REKAP NUTRISI HARIAN ---
-let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+        let dataKeuangan = finData.map(x => ({
+            "Tanggal": formatIndo(x.tgl),
+            "Tipe": x.tipe,
+            "Kategori": x.kat,
+            "Keterangan": x.ket,
+            "Qty": x.qty,
+            "Harga": x.harga,
+            "Total (Rp)": x.total
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataKeuangan), "Keuangan");
 
-// Kita buat mapping yang lebih detail agar target muncul di Excel
-let dataRiilExcel = dailyLogs.map(x => {
-    // Mencari target yang sesuai dengan HST saat ini dari array 'jadwal'
-    let targetHarian = jadwal.find(j => x.hst <= j.h) || {p: 0, ph: 0};
-    
-    return {
-        "Tanggal": x.tgl,
-        "HST": x.hst,
-        "PPM Riil": x.ppm,
-        "Target PPM": targetHarian.p, // Penambahan Target PPM
-        "pH Riil": x.ph,
-        "Target pH": targetHarian.ph  // Penambahan Target pH
-    };
-});
+        // --- PROSES DOWNLOAD ---
+        const fileName = `Laporan_Full_Melona_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
 
-let ws_riil = XLSX.utils.json_to_sheet(dataRiilExcel);
-XLSX.utils.book_append_sheet(wb, ws_riil, "Rekap_Nutrisi_Harian");
-// -----------------------------------
-
-        // Proses Download
-        XLSX.writeFile(wb, `Laporan_Melon_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`);
     } catch (err) {
+        console.error("Error Excel:", err);
         alert("Gagal mengunduh Excel: " + err.message);
     }
 }
-
-
 
     function refreshAll() {
         updateUI(); renderLogs(); renderFinance();
@@ -750,19 +780,23 @@ function mulaiPeriode() {
 
 function simpanTransaksi(tipe) {
     let data = getActiveData();
-    let tgl = new Date().toLocaleDateString('id-ID');
+    
+    // Ambil nilai dari input tanggal baru
+    let tglInput = document.getElementById('f-tgl').value;
+    
+    // Jika input kosong, gunakan tanggal hari ini dengan format lokal/ISO sesuai kebutuhan
+    let tgl = tglInput || new Date().toISOString().split('T')[0];
     
     if(tipe === 'biaya') {
         let k = document.getElementById('f-kat').value;
         let q = parseFloat(document.getElementById('f-qty').value);
         let h = parseFloat(document.getElementById('f-harga').value);
-        let ket = document.getElementById('f-ket').value; // Mengambil keterangan
+        let ket = document.getElementById('f-ket').value;
         
         if(!q || !h) return alert("Mohon isi jumlah dan harga!");
         
-        // Simpan data dengan properti 'ket'
         data.biaya.unshift({ 
-            tgl: tgl, 
+            tgl: tgl, // Menggunakan tanggal dari input
             k: k, 
             q: q, 
             h: h, 
@@ -770,12 +804,13 @@ function simpanTransaksi(tipe) {
             ket: ket || "-" 
         });
         
-        // Reset Input
+        // Reset Input termasuk tanggal
         document.getElementById('f-qty').value = "";
         document.getElementById('f-harga').value = "";
         document.getElementById('f-ket').value = ""; 
+        document.getElementById('f-tgl').value = ""; 
     } else {
-        // Logika untuk penjualan (tetap sama)
+        // Logika untuk penjualan (opsional: tambahkan juga input tanggal untuk penjualan jika perlu)
         let g = document.getElementById('s-grade').value;
         let b = parseFloat(document.getElementById('s-berat').value);
         let h = parseFloat(document.getElementById('s-harga').value);
@@ -786,27 +821,32 @@ function simpanTransaksi(tipe) {
     }
     
     saveActiveData(data);
-    renderFinance(); // Refresh tampilan keuangan
-    alert("Biaya berhasil dicatat!");
+    renderFinance(); 
+    alert("Transaksi berhasil dicatat!");
 }
 
 function renderFinance() {
     let d = getActiveData();
     document.getElementById('f-active-v').innerText = d.v;
     
-    // Fungsi pembantu untuk urut tanggal (Format: DD/MM/YYYY)
+    // 1. FUNGSI PEMBANTU TANGGAL (Bisa baca format - atau /)
     const parseDate = (dateStr) => {
         if(!dateStr) return new Date(0);
-        const [day, month, year] = dateStr.split('/');
-        return new Date(year, month - 1, day);
+        const sep = dateStr.includes('-') ? '-' : '/';
+        const p = dateStr.split(sep);
+        // Jika format YYYY-MM-DD (dari input date) vs DD/MM/YYYY (manual)
+        return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
     };
 
-    // --- LOGIKA SORTING DATA KEUANGAN ---
-    // Mengurutkan Jual & Biaya dari yang TERBARU di atas (Descending)
-    if (d.jual) d.jual.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
-    if (d.biaya) d.biaya.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+    // Fungsi untuk mengubah objek tanggal menjadi string dd-mm-yyyy
+    const formatIndo = (dateObj) => {
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const yyyy = dateObj.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+    };
 
-    // 1. Perhitungan Dasar Keuangan
+    // 2. PERHITUNGAN KEUANGAN
     let tBiaya = (d.biaya || []).reduce((sum, item) => sum + item.total, 0);
     let tJual = (d.jual || []).reduce((sum, item) => sum + item.total, 0);
     let laba = tJual - tBiaya;
@@ -817,12 +857,13 @@ function renderFinance() {
     document.getElementById('res-laba').innerText = "Rp " + laba.toLocaleString();
     document.getElementById('res-laba').style.color = laba >= 0 ? "#2e7d32" : "#c62828";
     
-    // 2. LOGIKA GAJI & KASBON
+    let roiEl = document.getElementById('res-roi');
+    roiEl.innerText = roi.toFixed(1) + "%";
+    roiEl.className = roi >= 0 ? "roi-positive" : "roi-negative";
+
+    // 3. TAMPILAN KASBON (Urut & Format dd-mm-yyyy)
     let totalGajiGross = d.akumulasiGaji || 0;
     let totalKasbon = d.totalKasbon || 0;
-    let sisaBayar = totalGajiGross - totalKasbon;
-    d.tempSisaBayar = sisaBayar;
-
     document.getElementById('display-akumulasi-gaji').innerHTML = `
         <div style="font-size: 11px; color: #666; text-align: left;">
             Total Hak Gaji: Rp ${totalGajiGross.toLocaleString()}<br>
@@ -830,62 +871,62 @@ function renderFinance() {
         </div>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 5px 0;">
         <div style="font-size: 14px; font-weight: bold; color: #2e7d32; text-align: left;">
-            Sisa Bayar: Rp ${sisaBayar.toLocaleString()}
-        </div>
-    `;
+            Sisa Bayar: Rp ${(totalGajiGross - totalKasbon).toLocaleString()}
+        </div>`;
 
-    // Urutkan detail kasbon (Terbaru di atas)
-    let listKasbonHtml = (d.detailKasbon || []).sort((a,b) => parseDate(b.tgl) - parseDate(a.tgl)).map(k => 
-        `<div style="border-bottom: 1px dashed #eee; padding: 3px 0;">• ${k.nama}: Rp ${k.nominal.toLocaleString()} <small>(${k.tgl})</small></div>`
-    ).join("");
+    let listKasbonHtml = (d.detailKasbon || [])
+        .sort((a,b) => parseDate(b.tgl) - parseDate(a.tgl))
+        .map(k => {
+            const tglFix = formatIndo(parseDate(k.tgl));
+            return `<div style="border-bottom: 1px dashed #eee; padding: 3px 0;">• ${k.nama}: Rp ${k.nominal.toLocaleString()} <small>(${tglFix})</small></div>`;
+        }).join("");
     
     const listKasbonEl = document.getElementById('list-kasbon-nama');
     if(listKasbonEl) listKasbonEl.innerHTML = listKasbonHtml || "<small>Belum ada riwayat kasbon.</small>";
-    
-    let roiEl = document.getElementById('res-roi');
-    roiEl.innerText = roi.toFixed(1) + "%";
-    roiEl.className = roi >= 0 ? "roi-positive" : "roi-negative";
 
-    // 4. Detail Transaksi (Gabungkan & Urutkan jika ingin tampilan campur, 
-    // tapi di sini saya tetap pisah sesuai struktur UI Anda namun tetap urut tanggal)
+    // 4. DETAIL TRANSAKSI GABUNGAN (URUT TERBARU & FORMAT dd-mm-yyyy)
+    let gabungan = [
+        ...(d.jual || []).map((x, i) => ({...x, tipe: 'in', oriIdx: i})),
+        ...(d.biaya || []).map((x, i) => ({...x, tipe: 'out', oriIdx: i}))
+    ];
+
+    // Sorting Descending (Terbaru di atas)
+    gabungan.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+
     let detailHtml = "";
-    (d.jual || []).forEach((x, i) => {
-        detailHtml += `
-        <div class="trans-item">
-            <span class="badge-in">[IN] ${x.tgl} - ${x.g}</span>
-            <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('jual', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
-        </div>`;
-    });
-    
-    (d.biaya || []).forEach((x, i) => {
-        detailHtml += `
-        <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
-            <div style="display: flex; justify-content: space-between; width: 100%;">
-                <span class="badge-out">[OUT] ${x.tgl} - ${x.k}</span>
-                <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${i})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
-            </div>
-            <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">
-                Ket: ${x.ket}
-            </div>
-        </div>`;
+    gabungan.forEach((x) => {
+        const tglTampil = formatIndo(parseDate(x.tgl));
+        
+        if (x.tipe === 'in') {
+            detailHtml += `
+            <div class="trans-item">
+                <span class="badge-in">[IN] ${tglTampil} - ${x.g}</span>
+                <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('jual', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+            </div>`;
+        } else {
+            detailHtml += `
+            <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <span class="badge-out">[OUT] ${tglTampil} - ${x.k}</span>
+                    <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+                </div>
+                <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">Ket: ${x.ket}</div>
+            </div>`;
+        }
     });
     
     document.getElementById('transaksi-detail-list').innerHTML = detailHtml || "<small>Belum ada transaksi</small>";
-    const totalDataFin = (d.jual || []).length + (d.biaya || []).length;
-    checkLimit('transaksi-detail-list', 'btn-trans-more', totalDataFin);
+    checkLimit('transaksi-detail-list', 'btn-trans-more', gabungan.length);
 
-    // 5. Riwayat Arsip (Berdasarkan urutan masuk ke array history)
+    // 5. RIWAYAT ARSIP
     let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
     document.getElementById('riwayat-finance').innerHTML = hist.map((h, index) => {
         let b = (h.biaya || []).reduce((s, i) => s + i.total, 0);
         let j = (h.jual || []).reduce((s, i) => s + i.total, 0);
         return `
-        <div class="history-card" style="border-left-color:#666; position: relative;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <b>${h.v}</b><br>
-                    <small>${h.tgl_mulai} - ${h.tgl_selesai || 'Selesai'}</small>
-                </div>
+        <div class="history-card" style="border-left-color:#666;">
+            <div style="display:flex; justify-content:space-between;">
+                <div><b>${h.v}</b><br><small>${h.tgl_mulai} - ${h.tgl_selesai || 'Selesai'}</small></div>
                 <div style="display: flex; gap: 5px;">
                     <button onclick="lihatDetailArsip(${index})" style="font-size:10px; padding:5px; background:#2e7d32; color:white; border:none; border-radius:4px;">DETAIL</button>
                     <button onclick="hapusRiwayatPeriode(${index})" style="font-size:10px; padding:5px; background:#e74c3c; color:white; border:none; border-radius:4px;">HAPUS</button>
@@ -1558,62 +1599,69 @@ function importData() {
 
 
 function simpanNutrisiRiil() {
-    // 1. Ambil elemen input dari HTML
+    // 1. Ambil elemen input
     const inputPPM = document.getElementById('ppm-now');
     const inputPH = document.getElementById('ph-now');
-    const inputLiters = document.getElementById('liters'); // Menggunakan ID sesuai milik Anda
+    const inputLiters = document.getElementById('liters');
+    const inputTgl = document.getElementById('tgl-nutrisi-input'); // Element baru
 
-    // Validasi: PPM dan pH wajib diisi
-    if (!inputPPM.value || !inputPH.value) {
-        return alert("Mohon isi angka PPM dan pH saat ini!");
+    // Validasi: PPM, pH, dan Tanggal wajib diisi
+    if (!inputPPM.value || !inputPH.value || !inputTgl.value) {
+        return alert("Mohon isi Tanggal, angka PPM dan pH!");
     }
 
-    // 2. Hitung HST (Logika sinkron dengan Header: +1)
+    // 2. Hitung HST berdasarkan tanggal yang dipilih (bukan tanggal hari ini)
     const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
-    let hst = 0;
-    if (savedDate) {
-        const d1 = new Date(savedDate).setHours(0, 0, 0, 0);
-        const d2 = new Date().setHours(0, 0, 0, 0);
-        hst = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+    if (!savedDate) {
+        return alert("Tanggal tanam belum diatur!");
     }
 
-    // 3. Ambil data lama atau buat array baru jika belum ada
+    const dTanam = new Date(savedDate).setHours(0, 0, 0, 0);
+    const dInput = new Date(inputTgl.value).setHours(0, 0, 0, 0);
+    
+    // Rumus HST dinamis
+    const hst = Math.floor((dInput - dTanam) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (hst < 1) {
+        return alert("Tanggal yang dipilih sebelum tanggal tanam!");
+    }
+
+    // 3. Olah data LocalStorage
     let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
 
-    // 4. Siapkan objek data baru
+    // 4. Siapkan objek data
     let record = {
         hst: hst,
-        tgl: new Date().toLocaleDateString('id-ID'),
+        tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'), // Gunakan tanggal input
         ppm: parseFloat(inputPPM.value),
         ph: parseFloat(inputPH.value),
-        liter: inputLiters ? inputLiters.value : "0" // Ambil nilai liter jika kolom tersedia
+        liter: inputLiters ? inputLiters.value : "0"
     };
 
-    // 5. Cek apakah hari ini sudah ada data (Update jika sudah ada, Push jika baru)
+    // 5. Simpan (Update jika HST sudah ada, Push jika baru)
     let index = dailyLogs.findIndex(l => l.hst === hst);
     if (index > -1) {
+        if(!confirm(`Data HST ${hst} sudah ada. Ingin menimpa data lama?`)) return;
         dailyLogs[index] = record;
     } else {
         dailyLogs.push(record);
     }
 
-    // 6. Simpan kembali ke LocalStorage
+    // Urutkan data agar grafik tidak berantakan jika mengisi tanggal mundur
+    dailyLogs.sort((a, b) => a.hst - b.hst);
+
     localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
 
-    // 7. KOSONGKAN KOLOM INPUT
+    // 6. Reset Form (kecuali tanggal, agar bisa isi tanggal yang sama jika perlu)
     inputPPM.value = "";
     inputPH.value = "";
-    if (inputLiters) {
-        inputLiters.value = ""; // Kolom liters sekarang otomatis kosong
-    }
+    if (inputLiters) inputLiters.value = "";
 
-    // 8. Refresh tampilan grafik dan tabel
     alert("Data Nutrisi HST " + hst + " Berhasil Disimpan!");
     
     if (typeof refreshAll === "function") {
         refreshAll();
     } else {
-        // Fallback jika tidak ada fungsi refreshAll
         initChart();
         renderRekapNutrisi();
     }
@@ -1735,6 +1783,23 @@ async function exportPDF() {
     const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
+    // --- FUNGSI PEMBANTU FORMAT TANGGAL (PENTING) ---
+    const parseDate = (dateStr) => {
+        if(!dateStr) return new Date(0);
+        const sep = dateStr.includes('-') ? '-' : '/';
+        const p = dateStr.split(sep);
+        return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
+    };
+
+    const formatIndo = (dateStr) => {
+        const dObj = parseDate(dateStr);
+        if (dObj.getTime() === 0) return "-";
+        const dd = String(dObj.getDate()).padStart(2, '0');
+        const mm = String(dObj.getMonth() + 1).padStart(2, '0');
+        const yyyy = dObj.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+    };
+
     // --- LOGO ---
     const logoUrl = 'melona_logo.png'; 
     try {
@@ -1764,77 +1829,82 @@ async function exportPDF() {
     doc.autoTable({
         startY: 63,
         head: [['HST', 'Tanggal', 'PPM Riil', 'pH Riil']],
-        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, x.tgl, x.ppm, x.ph]),
+        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, formatIndo(x.tgl), x.ppm, x.ph]),
         headStyles: { fillColor: [46, 125, 50] }
     });
 
     // --- 2. Tabel Penyemprotan ---
     doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
-doc.autoTable({
-    startY: doc.lastAutoTable.finalY + 13,
-    head: [['HST', 'Tanggal', 'Produk (I|F|N)', 'Keterangan', 'Foto']],
-    body: sLog.map(x => [
-        x.hst, 
-        x.tgl, 
-        `${x.ins}\n${x.fun}\n${x.nut}`, 
-        x.ket || "-", 
-        "" // Tempat foto
-    ]),
-    headStyles: { fillColor: [46, 125, 50] },
-    columnStyles: {
-        3: { cellWidth: 40 }, // Kolom keterangan
-        4: { cellWidth: 30, minCellHeight: 22 } // Kolom foto
-    },
-    didDrawCell: function(data) {
-        if (data.column.index === 4 && data.cell.section === 'body') {
-            let imgData = sLog[data.row.index].img;
-            if (imgData) {
-    // Ukuran 20x20 mm (persegi) agar simetris di dalam sel
-    doc.addImage(imgData, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+    doc.autoTable({
+        startY: doc.lastAutoTable.finalY + 13,
+        head: [['HST', 'Tanggal', 'Produk (I|F|N)', 'Keterangan', 'Foto']],
+        body: sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => [
+            x.hst, 
+            formatIndo(x.tgl), 
+            `${x.ins}\n${x.fun}\n${x.nut}`, 
+            x.ket || "-", 
+            ""
+        ]),
+        headStyles: { fillColor: [46, 125, 50] },
+        columnStyles: { 3: { cellWidth: 40 }, 4: { cellWidth: 30, minCellHeight: 22 } },
+        didDrawCell: function(data) {
+            if (data.column.index === 4 && data.cell.section === 'body') {
+                let sortedSLog = sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl));
+                let imgData = sortedSLog[data.row.index].img;
+                if (imgData) {
+                    doc.addImage(imgData, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+                }
             }
         }
-    }
-});
+    });
 
     // --- 3. Tabel Aktivitas Kerja ---
     doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
         head: [['HST', 'Tanggal', 'Pekerjaan', 'Catatan', 'Pekerja']], 
-        body: kLog.map(x => [x.hst, x.tgl, x.jenis, x.ket || "-", x.nama]),
+        body: kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => [x.hst, formatIndo(x.tgl), x.jenis, x.ket || "-", x.nama]),
         headStyles: { fillColor: [46, 125, 50] },
         styles: { fontSize: 8, overflow: 'linebreak' },
         columnStyles: { 3: { cellWidth: 55 } } 
     });
 
-    // --- 4. Tabel Keuangan (KOLOM KETERANGAN DITAMBAHKAN) ---
+    // --- 4. Tabel Keuangan (PERBAIKAN SORTING & FORMAT) ---
     doc.addPage();
     doc.text("4. Laporan Keuangan & Laba Rugi", 14, 20);
     
-    let finData = [];
     let tBiaya = 0; let tJual = 0;
 
-    // Mapping Penjualan
-    (d.jual || []).forEach(x => { 
-        finData.push([x.tgl, "MASUK", x.g, "-", `Rp ${x.total.toLocaleString()}`]); 
-        tJual += x.total; 
-    });
+    // Gabungkan data agar bisa disortir bersamaan
+    let finDataGabungan = [
+        ...(d.jual || []).map(x => ({...x, tipe: "MASUK", kat: x.g})),
+        ...(d.biaya || []).map(x => ({...x, tipe: "KELUAR", kat: x.k}))
+    ];
 
-    // Mapping Biaya dengan Keterangan
-    (d.biaya || []).forEach(x => { 
-        finData.push([x.tgl, "KELUAR", x.k, x.ket || "-", `Rp ${x.total.toLocaleString()}`]); 
-        tBiaya += x.total; 
+    // Sorting dari tanggal terlama ke terbaru (cocok untuk laporan kronologis)
+    finDataGabungan.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+
+    // Mapping untuk body tabel
+    let finDataBody = finDataGabungan.map(x => {
+        if(x.tipe === "MASUK") tJual += x.total;
+        else tBiaya += x.total;
+
+        return [
+            formatIndo(x.tgl), 
+            x.tipe, 
+            x.kat, 
+            x.ket || "-", 
+            `Rp ${x.total.toLocaleString()}`
+        ];
     });
 
     doc.autoTable({
         startY: 25,
         head: [['Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Total']],
-        body: finData,
+        body: finDataBody,
         headStyles: { fillColor: [239, 108, 0] },
         styles: { fontSize: 8 },
-        columnStyles: {
-            3: { cellWidth: 50 } // Lebar kolom keterangan biaya
-        }
+        columnStyles: { 3: { cellWidth: 50 } }
     });
 
     const finalY = doc.lastAutoTable.finalY + 15;
@@ -1848,6 +1918,7 @@ doc.autoTable({
 
     doc.save(`LAPORAN_MELONA_${currentGH}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
+
 function updateStorageInfo() {
     let total = 0;
     // Menghitung besar karakter dalam localStorage (1 karakter ≈ 2 bytes)
@@ -2235,8 +2306,10 @@ window.onload = () => {
 
     // 2. Set Tanggal Default (Hari Ini)
     const hariIni = new Date().toISOString().split('T')[0];
+    document.getElementById('tgl-nutrisi-input').value = hariIni;
     document.getElementById('semprot-tgl').value = hariIni;
     document.getElementById('kerja-tgl').value = hariIni;
+    document.getElementById('f-tgl').value = hariIni;
     
     // --- 3. LOGIKA PEMBERSIH FORMAT MASSAL (ANTI-SPASI) ---
     // Mencari semua data di localStorage yang berakhiran '_kerja'
