@@ -2431,14 +2431,20 @@ window.onload = () => {
   const db = firebase.firestore();
 
   // Logika Cek Status Login
-  auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged((user) => {
     if (user) {
+        // Jika user berhasil login
         checkUserStatus(user);
     } else {
+        // Jika user belum login (Logika ELSE harus di sini)
         document.getElementById('lock-screen').style.display = 'flex';
         document.getElementById('main-app').style.display = 'none';
     }
-  });
+}, (error) => {
+    // Jika terjadi error pada Firebase (Logika ERROR di sini)
+    alert("Firebase Error: " + error.message);
+});
+
 
   async function checkUserStatus(user) {
     const userRef = db.collection('users').doc(user.email);
