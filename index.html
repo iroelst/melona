@@ -2432,10 +2432,15 @@ window.onload = () => {
 
   // 3. Fungsi Login Google (Gunakan Redirect agar stabil di HP)
   window.loginGoogle = function() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithRedirect(provider);
-  };
-
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then((result) => {
+      // Tidak perlu redirect manual, onAuthStateChanged di atas yang akan menangani
+      console.log("Login Berhasil:", result.user.email);
+    })
+    .catch((error) => {
+      alert("Login Gagal: " + error.message);
+    });
   // 4. Tangkap hasil Login setelah halaman kembali
   auth.getRedirectResult().catch((error) => {
     if (error.code !== 'auth/network-request-failed') {
@@ -2444,17 +2449,16 @@ window.onload = () => {
   });
 
   // 5. Pantau Status Login
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        // Jika user berhasil masuk, cek status di Firestore
-        checkUserStatus(user);
-    } else {
-        // Jika belum login, tampilkan layar kunci
-        document.getElementById('lock-screen').style.display = 'flex';
-        document.getElementById('main-app').style.display = 'none';
-    }
-  });
-
+  auth.onAuthStateChanged((user) => {
+  if (user) {
+    // Jika user terdeteksi sudah login, cek status pembayarannya
+    cekStatus(user);
+  } else {
+    // Jika tidak ada user, pastikan lock-screen muncul
+    document.getElementById('lock-screen').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+  }
+});
   // 6. Cek Status Pembayaran/Akses
   async function checkUserStatus(user) {
     try {
