@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Melona Monitoring System V1</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
     <link rel="manifest" href="manifest.json">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -107,7 +111,25 @@
     </style>
 </head>
 <body>
+<div id="lock-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f8f9fa; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family:sans-serif;">
+    <h2 style="color:#2e7d32;">Melona Monitoring System</h2>
+    <p id="lock-status">Silakan masuk menggunakan akun Gmail untuk melanjutkan.</p>
+    
+    <button id="btn-login" onclick="loginGoogle()" style="padding:15px 30px; background:#4285F4; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">
+        Masuk dengan Gmail
+    </button>
 
+    <div id="payment-area" style="display:none; margin-top:20px;">
+        <p style="color:red; font-weight:bold;">Akses Belum Aktif!</p>
+        <button onclick="prosesBayar()" style="padding:12px 24px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">
+            Aktivasi / Bayar Sekarang
+        </button>
+    </div>
+</div>
+
+<div id="main-app" style="display:none;">
+
+    
 <div class="header">
     <div class="header-top" style="display: flex; justify-content: center; align-items: center;">
         <h3 style="margin:0; text-align: center;">Melona Monitoring System</h3>
@@ -2372,5 +2394,65 @@ window.onload = () => {
 };
 
 </script>
+</div>
+<script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyC3m3twzsohDczU5OmNKtkzQK0nqbkjMdc",
+  authDomain: "melona-monitoring-system.firebaseapp.com",
+  projectId: "melona-monitoring-system",
+  storageBucket: "melona-monitoring-system.firebasestorage.app",
+  messagingSenderId: "1068089319994",
+  appId: "1:1068089319994:web:786a8f7f708a6a1a974b03",
+  measurementId: "G-G1VL1TPGNS"
+};
+  
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Logika Cek Status Login
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+        checkUserStatus(user);
+    } else {
+        document.getElementById('lock-screen').style.display = 'flex';
+        document.getElementById('main-app').style.display = 'none';
+    }
+  });
+
+  async function checkUserStatus(user) {
+    const userRef = db.collection('users').doc(user.email);
+    const doc = await userRef.get();
+
+    if (doc.exists && doc.data().isPaid === true) {
+        // Jika sudah bayar, hilangkan gembok
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+    } else {
+        // Jika belum bayar
+        document.getElementById('btn-login').style.display = 'none';
+        document.getElementById('payment-area').style.display = 'block';
+        document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", silakan aktivasi akun Anda.";
+        
+        if (!doc.exists) {
+            await userRef.set({ nama: user.displayName, email: user.email, isPaid: false });
+        }
+    }
+  }
+
+  function loginGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
+  }
+
+  function prosesBayar() {
+    // Untuk tahap awal, arahkan ke WA Anda
+    const user = auth.currentUser;
+    const waUrl = `https://wa.me/628XXXXXXXXXX?text=Halo, saya ingin aktivasi Melona Monitoring untuk: ${user.email}`;
+    window.open(waUrl, '_blank');
+  }
+</script>
+
+    
 </body>
 </html>
