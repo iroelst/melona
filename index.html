@@ -155,22 +155,23 @@
 </head>
 <body>
 <div id="lock-screen">
-    <img src="melona_logo.png" alt="Melona Logo" class="logo-melona">
-    
-    <h1>Melona Monitoring System</h1>
-    <p class="status-text">Halo Iroel St, akun Anda belum aktif.</p>
-
-    <div id="payment-area">
-        <h3>Akses Belum Aktif!</h3>
-        <p>Akun Anda belum terdaftar sebagai member berbayar.</p>
+<div id="lock-screen">
+        <img src="melona_logo.png" alt="Melona Logo" style="width:120px; margin-bottom:20px;">
+        <h1>Melona Monitoring System</h1>
+        <p id="lock-status">Gunakan akun Google untuk masuk ke sistem.</p>
         
-        <button class="btn-primary" onclick="prosesBayar()">
-            Hubungi Admin untuk Aktivasi
+        <button id="btn-login-google" onclick="loginGoogle()" class="btn-login">
+            Masuk dengan Google
         </button>
+
+        <div id="payment-area">
+            <h3>Akses Belum Aktif!</h3>
+            <p>Akun Anda belum terdaftar sebagai member berbayar.</p>
+            <button onclick="prosesBayar()" style="padding:10px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">
+                Hubungi Admin untuk Aktivasi
+            </button>
+        </div>
     </div>
-</div>
-
-
     <div id="main-app" style="display:none; padding: 10px 15px; background: #ffffff; border-bottom: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
     <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
         
