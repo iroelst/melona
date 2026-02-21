@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-
     <link rel="manifest" href="manifest.json">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +23,53 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        
         body { font-family: -apple-system, sans-serif; background: #f4f7f4; margin: 0; padding: 0; color: #333; }
+
+        #lock-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999; /* Pastikan paling depan */
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-login {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-login:hover { background-color: #357ae8; }
+
+        /* Aplikasi Utama (Awalnya Sembunyi) */
+        #main-app {
+            display: none;
+            padding: 20px;
+        }
+
+        #payment-area {
+            display: none;
+            margin-top: 20px;
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+        }
+        
         .header { background: #1b5e20; color: white; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
         .gh-manager { display: flex; gap: 5px; justify-content: center; align-items: center; margin-top: 10px; }
@@ -107,34 +152,41 @@
     display: none; /* Sembunyikan jika data <= 5 */
 }
 
-.btn-login {
-    background: #4285F4;
-    color: white;
-    border: none;
-    padding: 15px 10px;
-    border-radius: 10px;
-    font-weight: bold;
-    font-size: 16px;
-    margin-top: 10px;
-}
-    
-    </style>
+</style>
 </head>
 <body>
-<div id="lock-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f8f9fa; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
-    <h2>Melona Monitoring System</h2>
-    <p id="lock-status">Silakan masuk menggunakan akun Gmail.</p>
-    <button onclick="loginGoogle()" class="btn-login" style="cursor:pointer; position:relative; z-index:100000;">
-        Masuk dengan Gmail
-    </button>
-    
-    <div id="payment-area" style="display:none; margin-top:20px;">
-        <p style="color:red; font-weight:bold;">Akses Belum Aktif!</p>
-        <button onclick="prosesBayar()" style="padding:12px 24px; background:#28a745; color:white; border:none; border-radius:8px; cursor:pointer;">
-            Aktivasi Sekarang
+<div id="lock-screen">
+        <img src="melona_logo.png" alt="Melona Logo" style="width:120px; margin-bottom:20px;">
+        <h1>Melona Auto System</h1>
+        <p id="lock-status">Gunakan akun Google untuk masuk ke sistem.</p>
+        
+        <button id="btn-login-google" onclick="loginGoogle()" class="btn-login">
+            Masuk dengan Google
         </button>
+
+        <div id="payment-area">
+            <h3>Akses Belum Aktif!</h3>
+            <p>Akun Anda belum terdaftar sebagai member berbayar.</p>
+            <button onclick="prosesBayar()" style="padding:10px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">
+                Hubungi Admin untuk Aktivasi
+            </button>
+        </div>
     </div>
-</div>
+
+    <div id="main-app">
+        <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px;">
+            <h2>Dashboard Melona</h2>
+            <button onclick="logout()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Logout</button>
+        </header>
+        
+        <div style="margin-top: 20px;">
+            <p>Selamat Datang, <strong id="user-name">User</strong>!</p>
+            <div style="background: #f4f4f4; padding: 20px; border-radius: 10px;">
+                <h3>Fitur Monitoring Melona</h3>
+                <p>Status: <span style="color: green;">Aktif</span></p>
+            </div>
+        </div>
+    </div>
 
 <div class="header">
     <div class="header-top" style="display: flex; justify-content: center; align-items: center;">
@@ -2409,81 +2461,81 @@ window.onload = () => {
     appId: "1:1068089319994:web:786a8f7f708a6a1a974b03"
   };
   
-  // 2. Inisialisasi
-  if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-  }
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+  // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-  // 3. Fungsi Login Google (Gunakan Redirect agar stabil di HP)
-  window.loginGoogle = function() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-    .then((result) => {
-      // Tidak perlu redirect manual, onAuthStateChanged di atas yang akan menangani
-      console.log("Login Berhasil:", result.user.email);
-    })
-    .catch((error) => {
-      alert("Login Gagal: " + error.message);
-    });
-  // 4. Tangkap hasil Login setelah halaman kembali
-  auth.getRedirectResult().catch((error) => {
-    if (error.code !== 'auth/network-request-failed') {
-       alert("Gagal Login: " + error.message);
-    }
-  });
+        // 2. FUNGSI LOGIN (Dibuat Global agar bisa diklik)
+        window.loginGoogle = function() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log("Login sukses:", result.user.email);
+                })
+                .catch((error) => {
+                    alert("Gagal Login: " + error.message);
+                });
+        };
 
-  // 5. Pantau Status Login
-  auth.onAuthStateChanged((user) => {
-  if (user) {
-    // Jika user terdeteksi sudah login, cek status pembayarannya
-    cekStatus(user);
-  } else {
-    // Jika tidak ada user, pastikan lock-screen muncul
-    document.getElementById('lock-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
-  }
-});
-  // 6. Cek Status Pembayaran/Akses
-  async function checkUserStatus(user) {
-    try {
-      const userRef = db.collection('users').doc(user.email);
-      const doc = await userRef.get();
+        // 3. OBSERVER STATUS LOGIN (Mencegah Auth Loop / Kembali ke Login)
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User sudah login, sekarang cek database apakah sudah bayar
+                cekStatus(user);
+            } else {
+                // User belum login atau logout
+                document.getElementById('lock-screen').style.display = 'flex';
+                document.getElementById('main-app').style.display = 'none';
+                document.getElementById('btn-login-google').style.display = 'block';
+                document.getElementById('payment-area').style.display = 'none';
+            }
+        });
 
-      if (doc.exists && doc.data().isPaid === true) {
-          // Akses diberikan: Tampilkan aplikasi monitoring
-          document.getElementById('lock-screen').style.display = 'none';
-          document.getElementById('main-app').style.display = 'block';
-      } else {
-          // Akses ditolak: Tampilkan tombol aktivasi
-          document.getElementById('btn-login').style.display = 'none';
-          document.getElementById('payment-area').style.display = 'block';
-          document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", akses monitoring belum aktif.";
-          
-          // Daftarkan email ke database jika belum ada
-          if (!doc.exists) {
-              await userRef.set({ 
-                nama: user.displayName, 
-                email: user.email, 
-                isPaid: false,
-                role: "user",
-                registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-          }
-      }
-    } catch (err) {
-      alert("Error Database: " + err.message);
-    }
-  }
+        // 4. CEK STATUS PEMBAYARAN DI FIRESTORE
+        async function cekStatus(user) {
+            try {
+                const userRef = db.collection('users').doc(user.email);
+                const doc = await userRef.get();
 
-  // 7. Fungsi WhatsApp Admin
-  window.prosesBayar = function() {
-    const user = auth.currentUser;
-    const waUrl = `https://wa.me/628XXXXXXXXXX?text=Halo, saya ingin aktivasi Melona Monitoring untuk: ${user ? user.email : 'Email saya'}`;
-    window.open(waUrl, '_blank');
-  };
+                if (doc.exists && doc.data().isPaid === true) {
+                    // JIKA SUDAH BAYAR
+                    document.getElementById('lock-screen').style.display = 'none';
+                    document.getElementById('main-app').style.display = 'block';
+                    document.getElementById('user-name').innerText = user.displayName;
+                } else {
+                    // JIKA BELUM BAYAR
+                    document.getElementById('btn-login-google').style.display = 'none';
+                    document.getElementById('payment-area').style.display = 'block';
+                    document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", akun Anda belum aktif.";
+                    
+                    // Simpan data user ke Firestore jika baru pertama kali login
+                    if (!doc.exists) {
+                        await userRef.set({
+                            nama: user.displayName,
+                            email: user.email,
+                            isPaid: false,
+                            registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Database Error:", error);
+                alert("Terjadi kesalahan database.");
+            }
+        }
 
+        // 5. FUNGSI LOGOUT
+        window.logout = function() {
+            auth.signOut();
+        };
+
+        // 6. WHATSAPP ADMIN
+        window.prosesBayar = function() {
+            const user = auth.currentUser;
+            const waUrl = `https://wa.me/628XXXXXXXXXX?text=Halo Admin, saya mau aktivasi Melona System untuk email: ${user.email}`;
+            window.open(waUrl, '_blank');
+        };
 </script>
 </div>
 </body>
