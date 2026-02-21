@@ -2462,7 +2462,7 @@ window.onload = () => {
 
   function loginGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider);
+    auth.signInWithRedirect(provider);
   }
 
   function prosesBayar() {
