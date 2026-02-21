@@ -108,60 +108,48 @@
 }
 
 #lock-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+#lock-screen {
+    position: fixed !important;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
     background: #ffffff;
-    z-index: 9999;
-    
-    /* Ini kunci agar semua tepat di tengah */
-    display: flex;
-    flex-direction: column;
-    align-items: center;    /* Tengah Horizontal */
-    justify-content: center; /* Tengah Vertikal */
-    
+    z-index: 99999;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
     text-align: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 0;
-    margin: 0;
+    box-sizing: border-box;
 }
 
 .btn-login {
     background: #4285F4;
     color: white;
     border: none;
-    padding: 16px 32px;
-    border-radius: 50px; /* Membuat tombol lonjong/rounded */
+    padding: 15px 30px;
+    border-radius: 10px;
     font-weight: bold;
     font-size: 16px;
-    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
-    cursor: pointer;
+    margin-top: 20px;
 }
-
+    
     </style>
 </head>
 <body>
 <div id="lock-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#f8f9fa; z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family:sans-serif;">
-    <h2 style="color:#2e7d32;">Melona Monitoring System</h2>
-    <p id="lock-status">Silakan masuk menggunakan akun Gmail untuk melanjutkan.</p>
-    
-    <button id="btn-login" onclick="loginGoogle()" style="padding:15px 30px; background:#4285F4; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">
-        Masuk dengan Gmail
-    </button>
-
-    <div id="payment-area" style="display:none; margin-top:20px;">
-        <p style="color:red; font-weight:bold;">Akses Belum Aktif!</p>
-        <button onclick="prosesBayar()" style="padding:12px 24px; background:#28a745; color:white; border:none; border-radius:8px; font-weight:bold;">
-            Aktivasi / Bayar Sekarang
-        </button>
+<div id="lock-screen">
+        <h2>Melona Monitoring System</h2>
+        <p id="lock-status">Silakan masuk menggunakan akun Gmail.</p>
+        <button onclick="loginGoogle()" class="btn-login">Masuk dengan Gmail</button>
+        
+        <div id="payment-area" style="display:none; margin-top:20px;">
+            <p style="color:red; font-weight:bold;">Akses Belum Aktif!</p>
+            <button onclick="prosesBayar()" style="padding:12px 24px; background:#28a745; color:white; border:none; border-radius:8px;">Aktivasi Sekarang</button>
+        </div>
     </div>
-</div>
 
-<div id="main-app" style="display:none;">
+    <div id="main-app" style="display:none;">
 
-    
 <div class="header">
     <div class="header-top" style="display: flex; justify-content: center; align-items: center;">
         <h3 style="margin:0; text-align: center;">Melona Monitoring System</h3>
