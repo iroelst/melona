@@ -173,23 +173,28 @@
         </div>
     </div>
 
-    <div id="main-app" style="display:none; padding: 20px; text-align: center; font-family: sans-serif;">
-    <div style="max-width: 400px; margin: 0 auto; background: #fdfdfd; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <div id="main-app" style="display:none; padding: 10px 15px; background: #ffffff; border-bottom: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
         
-        <h2 style="margin-bottom: 5px; color: #333;" id="user-name">Memuat Nama...</h2>
-        
-        <p style="margin-bottom: 25px; font-size: 14px; color: #666;">
-            Status: <span style="color: #28a745; font-weight: bold;">● Aktif</span>
-        </p>
+        <div style="flex: 1; text-align: left;">
+            <span id="user-name" style="font-weight: bold; color: #333; font-size: 14px;">User</span>
+        </div>
 
-        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+        <div style="flex: 1; text-align: center;">
+            <span style="font-size: 12px; color: #666; background: #eafff0; padding: 4px 10px; border-radius: 20px; border: 1px solid #d3f9d8;">
+                Status: <span style="color: #28a745; font-weight: bold;">Aktif</span>
+            </span>
+        </div>
 
-        <button onclick="logout()" style="width: 100%; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;">
-            Logout
-        </button>
-        
+        <div style="flex: 1; text-align: right;">
+            <button onclick="logout()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; font-weight: bold;">
+                Logout
+            </button>
+        </div>
+
     </div>
 </div>
+
 
 
 <div class="header">
