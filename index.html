@@ -2492,12 +2492,8 @@ window.onload = () => {
                 document.getElementById('main-app').style.display = 'none';
                 document.getElementById('btn-login-google').style.display = 'block';
                 document.getElementById('payment-area').style.display = 'none';
-                    if (user) {
-        // Tampilkan pesan loading selagi menunggu Firestore
-        statusText.innerText = "Memverifikasi akses...";
-        await cekStatus(user);
-    } 
-});
+               } 
+          });
 
         // 4. CEK STATUS PEMBAYARAN DI FIRESTORE
         async function cekStatus(user) {
