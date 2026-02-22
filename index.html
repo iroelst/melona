@@ -2591,23 +2591,25 @@ window.prosesBayar = function() {
         alert("Silakan login terlebih dahulu.");
     }
 };
+    
 let deferredPrompt;
+
 window.addEventListener('beforeinstallprompt', (e) => {
+  // Simpan event agar bisa dipicu tombol manual
   e.preventDefault();
   deferredPrompt = e;
-  // Tampilkan tombol instal karena browser sudah siap
-  document.getElementById('btn-install').style.display = 'block';
+  // Tampilkan tombol karena browser sudah siap untuk instalasi
+  document.getElementById('btn-install-manual').style.display = 'block';
 });
 
-document.getElementById('btn-install').addEventListener('click', (e) => {
+document.getElementById('btn-install-manual').addEventListener('click', async () => {
   if (deferredPrompt) {
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
-        console.log('User menginstal aplikasi');
-      }
-      deferredPrompt = null;
-    });
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      document.getElementById('btn-install-manual').style.display = 'none';
+    }
+    deferredPrompt = null;
   }
 });
 
