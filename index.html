@@ -2496,14 +2496,7 @@ window.onload = () => {
         // Tampilkan pesan loading selagi menunggu Firestore
         statusText.innerText = "Memverifikasi akses...";
         await cekStatus(user);
-    } else {
-        // Reset tampilan ke mode login
-        lockScreen.style.display = 'flex';
-        mainApp.style.display = 'none';
-        btnLogin.style.display = 'block';
-        paymentArea.style.display = 'none';
-        statusText.innerText = "Gunakan akun Google untuk masuk ke sistem.";
-    }
+    } 
 });
 
         // 4. CEK STATUS PEMBAYARAN DI FIRESTORE
