@@ -621,6 +621,14 @@
 </div>
 
 <script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(reg => console.log('Service Worker terdaftar!', reg))
+            .catch(err => console.log('Gagal daftar SW', err));
+    });
+}
+  
     let ghList = JSON.parse(localStorage.getItem('gh_list')) || ["GH 1"];
     let currentGH = localStorage.getItem('active_gh') || ghList[0];
     let varietasTemp = [];
