@@ -31,7 +31,7 @@
             top: 0; left: 0;
             height: 100%;
             background: #ffffff;
-            display: flex;
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -153,6 +153,12 @@
 </style>
 </head>
 <body>
+    <div id="loading-initial" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:100000; display:flex; justify-content:center; align-items:center; font-family:sans-serif;">
+        <div style="text-align:center;">
+            <img src="melona_logo.png" style="width:80px; margin-bottom:10px;">
+            <p>Menghubungkan ke Melona System...</p>
+        </div>
+    </div>
 <div id="lock-screen">
         <img src="melona_logo.png" alt="Melona Logo" style="width:120px; margin-bottom:20px;">
         <h1>Melona Monitoring System</h1>
@@ -2455,90 +2461,105 @@ window.onload = () => {
 };
 
   // 1. Konfigurasi Firebase
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyC3m3twzsohDczU5OmNKtkzQK0nqbkjMdc",
     authDomain: "melona-monitoring-system.firebaseapp.com",
     projectId: "melona-monitoring-system",
     storageBucket: "melona-monitoring-system.firebasestorage.app",
     messagingSenderId: "1068089319994",
     appId: "1:1068089319994:web:786a8f7f708a6a1a974b03"
-  };
-  
-  // Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+};
 
-        // 2. FUNGSI LOGIN (Dibuat Global agar bisa diklik)
-        window.loginGoogle = function() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider)
-                .then((result) => {
-                    console.log("Login sukses:", result.user.email);
-                })
-                .catch((error) => {
-                    alert("Gagal Login: " + error.message);
+// Inisialisasi Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- FUNGSI HELPER UNTUK MENGATUR TAMPILAN ---
+function setDisplay(login, app, loading = 'none') {
+    document.getElementById('lock-screen').style.display = login;
+    document.getElementById('main-app').style.display = app;
+    // Jika Anda menambahkan id="loading-initial" seperti saran sebelumnya:
+    const loader = document.getElementById('loading-initial');
+    if(loader) loader.style.display = loading;
+}
+
+// 2. FUNGSI LOGIN
+window.loginGoogle = function() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+        .then((result) => {
+            console.log("Login sukses:", result.user.email);
+        })
+        .catch((error) => {
+            alert("Gagal Login: " + error.message);
+        });
+};
+
+// 3. OBSERVER STATUS LOGIN
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        // User terdeteksi login, jalankan cek status pembayaran
+        await cekStatus(user);
+    } else {
+        // User belum login, tampilkan layar login
+        setDisplay('flex', 'none');
+        document.getElementById('btn-login-google').style.display = 'block';
+        document.getElementById('payment-area').style.display = 'none';
+    }
+});
+
+// 4. CEK STATUS PEMBAYARAN DI FIRESTORE
+async function cekStatus(user) {
+    try {
+        // Menggunakan doc(user.email) sesuai kode asli Anda
+        const userRef = db.collection('users').doc(user.email);
+        const doc = await userRef.get();
+
+        if (doc.exists && doc.data().isPaid === true) {
+            // JIKA SUDAH BAYAR: Sembunyikan login, tampilkan app
+            setDisplay('none', 'block');
+            document.getElementById('user-name').innerText = user.displayName;
+        } else {
+            // JIKA BELUM BAYAR: Tampilkan area pembayaran di dalam lock-screen
+            setDisplay('flex', 'none');
+            document.getElementById('btn-login-google').style.display = 'none';
+            document.getElementById('payment-area').style.display = 'block';
+            document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", akun Anda belum aktif.";
+            
+            if (!doc.exists) {
+                await userRef.set({
+                    nama: user.displayName,
+                    email: user.email,
+                    isPaid: false,
+                    registeredAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-        };
-
-        // 3. OBSERVER STATUS LOGIN (Mencegah Auth Loop / Kembali ke Login)
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // User sudah login, sekarang cek database apakah sudah bayar
-                cekStatus(user);
-            } else {
-                // User belum login atau logout
-                document.getElementById('lock-screen').style.display = 'flex';
-                document.getElementById('main-app').style.display = 'none';
-                document.getElementById('btn-login-google').style.display = 'block';
-                document.getElementById('payment-area').style.display = 'none';
-               } 
-          });
-
-        // 4. CEK STATUS PEMBAYARAN DI FIRESTORE
-        async function cekStatus(user) {
-            try {
-                const userRef = db.collection('users').doc(user.email);
-                const doc = await userRef.get();
-
-                if (doc.exists && doc.data().isPaid === true) {
-                    // JIKA SUDAH BAYAR
-                    document.getElementById('lock-screen').style.display = 'none';
-                    document.getElementById('main-app').style.display = 'block';
-                    document.getElementById('user-name').innerText = user.displayName;
-                } else {
-                    // JIKA BELUM BAYAR
-                    document.getElementById('btn-login-google').style.display = 'none';
-                    document.getElementById('payment-area').style.display = 'block';
-                    document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", akun Anda belum aktif.";
-                    
-                    // Simpan data user ke Firestore jika baru pertama kali login
-                    if (!doc.exists) {
-                        await userRef.set({
-                            nama: user.displayName,
-                            email: user.email,
-                            isPaid: false,
-                            registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error("Database Error:", error);
-                alert("Terjadi kesalahan database.");
             }
         }
+    } catch (error) {
+        console.error("Database Error:", error);
+        // Jika error (misal koneksi), tetap sembunyikan app demi keamanan
+        setDisplay('flex', 'none');
+        alert("Terjadi kesalahan sinkronisasi database.");
+    }
+}
 
-        // 5. FUNGSI LOGOUT
-        window.logout = function() {
-            auth.signOut();
-        };
+// 5. FUNGSI LOGOUT
+window.logout = function() {
+    auth.signOut().then(() => {
+        location.reload(); // Refresh untuk memastikan state bersih
+    });
+};
 
-        // 6. WHATSAPP ADMIN
-        window.prosesBayar = function() {
-            const user = auth.currentUser;
-            const waUrl = `https://wa.me/6285779081808?text=Halo Admin, saya mau aktivasi Melona Monitoring System untuk email: ${user.email}`;
-            window.open(waUrl, '_blank');
-        };
+// 6. WHATSAPP ADMIN
+window.prosesBayar = function() {
+    const user = auth.currentUser;
+    if(user) {
+        const waUrl = `https://wa.me/6285779081808?text=Halo Admin, saya mau aktivasi Melona Monitoring System untuk email: ${user.email}`;
+        window.open(waUrl, '_blank');
+    }
+};
+
 </script>
 </div>
 </body>
