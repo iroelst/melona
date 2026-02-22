@@ -27,18 +27,16 @@
         body { font-family: -apple-system, sans-serif; background: #f4f7f4; margin: 0; padding: 0; color: #333; }
 
         #lock-screen {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999; /* Pastikan paling depan */
-            text-align: center;
-            padding: 20px;
-        }
+        #lock-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Tengah vertikal */
+    align-items: center;     /* Tengah horizontal */
+    min-height: 100vh;
+    background-color: #ffffff;
+    text-align: center;
+    padding: 20px;
+}
 
         .btn-login {
             padding: 15px 30px;
