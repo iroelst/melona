@@ -1,7 +1,7 @@
 {
   "name": "Melon Monitor V2 Pro",
   "short_name": "Melona",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2e7d32",
@@ -10,11 +10,13 @@
       "src": "melona_logo.png",
       "sizes": "192x192",
       "type": "image/png"
+      "purpose": "any"
     },
     {
       "src": "melona_logo.png",
       "sizes": "512x512",
       "type": "image/png"
+      "purpose": "any"
     }
   ]
 }
