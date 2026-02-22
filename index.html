@@ -167,10 +167,9 @@
         <button id="btn-login-google" onclick="loginGoogle()" class="btn-login">
             Masuk dengan Google
         </button>
-    <button id="btn-install" style="display:none; background: #FF9800; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; width: 100%;">
-    Instal Aplikasi Melona
+    <button id="btnInstallMelona" style="display:none; width:100%; padding:15px; background:#2e7d32; color:white; border:none; border-radius:8px; margin-bottom:15px; font-weight:bold; font-size:16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    📥 PASANG APLIKASI MELONA
 </button>
-
 
         <div id="payment-area" style="display: none; background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
     <h3 style="color: #333;">Aktivasi Akun</h3>
@@ -2593,25 +2592,28 @@ window.prosesBayar = function() {
 };
     
 let deferredPrompt;
+const btnInstall = document.getElementById('btnInstallMelona');
 
+// Event ini hanya akan jalan jika manifest & service worker VALID
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Simpan event agar bisa dipicu tombol manual
-  e.preventDefault();
-  deferredPrompt = e;
-  // Tampilkan tombol karena browser sudah siap untuk instalasi
-  document.getElementById('btn-install-manual').style.display = 'block';
+    console.log('PWA Valid! Menampilkan tombol install...');
+    e.preventDefault();
+    deferredPrompt = e;
+    // Tampilkan tombol manual
+    btnInstall.style.display = 'block';
 });
 
-document.getElementById('btn-install-manual').addEventListener('click', async () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      document.getElementById('btn-install-manual').style.display = 'none';
+btnInstall.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            btnInstall.style.display = 'none';
+        }
+        deferredPrompt = null;
     }
-    deferredPrompt = null;
-  }
 });
+
 
 </script>
 </div>
