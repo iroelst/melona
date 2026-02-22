@@ -167,6 +167,10 @@
         <button id="btn-login-google" onclick="loginGoogle()" class="btn-login">
             Masuk dengan Google
         </button>
+    <button id="btn-install" style="display:none; background: #FF9800; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; width: 100%;">
+    Instal Aplikasi Melona
+</button>
+
 
         <div id="payment-area" style="display: none; background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
     <h3 style="color: #333;">Aktivasi Akun</h3>
@@ -2588,34 +2592,24 @@ window.prosesBayar = function() {
     }
 };
 let deferredPrompt;
-
-// Menangkap event instalasi dari browser
 window.addEventListener('beforeinstallprompt', (e) => {
-    // Mencegah browser menampilkan prompt otomatis yang kecil di bawah
-    e.preventDefault();
-    // Simpan event agar bisa dipicu nanti
-    deferredPrompt = e;
-    
-    // Opsional: Tampilkan tombol "Instal Aplikasi" buatan Anda sendiri
-    const installBtn = document.getElementById('btn-install-app'); 
-    if(installBtn) installBtn.style.display = 'block';
+  e.preventDefault();
+  deferredPrompt = e;
+  // Tampilkan tombol instal karena browser sudah siap
+  document.getElementById('btn-install').style.display = 'block';
 });
 
-// Fungsi untuk memicu instalasi saat tombol diklik
-window.installMelona = function() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt(); // Munculkan dialog instalasi
-        deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('User menginstal Melona');
-            }
-            deferredPrompt = null;
-        });
-    } else {
-        alert("Gunakan menu browser (titik tiga) lalu pilih 'Instal Aplikasi' atau 'Tambahkan ke Layar Utama'");
-    }
-};
-
+document.getElementById('btn-install').addEventListener('click', (e) => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User menginstal aplikasi');
+      }
+      deferredPrompt = null;
+    });
+  }
+});
 
 </script>
 </div>
