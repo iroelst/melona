@@ -168,13 +168,24 @@
             Masuk dengan Google
         </button>
 
-        <div id="payment-area">
-            <h3>Akses Belum Aktif!</h3>
-            <p>Akun Anda belum terdaftar sebagai member berbayar.</p>
-            <button onclick="prosesBayar()" style="padding:10px; background:#28a745; color:white; border:none; border-radius:5px; cursor:pointer;">
-                Hubungi Admin untuk Aktivasi
-            </button>
-        </div>
+        <div id="payment-area" style="display: none; background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
+    <h3 style="color: #333;">Aktivasi Akun</h3>
+    <p id="lock-status">Silakan lakukan pembayaran untuk mengakses sistem.</p>
+    
+    <div style="margin: 20px 0; text-align: left; background: white; padding: 15px; border-left: 5px solid #25D366;">
+        <strong>Transfer Pembayaran:</strong><br>
+        <small>Bank BRI</small><br>
+        <span style="font-size: 1.2em; letter-spacing: 1px;"><strong>000901128357503</strong></span><br>
+        <small>A/N: HIRUL SETIAWAN</small><br><br>
+        <strong>Nominal: Rp 350.000</strong>
+    </div>
+
+    <p style="font-size: 0.9em; color: #666;">Setelah transfer, klik tombol di bawah untuk konfirmasi ke Admin via WhatsApp.</p>
+    
+    <button onclick="prosesBayar()" style="background: #25D366; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%;">
+        Konfirmasi via WhatsApp
+    </button>
+</div>
     </div>
     <div id="main-app" style="display:none; padding: 10px 15px; background: #ffffff; border-bottom: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
     <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
@@ -2554,11 +2565,21 @@ window.logout = function() {
 // 6. WHATSAPP ADMIN
 window.prosesBayar = function() {
     const user = auth.currentUser;
-    if(user) {
-        const waUrl = `https://wa.me/6285779081808?text=Halo Admin, saya mau aktivasi Melona Monitoring System untuk email: ${user.email}`;
+    if (user) {
+        const namaUser = user.displayName;
+        const emailUser = user.email;
+        const pesan = `Halo Admin, saya sudah transfer untuk aktivasi Melona Monitoring System.\n\n` +
+                      `Nama: ${namaUser}\n` +
+                      `Email: ${emailUser}\n` +
+                      `Mohon segera diproses. Terima kasih.`;
+        
+        const waUrl = `https://wa.me/6285779081808?text=${encodeURIComponent(pesan)}`;
         window.open(waUrl, '_blank');
+    } else {
+        alert("Silakan login terlebih dahulu.");
     }
 };
+
 
 </script>
 </div>
