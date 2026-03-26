@@ -1956,26 +1956,40 @@ async function exportPDF() {
         headStyles: { fillColor: [46, 125, 50] }
     });
 
-    // --- 2. Tabel Penyemprotan ---
+// --- 2. Tabel Penyemprotan ---
     doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
+    
+    // Siapkan data yang sudah disortir terlebih dahulu agar konsisten
+    const sortedSLog = sLog.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
         head: [['HST', 'Tanggal', 'Produk (I|F|N)', 'Keterangan', 'Foto']],
-        body: sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => [
+        body: sortedSLog.map(x => [
             x.hst, 
             formatIndo(x.tgl), 
-            `${x.ins}\n${x.fun}\n${x.nut}`, 
+            `${x.ins || ''}\n${x.fun || ''}\n${x.nut || ''}`, 
             x.ket || "-", 
-            ""
+            "" // Kolom kosong untuk tempat foto
         ]),
         headStyles: { fillColor: [46, 125, 50] },
-        columnStyles: { 3: { cellWidth: 40 }, 4: { cellWidth: 30, minCellHeight: 22 } },
+        columnStyles: { 
+            3: { cellWidth: 40 }, 
+            4: { cellWidth: 30, minCellHeight: 22 } 
+        },
         didDrawCell: function(data) {
+            // Pastikan kita berada di kolom ke-5 (index 4) dan bagian body
             if (data.column.index === 4 && data.cell.section === 'body') {
-                let sortedSLog = sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl));
-                let imgData = sortedSLog[data.row.index].img;
-                if (imgData) {
-                    doc.addImage(imgData, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+                // Ambil data langsung dari array yang sudah kita sortir tadi
+                const currentRowData = sortedSLog[data.row.index];
+                
+                // VALIDASI: Cek apakah data dan properti img ada
+                if (currentRowData && currentRowData.img) {
+                    try {
+                        doc.addImage(currentRowData.img, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+                    } catch (err) {
+                        console.error("Gagal menambahkan gambar ke PDF:", err);
+                    }
                 }
             }
         }
