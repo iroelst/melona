@@ -1670,27 +1670,32 @@ function hapusItem(key, index) {
 
 function prepareEditSemprot(index) {
     const logs = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
-    const data = logs[index];
+    const d = logs[index];
 
-    // 1. Set Status Global
     isEditMode = true;
     editIdx = index;
     editType = 'semprot';
 
-    // 2. Isi Form (Hapus bagian dosis "(...)" agar input bersih)
-    document.getElementById('ins-nama').value = data.ins.split(' (')[0];
-    document.getElementById('fun-nama').value = data.fun.split(' (')[0];
-    document.getElementById('nut-nama').value = data.nut.split(' (')[0];
-    document.getElementById('semprot-ket').value = data.ket || "";
-    document.getElementById('semprot-tgl').value = data.tgl;
+    // Pecah kembali string "Nama (Dosis)" untuk dimasukkan ke input masing-masing
+    const getVal = (str) => str.split(' (')[0] || "";
+    const getDos = (str) => str.includes('(') ? str.split('(')[1].replace(')', '') : "";
 
-    // 3. Visual Feedback
+    document.getElementById('ins-nama').value = getVal(d.ins);
+    document.getElementById('ins-dosis').value = getDos(d.ins);
+    document.getElementById('fun-nama').value = getVal(d.fun);
+    document.getElementById('fun-dosis').value = getDos(d.fun);
+    document.getElementById('nut-nama').value = getVal(d.nut);
+    document.getElementById('nut-dosis').value = getDos(d.nut);
+    document.getElementById('semprot-ket').value = d.ket || "";
+
+    // Beri tanda visual pada tombol simpan
     const btn = document.getElementById('btn-simpan-semprot');
     if(btn) {
-        btn.innerText = "UPDATE DATA SEMPROT";
-        btn.style.background = "#f39c12";
+        btn.innerText = "UPDATE DATA SEMPROT (OVERWRITE)";
+        btn.style.background = "#f39c12"; // Warna oranye
     }
 
+    // Scroll ke form input
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
