@@ -2659,6 +2659,22 @@ function toggleTabel() {
         }
     }
 
+    // Fungsi untuk mengubah "15/3/2026" menjadi "2026-03-15" agar diterima input type="date"
+function convertToInputDate(dateStr) {
+    if (!dateStr) return "";
+    
+    // Pecah string berdasarkan "/"
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return "";
+    
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    
+    // Return format wajib HTML5: yyyy-mm-dd
+    return `${year}-${month}-${day}`;
+}
+
 window.onload = () => {
     // 1. Inisialisasi Dasar UI
     updateGHSelector();
