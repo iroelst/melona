@@ -1299,6 +1299,7 @@ function simpanLog(tipe) {
         finishSave();
     }
 }
+    
 // Fungsi pembantu khusus simpan semprot agar kode rapi
 function prosesSimpanSemprot(tgl, hst, imgBase64) {
     let logS = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
@@ -1343,6 +1344,33 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     finishSave(); 
     alert("Data Semprot Berhasil Disimpan!");
 }
+function prepareEditKerja(index) {
+    // 1. Ambil data dari storage
+    const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+    const data = logs[index];
+
+    // 2. Tandai mode edit
+    isEditMode = true;
+    editIdx = index;
+    editType = 'kerja';
+
+    // 3. Masukkan kembali ke Form
+    // Konversi tanggal Indo (dd/mm/yyyy) ke format HTML (yyyy-mm-dd)
+    document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
+    document.getElementById('kerja-jenis').value = data.jenis;
+    document.getElementById('kerja-ket').value = data.ket || "";
+
+    // 4. Ubah teks tombol simpan
+    const btn = document.getElementById('btn-simpan-kerja');
+    if (btn) {
+        btn.innerText = "UPDATE AKTIVITAS";
+        btn.style.background = "#f39c12"; // Warna oranye untuk penanda edit
+    }
+
+    // 5. Scroll ke atas agar langsung kelihatan formnya
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+    
 function finishSave() {
     updateUI(); 
     renderLogs();
@@ -1394,17 +1422,19 @@ document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
 
 checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
     // 2. Render Riwayat Kerja
-    document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
-        <div class="history-card" style="border-left-color:#f39c12;">
-            <div style="display:flex; justify-content:space-between;">
-                <b>${i.tgl} (HST ${i.hst})</b>
-                <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer">🗑️</span>
+document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
+    <div class="history-card" style="border-left-color:#f39c12; position: relative; padding: 12px;">
+        <div style="display: flex; justify-content: space-between;">
+            <b>${i.tgl} (HST ${i.hst})</b>
+            <div style="display: flex; gap: 15px;">
+                <span onclick="prepareEditKerja(${index})" style="cursor:pointer; font-size: 18px;">✏️</span>
+                <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer; font-size: 18px;">🗑️</span>
             </div>
-            <div style="margin-top:5px;">🛠️ <b>${i.jenis}</b> | 👥 ${i.nama}</div>
-            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
-        </div>`).join("");
-    checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
-}
+        </div>
+        <div style="margin-top: 5px;">🛠️ <b>${i.jenis}</b> | 👥 ${i.nama || (i.pekerja ? i.pekerja.join(', ') : '-')}</div>
+            
+        ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
+    </div>`).join("");
 
     function hitungAB() {
         let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
