@@ -367,6 +367,7 @@
     
 <label>Foto Dokumentasi (Maks 2MB)</label>
 <input type="file" id="semprot-img" accept="image/*">
+<div id="preview-semprot-edit"></div>
     
     <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
     </div>
@@ -1679,30 +1680,51 @@ function prepareEditSemprot(index) {
     isEditMode = true;
     editIdx = index;
     editType = 'semprot';
+    tempEditImg = d.img || ""; // Simpan string foto lama
 
-    // Pecah kembali string "Nama (Dosis)" untuk dimasukkan ke input masing-masing
-    const getVal = (str) => str.split(' (')[0] || "";
-    const getDos = (str) => str.includes('(') ? str.split('(')[1].replace(')', '') : "";
+    // 1. Isi Tanggal & Form Obat
+    document.getElementById('semprot-tgl').value = convertToInputDate(d.tgl);
+    
+    const parseField = (str) => {
+        const val = str.split(' (')[0] || "";
+        const dos = str.includes('(') ? str.split('(')[1].replace(')', '') : "";
+        return { val, dos };
+    };
 
-    document.getElementById('ins-nama').value = getVal(d.ins);
-    document.getElementById('ins-dosis').value = getDos(d.ins);
-    document.getElementById('fun-nama').value = getVal(d.fun);
-    document.getElementById('fun-dosis').value = getDos(d.fun);
-    document.getElementById('nut-nama').value = getVal(d.nut);
-    document.getElementById('nut-dosis').value = getDos(d.nut);
+    const ins = parseField(d.ins);
+    document.getElementById('ins-nama').value = ins.val;
+    document.getElementById('ins-dosis').value = ins.dos;
+
+    const fun = parseField(d.fun);
+    document.getElementById('fun-nama').value = fun.val;
+    document.getElementById('fun-dosis').value = fun.dos;
+
+    const nut = parseField(d.nut);
+    document.getElementById('nut-nama').value = nut.val;
+    document.getElementById('nut-dosis').value = nut.dos;
+
     document.getElementById('semprot-ket').value = d.ket || "";
 
-    // Beri tanda visual pada tombol simpan
-    const btn = document.getElementById('btn-simpan-semprot');
-    if(btn) {
-        btn.innerText = "UPDATE DATA SEMPROT (OVERWRITE)";
-        btn.style.background = "#f39c12"; // Warna oranye
+    // 2. Tampilkan Foto di Area Preview
+    const previewContainer = document.getElementById('preview-semprot-edit');
+    if (d.img) {
+        previewContainer.innerHTML = `
+            <div style="margin-top: 10px; padding: 10px; border: 1px dashed #ccc; border-radius: 8px; text-align: center; background: #f9f9f9;">
+                <p style="font-size: 11px; color: #666; margin-bottom: 5px;">📸 Foto saat ini:</p>
+                <img src="${d.img}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #2e7d32;">
+                <p style="font-size: 10px; color: #e67e22; margin-top: 5px;">*Pilih file baru jika ingin mengganti foto ini</p>
+            </div>`;
+    } else {
+        previewContainer.innerHTML = `<p style="font-size: 11px; color: #999; margin-top:10px;">(Tidak ada foto sebelumnya)</p>`;
     }
 
-    // Scroll ke form input
+    // 3. Ubah Tombol Simpan
+    const btn = document.getElementById('btn-simpan-semprot');
+    btn.innerText = "UPDATE DATA SEMPROT";
+    btn.style.background = "#f39c12";
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 let editMode = false;
 let editTargetIndex = null;
 let editTargetType = null; // 'jual' atau 'biaya'
