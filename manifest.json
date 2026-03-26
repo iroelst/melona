@@ -1,8 +1,8 @@
 {
   "name": "Melon Monitoring System",
   "short_name": "Melona",
-  "start_url": "/melona/index.html", 
-  "scope": "/melona/",
+"start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
