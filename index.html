@@ -2819,14 +2819,22 @@ window.loginGoogle = function() {
 // 3. OBSERVER STATUS LOGIN
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        // 1. Cek status pembayaran dulu
+        // 1. Cek status pembayaran
         await cekStatus(user);
         
-        // 2. SETELAH cekStatus berhasil dan app ditampilkan, 
-        // baru panggil fungsi render agar tombol-tombol muncul sesuai data
-        console.log("User terverifikasi, memulai render UI...");
-        initAppSelection(); // Pastikan currentGH sudah terisi
-        refreshAll();       // Gunakan fungsi pembungkus untuk render ulang semua
+        // 2. Gunakan nama fungsi yang benar (updateGHSelector)
+        if (typeof updateGHSelector === "function") {
+            updateGHSelector(); 
+        }
+
+        // 3. Pastikan currentGH sudah terisi, lalu render
+        if (currentGH) {
+            renderRekapNutrisi();
+            if (typeof renderFinance === "function") renderFinance();
+            if (typeof renderLogs === "function") renderLogs();
+        }
+        
+        console.log("Aplikasi Melona Siap!");
     } else {
         setDisplay('flex', 'none');
         document.getElementById('btn-login-google').style.display = 'block';
