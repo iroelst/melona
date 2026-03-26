@@ -906,6 +906,69 @@ function mulaiPeriode() {
     }
 }
 
+    // Variabel global untuk melacak index yang sedang diedit
+let editIndexNutrisi = null;
+
+function renderRekapNutrisi() {
+    const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+    // Sortir terbaru di atas untuk riwayat
+    const sortedLogs = [...dailyLogs].sort((a, b) => b.hst - a.hst);
+    
+    let html = `
+    <div style="margin-top:20px;">
+        <h4 style="font-size:14px; color:#2e7d32;">Riwayat Input Terakhir</h4>
+        <table style="width:100%; border-collapse:collapse; font-size:12px; background:white; border-radius:8px; overflow:hidden;">
+            <tr style="background:#f4f4f4;">
+                <th style="padding:8px; border-bottom:1px solid #ddd;">Tgl (HST)</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd;">PPM</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd;">pH</th>
+                <th style="padding:8px; border-bottom:1px solid #ddd;">Aksi</th>
+            </tr>`;
+
+    sortedLogs.slice(0, 10).forEach((log) => {
+        // Cari index asli di dailyLogs (karena sortedLogs urutannya beda)
+        const originalIndex = dailyLogs.findIndex(l => l.hst === log.hst);
+        
+        html += `
+        <tr>
+            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.tgl} (${log.hst})</td>
+            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.ppm}</td>
+            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.ph}</td>
+            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
+                <span onclick="prepareEditNutrisi(${originalIndex})" style="color:#f39c12; cursor:pointer; margin-right:10px;">✏️</span>
+                <span onclick="hapusNutrisi(${originalIndex})" style="color:#e74c3c; cursor:pointer;">🗑️</span>
+            </td>
+        </tr>`;
+    });
+
+    html += `</table></div>`;
+    document.getElementById('rekap-nutrisi-container').innerHTML = html;
+}
+
+function prepareEditNutrisi(index) {
+    const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+    const data = dailyLogs[index];
+    
+    // Kembalikan data ke form
+    document.getElementById('ppm-now').value = data.ppm;
+    document.getElementById('ph-now').value = data.ph;
+    if(document.getElementById('liters')) document.getElementById('liters').value = data.liter;
+    
+    // Scroll ke atas agar user sadar sedang edit
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    alert("Silakan ubah data Nutrisi HST " + data.hst);
+}
+
+function hapusNutrisi(index) {
+    if(confirm("Hapus data nutrisi ini?")) {
+        let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+        dailyLogs.splice(index, 1);
+        localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
+        refreshAll();
+    }
+}
+
+
 function simpanTransaksi(tipe) {
     let data = getActiveData();
     
