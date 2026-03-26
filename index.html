@@ -911,8 +911,11 @@ function mulaiPeriode() {
 let editIndexNutrisi = null;
 
 function renderRekapNutrisi() {
+    if (!currentGH) return;
+    const container = document.getElementById('rekap-nutrisi-container');
+    if (!container) return;
+
     const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
-    // Sortir terbaru di atas untuk riwayat
     const sortedLogs = [...dailyLogs].sort((a, b) => b.hst - a.hst);
     
     let html = `
@@ -941,7 +944,7 @@ function renderRekapNutrisi() {
 });
 
     html += `</table></div>`;
-    document.getElementById('rekap-nutrisi-container').innerHTML = html;
+    container.innerHTML = html;
 }
 
 // Fungsi Edit Nutrisi
@@ -2816,10 +2819,15 @@ window.loginGoogle = function() {
 // 3. OBSERVER STATUS LOGIN
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        // User terdeteksi login, jalankan cek status pembayaran
+        // 1. Cek status pembayaran dulu
         await cekStatus(user);
+        
+        // 2. SETELAH cekStatus berhasil dan app ditampilkan, 
+        // baru panggil fungsi render agar tombol-tombol muncul sesuai data
+        console.log("User terverifikasi, memulai render UI...");
+        initAppSelection(); // Pastikan currentGH sudah terisi
+        refreshAll();       // Gunakan fungsi pembungkus untuk render ulang semua
     } else {
-        // User belum login, tampilkan layar login
         setDisplay('flex', 'none');
         document.getElementById('btn-login-google').style.display = 'block';
         document.getElementById('payment-area').style.display = 'none';
