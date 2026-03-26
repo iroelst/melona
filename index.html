@@ -40,7 +40,17 @@
             text-align: center;
             padding: 20px;
         }
+
+        .btn-login, .btn { 
+    width: 100%;           /* Mengambil lebar penuh dari pembungkusnya */
+    max-width: 300px;      /* Membatasi panjang tombol agar tidak terlalu lebar di laptop */
+    margin: 10px auto;     /* Memberi jarak atas-bawah dan menengahkan tombol */
+    display: block;        /* Memastikan margin auto bekerja untuk menengahkan */
+}
+        
         .btn-login {
+            width: 100%;           /* Paksa tombol biru jadi lebar penuh */
+            max-width: 85%;        /* Samakan dengan lebar tombol hijau Anda */
             padding: 15px 30px;
             font-size: 18px;
             background-color: #4285F4;
