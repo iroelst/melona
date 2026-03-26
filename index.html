@@ -1300,56 +1300,48 @@ function simpanLog(tipe) {
 }
 // Fungsi pembantu khusus simpan semprot agar kode rapi
 function prosesSimpanSemprot(tgl, hst, imgBase64) {
-    // 1. Susun Objek Data
+    let logS = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
+    
+    // LOGIKA FOTO: Jika ada foto baru (imgBase64), pakai itu. 
+    // Jika tidak ada tapi sedang mode edit, pakai foto lama (tempEditImg).
+    let finalImg = imgBase64 || (isEditMode ? tempEditImg : "");
+
     let dataBaru = {
-        tgl: new Date(tgl).toLocaleDateString('id-ID'),
+        tgl: new Date(tgl).toLocaleDateString('id-ID'), // Simpan balik ke format Indo
         hst: (hst <= 0) ? 0 : hst,
         ins: document.getElementById('ins-nama').value + " (" + document.getElementById('ins-dosis').value + ")",
         fun: document.getElementById('fun-nama').value + " (" + document.getElementById('fun-dosis').value + ")",
         nut: document.getElementById('nut-nama').value + " (" + document.getElementById('nut-dosis').value + ")",
         ket: document.getElementById('semprot-ket').value,
-        img: imgBase64 || "" // Tetap simpan foto jika ada
+        img: finalImg
     };
 
-    let logS = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
-
-    // 2. LOGIKA MENIMPA ATAU TAMBAH BARU
     if (isEditMode && editType === 'semprot') {
-        // Jika sedang edit, timpa data pada index yang dipilih
-        logS[editIdx] = dataBaru;
-        
-        // Reset Status Edit
+        logS[editIdx] = dataBaru; // MENIMPA
         isEditMode = false;
         editIdx = null;
         editType = null;
+        tempEditImg = ""; 
         
-        // Kembalikan tombol ke tampilan normal
         const btn = document.getElementById('btn-simpan-semprot');
-        if(btn) {
-            btn.innerText = "SIMPAN DATA SEMPROT";
-            btn.style.background = "#2e7d32";
-        }
+        btn.innerText = "SIMPAN DATA SEMPROT";
+        btn.style.background = "#2e7d32";
     } else {
-        // Jika mode normal, tambah ke urutan paling atas
-        logS.unshift(dataBaru);
+        logS.unshift(dataBaru); // TAMBAH BARU
     }
 
-    // 3. Simpan ke LocalStorage
     localStorage.setItem(currentGH + '_logs', JSON.stringify(logS));
     
-    // 4. Reset Form
+    // Reset Preview & Form
+    document.getElementById('preview-semprot-edit').innerHTML = "";
     ["ins-nama","ins-dosis","fun-nama","fun-dosis","nut-nama","nut-dosis","semprot-ket"].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.value = "";
+        document.getElementById(id).value = "";
     });
-    document.getElementById('semprot-img').value = "";
     
-    // 5. Refresh UI
-    renderLogs(); // Pastikan list riwayat langsung terupdate
-    finishSave();
-    alert("Data semprot berhasil diperbarui!");
+    renderLogs();
+    finishSave(); 
+    alert("Data Semprot Berhasil Disimpan!");
 }
-
 function finishSave() {
     updateUI(); 
     renderLogs();
