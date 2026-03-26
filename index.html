@@ -925,7 +925,7 @@ function renderRekapNutrisi() {
                 <th style="padding:8px; border-bottom:1px solid #ddd;">Aksi</th>
             </tr>`;
 
-    sortedLogs.slice(0, 10).forEach((log) => {
+    sortedLogs.slice(0, 5).forEach((log) => {
         // Cari index asli di dailyLogs (karena sortedLogs urutannya beda)
         const originalIndex = dailyLogs.findIndex(l => l.hst === log.hst);
         
