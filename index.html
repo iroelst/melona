@@ -972,13 +972,11 @@ function hapusNutrisi(index) {
 
 function simpanTransaksi(tipe) {
     let data = getActiveData();
-    
-    // Ambil nilai dari input tanggal baru
     let tglInput = document.getElementById('f-tgl').value;
-    
-    // Jika input kosong, gunakan tanggal hari ini dengan format lokal/ISO sesuai kebutuhan
     let tgl = tglInput || new Date().toISOString().split('T')[0];
     
+    let recordBaru = {};
+
     if(tipe === 'biaya') {
         let k = document.getElementById('f-kat').value;
         let q = parseFloat(document.getElementById('f-qty').value);
@@ -987,34 +985,57 @@ function simpanTransaksi(tipe) {
         
         if(!q || !h) return alert("Mohon isi jumlah dan harga!");
         
-        data.biaya.unshift({ 
-            tgl: tgl, // Menggunakan tanggal dari input
-            k: k, 
-            q: q, 
-            h: h, 
-            total: q * h, 
-            ket: ket || "-" 
-        });
-        
-        // Reset Input termasuk tanggal
+        recordBaru = { 
+            tgl: tgl, k: k, q: q, h: h, 
+            total: q * h, ket: ket || "-" 
+        };
+
+        // LOGIKA PENYIMPANAN BIAYA
+        if (isEditMode && editType === 'biaya') {
+            data.biaya[editIdx] = recordBaru; // MENIMPA DATA LAMA
+        } else {
+            data.biaya.unshift(recordBaru); // TAMBAH BARU
+        }
+
+        // Reset Input Biaya
         document.getElementById('f-qty').value = "";
         document.getElementById('f-harga').value = "";
         document.getElementById('f-ket').value = ""; 
         document.getElementById('f-tgl').value = ""; 
+
     } else {
-        // Logika untuk penjualan (opsional: tambahkan juga input tanggal untuk penjualan jika perlu)
+        // LOGIKA PENJUALAN
         let g = document.getElementById('s-grade').value;
         let b = parseFloat(document.getElementById('s-berat').value);
         let h = parseFloat(document.getElementById('s-harga').value);
+        
         if(!b || !h) return alert("Isi berat dan harga!");
-        data.jual.unshift({ tgl: tgl, g: g, b: b, h: h, total: b*h });
+        
+        recordBaru = { tgl: tgl, g: g, b: b, h: h, total: b*h };
+
+        if (isEditMode && editType === 'jual') {
+            data.jual[editIdx] = recordBaru; // MENIMPA DATA LAMA
+        } else {
+            data.jual.unshift(recordBaru); // TAMBAH BARU
+        }
+
         document.getElementById('s-berat').value = "";
         document.getElementById('s-harga').value = "";
+    }
+
+    // RESET STATUS EDIT SETELAH SIMPAN
+    if (isEditMode) {
+        isEditMode = false;
+        editIdx = null;
+        editType = null;
+        // Kembalikan teks tombol ke normal (opsional)
+        const btn = document.getElementById(tipe === 'biaya' ? 'btn-simpan-biaya' : 'btn-simpan-jual');
+        if(btn) btn.innerText = "SIMPAN TRANSAKSI";
     }
     
     saveActiveData(data);
     renderFinance(); 
-    alert("Transaksi berhasil dicatat!");
+    alert("Data berhasil diperbarui!");
 }
 
 function renderFinance() {
@@ -1618,42 +1639,42 @@ function hapusItem(key, index) {
     }
 }
 
+let editMode = false;
+let editTargetIndex = null;
+let editTargetType = null; // 'jual' atau 'biaya'
+
 function editFinance(tipe, idx) {
     let d = getActiveData();
     let item = (tipe === 'jual') ? d.jual[idx] : d.biaya[idx];
 
-    // 1. Isi kembali Form Input (Sesuaikan ID element dengan HTML kamu)
-    // Contoh asumsi ID input:
-    const inputTgl = document.getElementById('f-tgl');
-    const inputNominal = document.getElementById('f-nominal');
-    const inputKet = document.getElementById('f-ket');
+    // 1. Aktifkan Mode Edit
+    isEditMode = true;
+    editIdx = idx;
+    editType = tipe;
+
+    // 2. Lempar data ke Form
+    document.getElementById('f-tgl').value = item.tgl;
     
-    if (inputTgl) inputTgl.value = item.tgl; // Format YYYY-MM-DD
-    if (inputNominal) inputNominal.value = item.total;
-    if (inputKet && item.ket) inputKet.value = item.ket;
-
-    // Untuk kategori (Select Option)
     if (tipe === 'jual') {
-        const selJual = document.getElementById('f-kat-jual');
-        if (selJual) selJual.value = item.g;
+        document.getElementById('s-grade').value = item.g;
+        document.getElementById('s-berat').value = item.b;
+        document.getElementById('s-harga').value = item.h;
     } else {
-        const selBiaya = document.getElementById('f-kat-biaya');
-        if (selBiaya) selBiaya.value = item.k;
+        document.getElementById('f-kat').value = item.k;
+        document.getElementById('f-qty').value = item.q;
+        document.getElementById('f-harga').value = item.h;
+        document.getElementById('f-ket').value = item.ket || "";
     }
 
-    // 2. Beri notifikasi dan hapus data lama agar tidak ganda saat di-save ulang
-    if (confirm("Data dimuat ke form input. Hapus data lama dari riwayat agar bisa diperbarui?")) {
-        if (tipe === 'jual') {
-            d.jual.splice(idx, 1);
-        } else {
-            d.biaya.splice(idx, 1);
-        }
-        saveActiveData(d);
-        renderFinance();
-        
-        // Scroll ke atas (ke arah form input)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 3. Ubah teks tombol sebagai penanda
+    const btnId = (tipe === 'jual') ? 'btn-simpan-jual' : 'btn-simpan-biaya';
+    const btn = document.getElementById(btnId);
+    if(btn) {
+        btn.innerText = "UPDATE DATA (MENIMPA)";
+        btn.style.background = "#f39c12"; // Oranye agar mencolok
     }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Fungsi Hapus untuk Transaksi Keuangan
