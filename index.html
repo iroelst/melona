@@ -29,7 +29,8 @@
         #lock-screen {
             position: fixed;
             top: 0; left: 0;
-            height: 100%;
+            width: 100vw; /* Pastikan selebar layar */
+            height: 100vh; /* Pastikan setinggi layar */
             background: #ffffff;
             display: none;
             flex-direction: column;
@@ -54,10 +55,14 @@
         .btn-login:hover { background-color: #357ae8; }
 
         /* Aplikasi Utama (Awalnya Sembunyi) */
-        #main-app {
-            display: none;
-            padding: 20px;
-        }
+#main-app {
+    display: none; /* Pastikan ini tetap none sampai login sukses */
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box; /* Mencegah padding menambah lebar elemen */
+    background: #f4f7f4; /* Warna latar belakang agar lebih nyaman di laptop */
+}
 
         #payment-area {
             display: none;
