@@ -927,37 +927,40 @@ function renderRekapNutrisi() {
             </tr>`;
 
     sortedLogs.slice(0, 5).forEach((log) => {
-        // Cari index asli di dailyLogs (karena sortedLogs urutannya beda)
-        const originalIndex = dailyLogs.findIndex(l => l.hst === log.hst);
-        
-        html += `
-        <tr>
-            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.tgl} (${log.hst})</td>
-            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.ppm}</td>
-            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">${log.ph}</td>
-            <td style="padding:8px; border-bottom:1px solid #eee; text-align:center;">
-                <span onclick="prepareEditNutrisi(${originalIndex})" style="color:#f39c12; cursor:pointer; margin-right:10px;">✏️</span>
-                <span onclick="hapusNutrisi(${originalIndex})" style="color:#e74c3c; cursor:pointer;">🗑️</span>
-            </td>
-        </tr>`;
-    });
+    const originalIndex = dailyLogs.findIndex(l => l.hst === log.hst);
+    html += `
+    <tr>
+        <td style="padding:8px; border-bottom:1px solid #eee;">${log.tgl} (${log.hst})</td>
+        <td style="padding:8px; border-bottom:1px solid #eee;">${log.ppm}</td>
+        <td style="padding:8px; border-bottom:1px solid #eee;">${log.ph}</td>
+        <td style="padding:8px; border-bottom:1px solid #eee; display: flex; gap: 10px; justify-content: center;">
+            <button style="background:none; border:none; color:#f39c12; cursor:pointer;" onclick="prepareEditNutrisi(${originalIndex})">✏️</button>
+            <button style="background:none; border:none; color:red; cursor:pointer;" onclick="hapusNutrisi(${originalIndex})">🗑️</button>
+        </td>
+    </tr>`;
+});
 
     html += `</table></div>`;
     document.getElementById('rekap-nutrisi-container').innerHTML = html;
 }
 
+// Fungsi Edit Nutrisi
 function prepareEditNutrisi(index) {
     const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
     const data = dailyLogs[index];
     
-    // Kembalikan data ke form
+    // Isi form dengan data lama
+    document.getElementById('tgl-nutrisi-input').value = convertToInputDate(data.tgl);
     document.getElementById('ppm-now').value = data.ppm;
     document.getElementById('ph-now').value = data.ph;
-    if(document.getElementById('liters')) document.getElementById('liters').value = data.liter;
     
-    // Scroll ke atas agar user sadar sedang edit
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    alert("Silakan ubah data Nutrisi HST " + data.hst);
+    // Set mode edit (Gunakan global variable yang sudah ada di file Anda)
+    isEditMode = true;
+    editIdx = index;
+    editType = 'nutrisi';
+    
+    alert("Data dimuat ke form. Silakan edit lalu tekan 'SIMPAN DATA RIIL'.");
+    window.scrollTo({ top: 500, behavior: 'smooth' }); 
 }
 
 function hapusNutrisi(index) {
