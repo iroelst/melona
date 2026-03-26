@@ -1435,7 +1435,7 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
             
         ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
     </div>`).join("");
-
+}
     function hitungAB() {
         let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
         if(!targetPPM || !l) return alert("Isi data!");
