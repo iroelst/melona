@@ -1367,19 +1367,31 @@ function renderLogs() {
     kLog.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
 
     // 1. Render Riwayat Semprot
-    document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
-        <div class="history-card">
-            <div style="display:flex; justify-content:space-between;">
-                <b>${i.tgl} (HST ${i.hst})</b>
-                <span onclick="prepareEditSemprot(${index})" style="cursor:pointer; font-size:16px;">✏️</span>
-                <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer">🗑️</span>
+document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
+    <div class="history-card" style="position: relative; padding: 12px; border-bottom: 1px solid #eee;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <b style="font-size: 13px;">${i.tgl} (HST ${i.hst})</b>
+            
+            <div style="display: flex; gap: 15px; align-items: center; margin-left: 10px;">
+                <span onclick="prepareEditSemprot(${index})" style="cursor:pointer; font-size: 18px; color: #f39c12;">✏️</span>
+                <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer; font-size: 18px; color: #e74c3c;">🗑️</span>
             </div>
-            <div style="margin-top:5px;">🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}</div>
-            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Catatan: ${i.ket}</div>` : ''}
-            ${i.img ? `<img src="${i.img}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; margin-top:10px; border:1px solid #ddd;">` : ''}
-        </div>`).join("");
-    checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
+        </div>
 
+        <div style="margin-top: 5px; font-size: 11px; color: #444;">
+            🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}
+        </div>
+        
+        ${i.ket ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-top: 5px;">Catatan: ${i.ket}</div>` : ''}
+        
+        ${i.img ? `
+            <div style="margin-top: 10px;">
+                <img src="${i.img}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
+            </div>` : ''}
+    </div>
+`).join("");
+
+checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
     // 2. Render Riwayat Kerja
     document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
         <div class="history-card" style="border-left-color:#f39c12;">
