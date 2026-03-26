@@ -369,7 +369,7 @@
 <input type="file" id="semprot-img" accept="image/*">
 <div id="preview-semprot-edit"></div>
     
-    <button class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
+    <button id="btn-simpan-semprot" class="btn" onclick="simpanLog('semprot')">SIMPAN DATA SEMPROT</button>
     </div>
     <div id="riwayat-semprot" class="riwayat-list limit-view"></div>
 <button id="btn-semprot-more" class="btn-show-more" onclick="toggleExpand('riwayat-semprot', 'btn-semprot-more')">Tampilkan Semua ▼</button>
@@ -1720,11 +1720,16 @@ function prepareEditSemprot(index) {
 
     // 3. Ubah Tombol Simpan
     const btn = document.getElementById('btn-simpan-semprot');
-    btn.innerText = "UPDATE DATA SEMPROT";
-    btn.style.background = "#f39c12";
+    if (btn) {
+        btn.innerText = "UPDATE DATA SEMPROT";
+        btn.style.background = "#f39c12"; // Warna oranye saat mode edit
+    } else {
+        console.error("Error: Tombol dengan ID 'btn-simpan-semprot' tidak ditemukan!");
+    }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+    
 let editMode = false;
 let editTargetIndex = null;
 let editTargetType = null; // 'jual' atau 'biaya'
