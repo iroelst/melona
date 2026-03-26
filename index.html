@@ -1093,15 +1093,23 @@ function renderFinance() {
             detailHtml += `
             <div class="trans-item">
                 <span class="badge-in">[IN] ${tglTampil} - ${x.g}</span>
-                <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('jual', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
+                <span>
+                Rp ${x.total.toLocaleString()} 
+                <b onclick="editFinance('jual', ${x.oriIdx})" style="color:#f39c12; cursor:pointer; margin-left:10px;">✏️</b>
+                <b onclick="hapusFinance('jual', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b>
+            </span>
             </div>`;
         } else {
             detailHtml += `
             <div class="trans-item" style="flex-direction: column; align-items: flex-start; border-bottom: 1px solid #eee; padding: 10px 0;">
                 <div style="display: flex; justify-content: space-between; width: 100%;">
                     <span class="badge-out">[OUT] ${tglTampil} - ${x.k}</span>
-                    <span>Rp ${x.total.toLocaleString()} <b onclick="hapusFinance('biaya', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b></span>
-                </div>
+                    <span>
+                    Rp ${x.total.toLocaleString()} 
+                    <b onclick="editFinance('biaya', ${x.oriIdx})" style="color:#f39c12; cursor:pointer; margin-left:10px;">✏️</b>
+                    <b onclick="hapusFinance('biaya', ${x.oriIdx})" style="color:red; cursor:pointer; margin-left:10px;">×</b>
+                </span>
+             </div>
                 <div style="font-size: 11px; color: #555; margin-top: 4px; font-style: italic;">Ket: ${x.ket}</div>
             </div>`;
         }
@@ -1607,6 +1615,44 @@ function hapusItem(key, index) {
         // Refresh semua tampilan
         renderLogs();
         updateUI(); 
+    }
+}
+
+function editFinance(tipe, idx) {
+    let d = getActiveData();
+    let item = (tipe === 'jual') ? d.jual[idx] : d.biaya[idx];
+
+    // 1. Isi kembali Form Input (Sesuaikan ID element dengan HTML kamu)
+    // Contoh asumsi ID input:
+    const inputTgl = document.getElementById('f-tgl');
+    const inputNominal = document.getElementById('f-nominal');
+    const inputKet = document.getElementById('f-ket');
+    
+    if (inputTgl) inputTgl.value = item.tgl; // Format YYYY-MM-DD
+    if (inputNominal) inputNominal.value = item.total;
+    if (inputKet && item.ket) inputKet.value = item.ket;
+
+    // Untuk kategori (Select Option)
+    if (tipe === 'jual') {
+        const selJual = document.getElementById('f-kat-jual');
+        if (selJual) selJual.value = item.g;
+    } else {
+        const selBiaya = document.getElementById('f-kat-biaya');
+        if (selBiaya) selBiaya.value = item.k;
+    }
+
+    // 2. Beri notifikasi dan hapus data lama agar tidak ganda saat di-save ulang
+    if (confirm("Data dimuat ke form input. Hapus data lama dari riwayat agar bisa diperbarui?")) {
+        if (tipe === 'jual') {
+            d.jual.splice(idx, 1);
+        } else {
+            d.biaya.splice(idx, 1);
+        }
+        saveActiveData(d);
+        renderFinance();
+        
+        // Scroll ke atas (ke arah form input)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
