@@ -1238,8 +1238,6 @@ function simpanLog(tipe) {
         
         if(selectedCheckboxes.length === 0) return alert("Pilih minimal satu pekerja!");
 
-// ... (Bagian awal: deklarasi biayaGajiSesiIni, masterPekerja, selectedCheckboxes) ...
-
 // --- VALIDASI BATAS MAKSIMAL 1 HARI (DIPERBAIKI) ---
 const tglInputIndo = new Date(valTgl).toLocaleDateString('id-ID');
 
@@ -1300,23 +1298,31 @@ let dataKerja = {
     ket: document.getElementById('kerja-ket').value
 };
 
-// --- LOGIKA PENYIMPANAN & UPDATE (PERBAIKAN ERROR) ---
 let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-let activeData = getActiveData(); // Deklarasi cukup SEKALI di sini
+let activeData = getActiveData(); 
 
+// 1. Jika mode edit, kurangi DULU saldo dengan nilai lama
 if (isEditMode) {
     let dataLama = logK[editIdx];
     if (dataLama) {
         let biayaLama = hitungBiayaDariString(dataLama.nama); 
-        // Jangan pakai 'let' lagi di sini
+        // Kurangi saldo dengan biaya lama sebelum data lama dihapus
         activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) - biayaLama);
     }
-
+    // Hapus baris lama dari riwayat
     logK.splice(editIdx, 1);
-    
+}
+
+// 2. Tambahkan biaya baru (baik data baru murni maupun hasil edit)
+activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
+
+// 3. Simpan ke Dashboard (HANYA SEKALI DI SINI)
+saveActiveData(activeData);
+
+// 4. Reset status edit & tombol
+if (isEditMode) {
     isEditMode = false;
     editIdx = null;
-    
     const btn = document.getElementById('btn-simpan-kerja');
     if(btn) {
         btn.innerText = "SIMPAN AKTIVITAS";
@@ -1324,10 +1330,7 @@ if (isEditMode) {
     }
 }
 
-// Tambahkan biaya baru ke data yang sama
-activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
-saveActiveData(activeData); // Simpan hasil akhir akumulasi
-
+// 5. Simpan Log Kerja ke Greenhouse terkait
 if(dataKerja.jenis === 'Pindah Tanam') {
     localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
     dataKerja.hst = 1;
@@ -1336,6 +1339,7 @@ if(dataKerja.jenis === 'Pindah Tanam') {
 logK.unshift(dataKerja);
 localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
 
+// 6. Selesaikan proses
 document.getElementById('kerja-ket').value = "";
 loadWorkerCheckboxes();
 finishSave();
