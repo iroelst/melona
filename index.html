@@ -1992,49 +1992,41 @@ function importData() {
     input.click();
 }
 
-
 function simpanNutrisiRiil() {
     // 1. Ambil elemen input
     const inputPPM = document.getElementById('ppm-now');
     const inputPH = document.getElementById('ph-now');
-    const inputLiters = document.getElementById('liter');
-    const inputTgl = document.getElementById('tgl-nutrisi-input'); // Element baru
+    const inputLiters = document.getElementById('liter'); // Pastikan ID di HTML adalah 'liter'
+    const inputTgl = document.getElementById('tgl-nutrisi-input');
 
-    // Validasi: PPM, pH, dan Tanggal wajib diisi
+    // Validasi
     if (!inputLiters.value || !inputPPM.value || !inputPH.value || !inputTgl.value) {
-        return alert("Mohon isi Tanggal, angka PPM dan pH!");
+        return alert("Mohon isi Tanggal, jumlah Liter, PPM, dan pH!");
     }
 
-    // 2. Hitung HST berdasarkan tanggal yang dipilih (bukan tanggal hari ini)
+    // 2. Hitung HST
     const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
-    if (!savedDate) {
-        return alert("Tanggal tanam belum diatur!");
-    }
+    if (!savedDate) return alert("Tanggal tanam belum diatur!");
 
     const dTanam = new Date(savedDate).setHours(0, 0, 0, 0);
     const dInput = new Date(inputTgl.value).setHours(0, 0, 0, 0);
-    
-    // Rumus HST dinamis
     const hst = Math.floor((dInput - dTanam) / (1000 * 60 * 60 * 24)) + 1;
 
-    if (hst < 1) {
-        return alert("Tanggal yang dipilih sebelum tanggal tanam!");
-    }
+    if (hst < 1) return alert("Tanggal yang dipilih sebelum tanggal tanam!");
 
     // 3. Olah data LocalStorage
     let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
 
-    // 4. Siapkan objek data
+    // 4. Siapkan objek data (Perbaikan: liter cukup satu kali)
     let record = {
         hst: hst,
-        tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'), // Gunakan tanggal input
-        liter:parseFloat(inputLiters.value),
+        tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'),
+        liter: parseFloat(inputLiters.value) || 0, // Simpan sebagai angka
         ppm: parseFloat(inputPPM.value),
-        ph: parseFloat(inputPH.value),
-        liter: inputLiters ? inputLiters.value : "0"
+        ph: parseFloat(inputPH.value)
     };
 
-    // 5. Simpan (Update jika HST sudah ada, Push jika baru)
+    // 5. Simpan (Update jika HST sudah ada)
     let index = dailyLogs.findIndex(l => l.hst === hst);
     if (index > -1) {
         if(!confirm(`Data HST ${hst} sudah ada. Ingin menimpa data lama?`)) return;
@@ -2043,23 +2035,22 @@ function simpanNutrisiRiil() {
         dailyLogs.push(record);
     }
 
-    // Urutkan data agar grafik tidak berantakan jika mengisi tanggal mundur
     dailyLogs.sort((a, b) => a.hst - b.hst);
-
     localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
 
-    // 6. Reset Form (kecuali tanggal, agar bisa isi tanggal yang sama jika perlu)
+    // 6. Reset Form
     inputPPM.value = "";
     inputPH.value = "";
-    if (inputLiters) inputLiters.value = "";
+    inputLiters.value = "";
 
     alert("Data Nutrisi HST " + hst + " Berhasil Disimpan!");
     
+    // REFRESH OTOMATIS: Memanggil ulang fungsi render
     if (typeof refreshAll === "function") {
         refreshAll();
     } else {
-        initChart();
-        renderRekapNutrisi();
+        if (typeof initChart === "function") initChart();
+        if (typeof renderRekapNutrisi === "function") renderRekapNutrisi();
     }
 }
 
