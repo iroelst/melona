@@ -2218,7 +2218,7 @@ async function exportPDF() {
 
 // --- 2. Tabel Penyemprotan ---
     doc.addPage();
-    doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
+    doc.text("2. Log Penyemprotan", 14, 20);
     
     // Siapkan data yang sudah disortir terlebih dahulu agar konsisten
     const sortedSLog = sLog.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
@@ -2258,7 +2258,7 @@ async function exportPDF() {
 
     // --- 3. Tabel Aktivitas Kerja ---
     doc.addPage();
-    doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
+    doc.text("3. Log Aktivitas Kerja", 14, 20);
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
         head: [['HST', 'Tanggal', 'Pekerjaan', 'Catatan', 'Pekerja']], 
