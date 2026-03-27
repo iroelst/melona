@@ -2217,6 +2217,7 @@ async function exportPDF() {
     });
 
 // --- 2. Tabel Penyemprotan ---
+    doc.addPage();
     doc.text("2. Log Penyemprotan", 14, doc.lastAutoTable.finalY + 10);
     
     // Siapkan data yang sudah disortir terlebih dahulu agar konsisten
@@ -2256,6 +2257,7 @@ async function exportPDF() {
     });
 
     // --- 3. Tabel Aktivitas Kerja ---
+    doc.addPage();
     doc.text("3. Log Aktivitas Kerja", 14, doc.lastAutoTable.finalY + 10);
     doc.autoTable({
         startY: doc.lastAutoTable.finalY + 13,
