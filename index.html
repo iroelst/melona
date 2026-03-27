@@ -1896,49 +1896,46 @@ function editFinance(tipe, idx) {
 
 // Fungsi Hapus untuk Transaksi Keuangan
 window.hapusFinance = function(tipe, index) {
-    if(!confirm("Hapus transaksi ini?")) return;
+    if(confirm("Hapus transaksi ini?")) {
+        let d = getActiveData();
+        
+        if(tipe === 'jual') {
+            d.jual.splice(index, 1);
+        } else {
+            let itemDihapus = d.biaya[index];
+            if (!itemDihapus) return;
 
-    let d = getActiveData();
-    if(tipe === 'jual') {
-        d.jual.splice(index, 1);
-    } else {
-        let itemDihapus = d.biaya[index];
-        if (!itemDihapus) return;
-
-        // --- LOGIKA KHUSUS KASBON ---
-        if (itemDihapus.k === "KASBON PEKERJA") {
-            // Ambil nominal dari item yang dihapus
-            let nominalHapus = parseFloat(itemDihapus.total || 0);
-            
-            // Cari di detailKasbon yang nominalnya sama
-            // Kita gunakan findIndex dengan toleransi pembulatan
-            let idxKasbon = (d.detailKasbon || []).findIndex(k => 
-                Math.abs(parseFloat(k.nominal) - nominalHapus) < 1
-            );
-            
-            if (idxKasbon !== -1) {
-                // 1. Kurangi totalKasbon (Dashboard Sisa Bayar akan naik)
-                d.totalKasbon = Math.max(0, (d.totalKasbon || 0) - nominalHapus);
-                // 2. Hapus dari list detail kasbon
-                d.detailKasbon.splice(idxKasbon, 1);
+            // 1. LOGIKA UNTUK PELUNASAN GAJI
+            if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
+                if (confirm("Anda menghapus pelunasan gaji. Kembalikan nominal ini ke Akumulasi Gaji?")) {
+                    d.akumulasiGaji = (parseFloat(d.akumulasiGaji) || 0) + parseFloat(itemDihapus.total);
+                }
             }
+            
+            // 2. LOGIKA UNTUK KASBON (PERBAIKAN TYPO & TIPE DATA)
+            if (itemDihapus.k === "KASBON PEKERJA") {
+                // Gunakan itemDihapus (bukan itemHapus) + parseFloat untuk akurasi
+                let idxKasbon = (d.detailKasbon || []).findIndex(k => 
+                    Math.abs(parseFloat(k.nominal) - parseFloat(itemDihapus.total)) < 1 && 
+                    k.tgl === itemDihapus.tgl
+                );
+                
+                if (idxKasbon !== -1) {
+                    // Kurangi totalKasbon agar Sisa Bayar di Dashboard otomatis naik
+                    d.totalKasbon = Math.max(0, (parseFloat(d.totalKasbon) || 0) - parseFloat(itemDihapus.total));
+                    // Hapus dari daftar nama kasbon di bawah dashboard
+                    d.detailKasbon.splice(idxKasbon, 1);
+                }
+            }
+            
+            d.biaya.splice(index, 1);
         }
         
-        // --- LOGIKA PELUNASAN GAJI ---
-        if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
-            if (confirm("Pelunasan dihapus. Kembalikan nominal ke Akumulasi Gaji?")) {
-                d.akumulasiGaji = (d.akumulasiGaji || 0) + parseFloat(itemDihapus.total);
-            }
-        }
-        
-        d.biaya.splice(index, 1);
+        saveActiveData(d);
+        renderFinance();
+        alert("Transaksi berhasil dihapus dan saldo disesuaikan.");
     }
-    
-    saveActiveData(d);
-    renderFinance();
-    alert("Transaksi berhasil dihapus.");
-};
-
+}
 function lihatDetailArsip(index) {
     let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
     let data = hist[index];
