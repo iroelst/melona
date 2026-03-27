@@ -1898,20 +1898,30 @@ function editFinance(tipe, idx) {
 function hapusFinance(tipe, index) {
     if(confirm("Hapus transaksi ini?")) {
         let d = getActiveData();
-        let itemDihapus;
         
         if(tipe === 'jual') {
             d.jual.splice(index, 1);
         } else {
-            itemDihapus = d.biaya[index];
+            let itemDihapus = d.biaya[index];
             
-            // --- LOGIKA PENGEMBALIAN SALDO GAJI ---
-            // Mengecek apakah yang dihapus adalah postingan gaji
+            // 1. LOGIKA UNTUK PELUNASAN GAJI
             if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
-                let kembaliGaji = confirm("Anda menghapus catatan pelunasan gaji. Kembalikan nominal ini ke kotak Akumulasi Gaji (Belum Terbayar)?");
-                if (kembaliGaji) {
-                    // Mengembalikan nominal ke variabel akumulasiGaji
+                if (confirm("Anda menghapus pelunasan gaji. Kembalikan nominal ini ke Akumulasi Gaji (Belum Terbayar)?")) {
                     d.akumulasiGaji = (d.akumulasiGaji || 0) + itemDihapus.total;
+                }
+            }
+            
+            // 2. LOGIKA UNTUK KASBON (PENYEBAB MASALAH ANDA)
+            if (itemDihapus.k === "KASBON PEKERJA") {
+                // Cari data di detailKasbon yang cocok (berdasarkan nominal dan tanggal/keterangan)
+                // Kita cari index di detailKasbon yang nominalnya sama dengan total biaya yang dihapus
+                let idxKasbon = (d.detailKasbon || []).findIndex(k => k.nominal === itemHapus.total && k.tgl === itemHapus.tgl);
+                
+                if (idxKasbon !== -1) {
+                    // Kurangi totalKasbon global agar "Sisa Bayar" bertambah kembali
+                    d.totalKasbon = Math.max(0, (d.totalKasbon || 0) - itemDihapus.total);
+                    // Hapus dari daftar detail kasbon
+                    d.detailKasbon.splice(idxKasbon, 1);
                 }
             }
             
@@ -1920,6 +1930,7 @@ function hapusFinance(tipe, index) {
         
         saveActiveData(d);
         renderFinance();
+        alert("Transaksi berhasil dihapus dan saldo disesuaikan.");
     }
 }
 
