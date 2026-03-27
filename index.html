@@ -2179,8 +2179,10 @@ function postingGajiKeBiaya() {
     if (confirm(`Total Gaji Kotor: Rp ${totalGajiGross.toLocaleString()}\nTotal Kasbon: Rp ${totalKasbon.toLocaleString()}\n\nPosting SISA GAJI sebesar Rp ${gajiBersih.toLocaleString()} ke pengeluaran periode ini?`)) {
         
         // 1. Masukkan ke daftar biaya riil (Hanya sisa gaji/gaji bersih)
+        let tglManual = document.getElementById('f-tgl').value;
+        let tgl = tglManual || new Date().toISOString().split('T')[0];
         data.biaya.unshift({
-            tgl: new Date().toLocaleDateString('id-ID'),
+            tgl: tgl
             k: "PELUNASAN GAJI PERIODE",
             q: 1,
             h: gajiBersih,
@@ -2210,7 +2212,8 @@ function catatKasbon() {
     if(confirm(`Catat kasbon ${nama} sebesar Rp ${nominal.toLocaleString()}?`)) {
         let data = getActiveData();
         // Gunakan format YYYY-MM-DD agar fungsi parseDate di renderFinance tidak error
-        let tgl = new Date().toISOString().split('T')[0]; 
+        let tglManual = document.getElementById('f-tgl').value;
+        let tgl = tglManual || new Date().toISOString().split('T')[0];
 
         // 1. Simpan ke daftar biaya riil (Keuangan)
         // PENTING: Kategori harus "KASBON PEKERJA" agar bisa dideteksi fungsi hapus
