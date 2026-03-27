@@ -1,4 +1,4 @@
-const CACHE_NAME = 'melona-v2'; // Ubah v1 ke v2 agar cache lama terbuang
+const CACHE_NAME = 'melona-v3'; // Naikkan versi ke v3 untuk membersihkan cache lama
 const assets = [
   './',
   './index.html',
@@ -7,7 +7,7 @@ const assets = [
 
 // 1. Install & Cache Assets
 self.addEventListener('install', e => {
-  self.skipWaiting(); // Paksa service worker baru aktif segera
+  self.skipWaiting(); 
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(assets);
@@ -26,22 +26,30 @@ self.addEventListener('activate', e => {
   );
 });
 
-// 3. Strategi: Stale-While-Revalidate (Cepat tapi Tetap Update)
+// 3. Strategi: Stale-While-Revalidate dengan Filter Method
 self.addEventListener('fetch', e => {
+  // PENTING: Hanya proses permintaan GET. 
+  // POST, PUT, DELETE (Firebase/Analytics) tidak boleh di-cache.
+  if (e.request.method !== 'GET') return;
+
+  // Abaikan permintaan ke Firebase Firestore agar tidak konflik dengan cache internal Firebase
+  if (e.request.url.includes('firestore.googleapis.com')) return;
+
   e.respondWith(
     caches.open(CACHE_NAME).then(cache => {
       return cache.match(e.request).then(response => {
         const fetchPromise = fetch(e.request).then(networkResponse => {
-          // Update cache dengan versi terbaru dari internet
-          if (networkResponse.status === 200) {
+          // Hanya simpan ke cache jika status OK (200)
+          if (networkResponse && networkResponse.status === 200) {
             cache.put(e.request, networkResponse.clone());
           }
           return networkResponse;
         }).catch(() => {
-           // Jika offline dan tidak ada di cache, biarkan saja error
+           // Fallback jika offline dan data tidak ada di cache
+           return response; 
         });
 
-        // Kembalikan response dari cache jika ada, atau tunggu hasil network
+        // Kembalikan dari cache dulu (cepat), fetchPromise akan update cache di background
         return response || fetchPromise;
       });
     })
