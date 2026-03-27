@@ -1311,13 +1311,13 @@ for (let cb of selectedCheckboxes) {
             dataKerja.hst = 1;
         }
 
-let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-logK.unshift(dataKerja);
-localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
-
-document.getElementById('kerja-ket').value = "";
-loadWorkerCheckboxes();
-finishSave();
+        let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+        logK.unshift(dataKerja);
+        localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+        
+        document.getElementById('kerja-ket').value = "";
+        loadWorkerCheckboxes();
+        finishSave();
     }
 };
     
