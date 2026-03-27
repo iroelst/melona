@@ -1357,68 +1357,66 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     finishSave(); 
     alert("Data Semprot Berhasil Disimpan!");
 }
-function prepareEditKerja(index) {
-    // 1. Ambil data dari storage
+window.prepareEditKerja = function(index) {
     const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
     const data = logs[index];
 
-    // 2. Tandai mode edit
     isEditMode = true;
     editIdx = index;
     editType = 'kerja';
 
-    // 3. Masukkan data dasar kembali ke Form
+    // 1. Isi field dasar
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // --- PERBAIKAN: Centang Pekerja & Isi Jam Kerja ---
-    // Reset semua checkbox dan input durasi/lembur/bonus terlebih dahulu
-    const allRows = document.querySelectorAll('.worker-item-row');
-    allRows.forEach(row => {
-        row.querySelector('.worker-checkbox').checked = false;
-        row.querySelector('.worker-duration').value = "1"; // Default 1 hari
+    // 2. Reset semua checkbox dan input pekerja ke default
+    const rows = document.querySelectorAll('.worker-item-row');
+    rows.forEach(row => {
+        row.querySelector('input[name="worker_choice"]').checked = false;
+        row.querySelector('.worker-duration').value = "1";
         row.querySelector('.worker-overtime').value = "0";
         row.querySelector('.worker-bonus').value = "0";
     });
 
-    // Ambil data nama (format: "Nama (Durasi|L:Lembur|B:Bonus), Nama2 (Durasi2|...)")
+    // 3. Parsing data nama untuk mencentang kembali
     if (data.nama) {
-        const daftarPekerja = data.nama.split(', ');
+        // Pisahkan jika ada lebih dari satu pekerja (dipisah koma)
+        const daftarPekerja = data.nama.split(", ");
+        
         daftarPekerja.forEach(item => {
-            // Regex untuk memecah: Nama (Durasi|L:Lembur|B:Bonus)
-            const match = item.match(/(.+)\s\(([^|]+)\|L:([^|]+)\|B:([^)]+)\)/);
+            // Regex ini memecah: Nama (DurasiH|L:Lembur|B:Bonus)
+            const match = item.match(/(.+)\s\(([^H]+)H\|L:([^|]+)\|B:([^)]+)\)/);
+            
             if (match) {
-                const nama = match[1].trim();
-                const durasi = match[2];
-                const lembur = match[3];
-                const bonus = match[4];
+                const namaSaved = match[1].trim();
+                const durasiSaved = match[2];
+                const lemburSaved = match[3];
+                const bonusSaved = match[4];
 
-                // Cari baris pekerja yang sesuai di UI
-                allRows.forEach(row => {
-                    const cb = row.querySelector('.worker-checkbox');
-                    if (cb.value === nama) {
+                // Cari baris yang sesuai di UI
+                rows.forEach(row => {
+                    const cb = row.querySelector('input[name="worker_choice"]');
+                    if (cb.value === namaSaved) {
                         cb.checked = true;
-                        row.querySelector('.worker-duration').value = durasi;
-                        row.querySelector('.worker-overtime').value = lembur;
-                        row.querySelector('.worker-bonus').value = bonus;
+                        row.querySelector('.worker-duration').value = durasiSaved;
+                        row.querySelector('.worker-overtime').value = lemburSaved;
+                        row.querySelector('.worker-bonus').value = bonusSaved;
                     }
                 });
             }
         });
     }
-    // --- AKHIR PERBAIKAN ---
 
-    // 4. Ubah teks tombol simpan
+    // 4. Ubah tampilan tombol
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
         btn.style.background = "#f39c12"; 
     }
-
-    // 5. Scroll ke atas agar form terlihat
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+};
     
 function finishSave() {
     updateUI(); 
