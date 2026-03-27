@@ -1991,12 +1991,35 @@ function lihatDetailArsip(index) {
 function exportData() {
     try {
         const activeData = getActiveData();
+        const currentGH = window.currentGH || "GH_Default"; // Pastikan currentGH terdefinisi
         const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
-        const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
         const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-        dailyLogs.sort((a, b) => a.hst - b.hst);
+        // --- LOGIKA PERIODE OTOMATIS ---
+        let tglMulai = "-";
+        let tglSelesai = new Date().toLocaleDateString('id-ID'); // Default hari ini
 
+        // 1. Cari Tanggal Mulai (Dari Log Kerja Terawal)
+        if (kLog && kLog.length > 0) {
+            // Gunakan fungsi parseDate yang sudah ada di aplikasi Anda
+            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+            tglMulai = formatIndo(sortedK[0].tgl);
+        }
+
+        // 2. Cari Tanggal Selesai (Dari Pelunasan Gaji Terakhir di Riwayat Biaya)
+        if (activeData.biaya && activeData.biaya.length > 0) {
+            let postingGaji = activeData.biaya
+                .filter(item => item.k === "PELUNASAN GAJI PERIODE")
+                .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+            
+            if (postingGaji.length > 0) {
+                tglSelesai = formatIndo(postingGaji[0].tgl);
+            }
+        }
+
+        const rentangPeriode = `${tglMulai} s/d ${tglSelesai}`;
+
+        dailyLogs.sort((a, b) => a.hst - b.hst);
         const wb = XLSX.utils.book_new();
 
         // --- SHEET 1: RINGKASAN ---
@@ -2006,7 +2029,7 @@ function exportData() {
             ["Nama GreenHouse", currentGH],
             ["Varietas Tanam", activeData.v],
             ["Populasi", activeData.pop + " Pohon"],
-            ["Tanggal Laporan", new Date().toLocaleString('id-ID')],
+            ["Periode Tanam", rentangPeriode],
             ["", ""],
             ["STATUS TERAKHIR", ""],
             ["HST Terakhir", terakhir.hst],
