@@ -1367,20 +1367,56 @@ function prepareEditKerja(index) {
     editIdx = index;
     editType = 'kerja';
 
-    // 3. Masukkan kembali ke Form
-    // Konversi tanggal Indo (dd/mm/yyyy) ke format HTML (yyyy-mm-dd)
+    // 3. Masukkan data dasar kembali ke Form
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
+
+    // --- PERBAIKAN: Centang Pekerja & Isi Jam Kerja ---
+    // Reset semua checkbox dan input durasi/lembur/bonus terlebih dahulu
+    const allRows = document.querySelectorAll('.worker-item-row');
+    allRows.forEach(row => {
+        row.querySelector('.worker-checkbox').checked = false;
+        row.querySelector('.worker-duration').value = "1"; // Default 1 hari
+        row.querySelector('.worker-overtime').value = "0";
+        row.querySelector('.worker-bonus').value = "0";
+    });
+
+    // Ambil data nama (format: "Nama (Durasi|L:Lembur|B:Bonus), Nama2 (Durasi2|...)")
+    if (data.nama) {
+        const daftarPekerja = data.nama.split(', ');
+        daftarPekerja.forEach(item => {
+            // Regex untuk memecah: Nama (Durasi|L:Lembur|B:Bonus)
+            const match = item.match(/(.+)\s\(([^|]+)\|L:([^|]+)\|B:([^)]+)\)/);
+            if (match) {
+                const nama = match[1].trim();
+                const durasi = match[2];
+                const lembur = match[3];
+                const bonus = match[4];
+
+                // Cari baris pekerja yang sesuai di UI
+                allRows.forEach(row => {
+                    const cb = row.querySelector('.worker-checkbox');
+                    if (cb.value === nama) {
+                        cb.checked = true;
+                        row.querySelector('.worker-duration').value = durasi;
+                        row.querySelector('.worker-overtime').value = lembur;
+                        row.querySelector('.worker-bonus').value = bonus;
+                    }
+                });
+            }
+        });
+    }
+    // --- AKHIR PERBAIKAN ---
 
     // 4. Ubah teks tombol simpan
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
-        btn.style.background = "#f39c12"; // Warna oranye untuk penanda edit
+        btn.style.background = "#f39c12"; 
     }
 
-    // 5. Scroll ke atas agar langsung kelihatan formnya
+    // 5. Scroll ke atas agar form terlihat
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
     
