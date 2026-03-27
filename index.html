@@ -1376,30 +1376,84 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     alert("Data Semprot Berhasil Disimpan!");
 }
 function prepareEditKerja(index) {
-    // 1. Ambil data dari storage
-    const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-    const data = logs[index];
+    // 1. Ambil data asli dari localStorage (bukan data yang sudah di-sort)
+    const logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+    const data = logK[index];
 
-    // 2. Tandai mode edit
+    if (!data) {
+        alert("Data tidak ditemukan!");
+        return;
+    }
+
+    // 2. Aktifkan Mode Edit Global
     isEditMode = true;
     editIdx = index;
     editType = 'kerja';
 
-    // 3. Masukkan kembali ke Form
-    // Konversi tanggal Indo (dd/mm/yyyy) ke format HTML (yyyy-mm-dd)
+    // 3. Isi Input Dasar
+    // Gunakan fungsi convertToInputDate agar format dd/mm/yyyy bisa masuk ke input type="date"
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // 4. Ubah teks tombol simpan
+    // 4. Logika Mencetang Ulang Checkbox & Mengisi Durasi/Lembur
+    // Kita bersihkan dulu semua checkbox sebelum menandai yang baru
+    const allCheckboxes = document.querySelectorAll('input[name="worker_choice"]');
+    allCheckboxes.forEach(cb => {
+        cb.checked = false;
+        // Sembunyikan/reset baris durasi (jika Anda punya logika toggle display)
+        let row = cb.closest('.worker-item-row');
+        if (row) row.style.display = 'none'; 
+    });
+
+    // Pecah string nama: "Budi (1H|L:0|B:0), Susi (0.5H|L:1|B:10000)"
+    const pekerjaList = data.nama.split(', ');
+
+    pekerjaList.forEach(item => {
+        // Regex untuk mengambil Nama, Durasi (H), Lembur (L), dan Bonus (B)
+        // Hasil match: [0] Full, [1] Nama, [2] Durasi, [3] Lembur, [4] Bonus
+        const match = item.match(/(.+) \((.+)H\|L:(.+)\|B:(.+)\)/);
+        
+        if (match) {
+            const namaPekerja = match[1].trim();
+            const durasi = match[2];
+            const lembur = match[3];
+            const bonus = match[4];
+
+            // Cari checkbox yang valuenya sama dengan namaPekerja
+            const cb = Array.from(allCheckboxes).find(c => c.value === namaPekerja);
+            if (cb) {
+                cb.checked = true;
+                let row = cb.closest('.worker-item-row');
+                if (row) {
+                    row.style.display = 'flex'; // Tampilkan baris inputnya
+                    row.querySelector('.worker-duration').value = durasi;
+                    row.querySelector('.worker-overtime').value = lembur;
+                    row.querySelector('.worker-bonus').value = bonus;
+                }
+            }
+        }
+    });
+
+    // 5. Ubah UI Tombol
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
-        btn.innerText = "UPDATE AKTIVITAS";
-        btn.style.background = "#f39c12"; // Warna oranye untuk penanda edit
+        btn.innerText = "UPDATE AKTIVITAS KERJA";
+        btn.style.backgroundColor = "#f39c12"; // Warna Oranye penanda edit
     }
 
-    // 5. Scroll ke atas agar langsung kelihatan formnya
+    // 6. Scroll ke Form
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Fungsi pembantu konversi tanggal
+function convertToInputDate(dateStr) {
+    if (!dateStr) return "";
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return "";
 }
     
 function finishSave() {
