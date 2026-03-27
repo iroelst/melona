@@ -1311,7 +1311,43 @@ for (let cb of selectedCheckboxes) {
             dataKerja.hst = 1;
         }
 
-        let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+if (isEditMode) {
+            // 1. Ambil data lama untuk mengurangi akumulasi gaji agar saldo tetap akurat
+            let dataLama = logK[editIdx];
+            if (dataLama) {
+                // Fungsi bantuan untuk menghitung biaya dari string nama data lama
+                let biayaLama = hitungBiayaDariString(dataLama.nama); 
+                let activeData = getActiveData();
+                activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) - biayaLama);
+                saveActiveData(activeData);
+            }
+
+            // 2. Hapus data lama dari array agar tidak duplikat
+            logK.splice(editIdx, 1);
+            
+            // 3. Reset state edit
+            isEditMode = false;
+            editIdx = null;
+            
+            // Kembalikan teks tombol ke semula
+            const btn = document.getElementById('btn-simpan-kerja');
+            if(btn) {
+                btn.innerText = "SIMPAN AKTIVITAS";
+                btn.style.background = ""; 
+            }
+        }
+
+        // Simpan akumulasi gaji dari data yang baru/hasil update
+        let activeData = getActiveData();
+        activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
+        saveActiveData(activeData);
+
+        if(dataKerja.jenis === 'Pindah Tanam') {
+            localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
+            dataKerja.hst = 1;
+        }
+
+        // Masukkan data (baru/update) ke posisi paling atas
         logK.unshift(dataKerja);
         localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
         
@@ -1320,6 +1356,28 @@ for (let cb of selectedCheckboxes) {
         finishSave();
     }
 };
+
+// Fungsi bantuan agar saldo Akumulasi Gaji sinkron saat edit
+function hitungBiayaDariString(namaStr) {
+    let total = 0;
+    let masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    const daftar = namaStr.split(", ");
+    daftar.forEach(item => {
+        const match = item.match(/(.+)\s\(([^H]+)H\|L:([^|]+)\|B:([^)]+)\)/);
+        if (match) {
+            const nama = match[1].trim();
+            const durasi = parseFloat(match[2]);
+            const lembur = parseFloat(match[3]);
+            const bonus = parseFloat(match[4]);
+            let dataMaster = masterPekerja.find(p => p.nama === nama);
+            if (dataMaster) {
+                total += (parseFloat(dataMaster.gajiHarian || 0) * durasi) + 
+                         (parseFloat(dataMaster.tarifLembur || 0) * lembur) + bonus;
+            }
+        }
+    });
+    return total;
+}
     
 // Fungsi pembantu khusus simpan semprot agar kode rapi
 function prosesSimpanSemprot(tgl, hst, imgBase64) {
