@@ -1903,7 +1903,8 @@ function hapusFinance(tipe, index) {
             d.jual.splice(index, 1);
         } else {
             let itemDihapus = d.biaya[index];
-            
+            if (!itemDihapus) return;
+
             // 1. LOGIKA UNTUK PELUNASAN GAJI
             if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
                 if (confirm("Anda menghapus pelunasan gaji. Kembalikan nominal ini ke Akumulasi Gaji (Belum Terbayar)?")) {
@@ -1911,20 +1912,25 @@ function hapusFinance(tipe, index) {
                 }
             }
             
-            // 2. LOGIKA UNTUK KASBON (PENYEBAB MASALAH ANDA)
+            // 2. LOGIKA UNTUK KASBON (DIPERBAIKI)
             if (itemDihapus.k === "KASBON PEKERJA") {
-                // Cari data di detailKasbon yang cocok (berdasarkan nominal dan tanggal/keterangan)
-                // Kita cari index di detailKasbon yang nominalnya sama dengan total biaya yang dihapus
-                let idxKasbon = (d.detailKasbon || []).findIndex(k => k.nominal === itemHapus.total && k.tgl === itemHapus.tgl);
+                // Gunakan itemDihapus (bukan itemHapus)
+                // Kita cari di detailKasbon yang nominal dan tanggalnya sama persis
+                let idxKasbon = (d.detailKasbon || []).findIndex(k => 
+                    parseFloat(k.nominal) === parseFloat(itemDihapus.total) && 
+                    k.tgl === itemDihapus.tgl
+                );
                 
                 if (idxKasbon !== -1) {
-                    // Kurangi totalKasbon global agar "Sisa Bayar" bertambah kembali
+                    // A. Kurangi totalKasbon global (Ini yang membuat Sisa Bayar bertambah)
                     d.totalKasbon = Math.max(0, (d.totalKasbon || 0) - itemDihapus.total);
-                    // Hapus dari daftar detail kasbon
+                    
+                    // B. Hapus baris dari daftar detail kasbon
                     d.detailKasbon.splice(idxKasbon, 1);
                 }
             }
             
+            // Hapus dari daftar biaya utama
             d.biaya.splice(index, 1);
         }
         
