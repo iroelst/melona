@@ -939,7 +939,7 @@ function renderRekapNutrisi() {
     html += `
     <tr>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.tgl} (${log.hst})</td>
-        <td style="padding:8px; border-bottom:1px solid #eee;">${log.liters}</td>
+        <td style="padding:8px; border-bottom:1px solid #eee;">${log.liter}</td>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.ppm}</td>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.ph}</td>
         <td style="padding:8px; border-bottom:1px solid #eee; display: flex; gap: 10px; justify-content: center;">
@@ -960,7 +960,7 @@ function prepareEditNutrisi(index) {
     
     // Isi form dengan data lama
     document.getElementById('tgl-nutrisi-input').value = convertToInputDate(data.tgl);
-    document.getElementById('liters').value = data.liters;
+    document.getElementById('liter').value = data.liter;
     document.getElementById('ppm-now').value = data.ppm;
     document.getElementById('ph-now').value = data.ph;
     
