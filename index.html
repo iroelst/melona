@@ -2224,7 +2224,7 @@ async function exportPDF() {
     const sortedSLog = sLog.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
 
     doc.autoTable({
-        startY: 20,
+        startY: 25,
         head: [['HST', 'Tanggal', 'Produk (I|F|N)', 'Keterangan', 'Foto']],
         body: sortedSLog.map(x => [
             x.hst, 
@@ -2260,7 +2260,7 @@ async function exportPDF() {
     doc.addPage();
     doc.text("3. Log Aktivitas Kerja", 14, 20);
     doc.autoTable({
-        startY: 20,
+        startY: 25,
         head: [['HST', 'Tanggal', 'Pekerjaan', 'Catatan', 'Pekerja']], 
         body: kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => [x.hst, formatIndo(x.tgl), x.jenis, x.ket || "-", x.nama]),
         headStyles: { fillColor: [46, 125, 50] },
