@@ -981,77 +981,80 @@ function hapusNutrisi(index) {
         refreshAll();
     }
 }
-var isEditMode = false;
+// 1. Deklarasi Variabel Global (Wajib di Paling Atas)
+    var isEditMode = false;
     var editIdx = null;
     var editType = null;
 
-function simpanTransaksi(tipe) {
-    let data = getActiveData();
-    let tglInput = document.getElementById('f-tgl').value;
-    let tgl = tglInput || new Date().toISOString().split('T')[0];
-    
-    let recordBaru = {};
-
-    if(tipe === 'biaya') {
-        let k = document.getElementById('f-kat').value;
-        let q = parseFloat(document.getElementById('f-qty').value);
-        let h = parseFloat(document.getElementById('f-harga').value);
-        let ket = document.getElementById('f-ket').value;
+    // 2. Fungsi Simpan Transaksi
+    window.simpanTransaksi = function(tipe) {
+        let data = getActiveData();
+        let tglInput = document.getElementById('f-tgl').value;
+        let tgl = tglInput || new Date().toISOString().split('T')[0];
         
-        if(!q || !h) return alert("Mohon isi jumlah dan harga!");
-        
-        recordBaru = { 
-            tgl: tgl, k: k, q: q, h: h, 
-            total: q * h, ket: ket || "-" 
-        };
+        let recordBaru = {};
 
-        // LOGIKA PENYIMPANAN BIAYA
-        if (isEditMode && editType === 'biaya') {
-            data.biaya[editIdx] = recordBaru; // MENIMPA DATA LAMA
+        if(tipe === 'biaya') {
+            let k = document.getElementById('f-kat').value;
+            let q = parseFloat(document.getElementById('f-qty').value);
+            let h = parseFloat(document.getElementById('f-harga').value);
+            let ket = document.getElementById('f-ket').value;
+            
+            if(!q || !h) return alert("Mohon isi jumlah dan harga!");
+            
+            recordBaru = { 
+                tgl: tgl, k: k, q: q, h: h, 
+                total: q * h, ket: ket || "-" 
+            };
+
+            // LOGIKA PENYIMPANAN BIAYA
+            if (isEditMode && editType === 'biaya') {
+                data.biaya[editIdx] = recordBaru; 
+            } else {
+                data.biaya.unshift(recordBaru); 
+            }
+
+            // Reset Input Biaya
+            document.getElementById('f-qty').value = "";
+            document.getElementById('f-harga').value = "";
+            document.getElementById('f-ket').value = ""; 
+            document.getElementById('f-tgl').value = ""; 
+
         } else {
-            data.biaya.unshift(recordBaru); // TAMBAH BARU
+            // LOGIKA PENJUALAN
+            let g = document.getElementById('s-grade').value;
+            let b = parseFloat(document.getElementById('s-berat').value);
+            let h = parseFloat(document.getElementById('s-harga').value);
+            
+            if(!b || !h) return alert("Isi berat dan harga!");
+            
+            recordBaru = { tgl: tgl, g: g, b: b, h: h, total: b*h };
+
+            if (isEditMode && editType === 'jual') {
+                data.jual[editIdx] = recordBaru; 
+            } else {
+                data.jual.unshift(recordBaru); 
+            }
+
+            document.getElementById('s-berat').value = "";
+            document.getElementById('s-harga').value = "";
         }
 
-        // Reset Input Biaya
-        document.getElementById('f-qty').value = "";
-        document.getElementById('f-harga').value = "";
-        document.getElementById('f-ket').value = ""; 
-        document.getElementById('f-tgl').value = ""; 
-
-    } else {
-        // LOGIKA PENJUALAN
-        let g = document.getElementById('s-grade').value;
-        let b = parseFloat(document.getElementById('s-berat').value);
-        let h = parseFloat(document.getElementById('s-harga').value);
-        
-        if(!b || !h) return alert("Isi berat dan harga!");
-        
-        recordBaru = { tgl: tgl, g: g, b: b, h: h, total: b*h };
-
-        if (isEditMode && editType === 'jual') {
-            data.jual[editIdx] = recordBaru; // MENIMPA DATA LAMA
-        } else {
-            data.jual.unshift(recordBaru); // TAMBAH BARU
+        // RESET STATUS EDIT SETELAH SIMPAN
+        if (isEditMode) {
+            isEditMode = false;
+            editIdx = null;
+            editType = null;
+            // Kembalikan teks tombol
+            let btnId = (tipe === 'biaya') ? 'btn-simpan-biaya' : 'btn-simpan-jual';
+            let btn = document.getElementById(btnId);
+            if(btn) btn.innerText = "SIMPAN TRANSAKSI";
         }
-
-        document.getElementById('s-berat').value = "";
-        document.getElementById('s-harga').value = "";
+        
+        saveActiveData(data);
+        renderFinance(); 
+        alert("Data berhasil diperbarui!");
     }
-
-    // RESET STATUS EDIT SETELAH SIMPAN
-    if (isEditMode) {
-        isEditMode = false;
-        editIdx = null;
-        editType = null;
-        // Kembalikan teks tombol ke normal (opsional)
-        const btn = document.getElementById(tipe === 'biaya' ? 'btn-simpan-biaya' : 'btn-simpan-jual');
-        if(btn) btn.innerText = "SIMPAN TRANSAKSI";
-    }
-    
-    saveActiveData(data);
-    renderFinance(); 
-    alert("Data berhasil diperbarui!");
-}
 
 function renderFinance() {
     let d = getActiveData();
