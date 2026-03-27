@@ -299,7 +299,7 @@
     <input type="date" id="tgl-nutrisi-input" style="margin-bottom: 10px;">
             <label>Liter Air & PPM Kini</label>
             <div class="input-row">
-                <input type="number" id="liters" placeholder="Liter">
+                <input type="number" id="liter" placeholder="Liter">
                 <input type="number" id="ppm-now" placeholder="PPM">
             </div>
             <button class="btn" onclick="hitungAB()">HITUNG DOSIS PPM</button>
@@ -939,7 +939,7 @@ function renderRekapNutrisi() {
     html += `
     <tr>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.tgl} (${log.hst})</td>
-        <td style="padding:8px; border-bottom:1px solid #eee;">${log.liters}</td>
+        <td style="padding:8px; border-bottom:1px solid #eee;">${log.liter}</td>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.ppm}</td>
         <td style="padding:8px; border-bottom:1px solid #eee;">${log.ph}</td>
         <td style="padding:8px; border-bottom:1px solid #eee; display: flex; gap: 10px; justify-content: center;">
@@ -960,7 +960,7 @@ function prepareEditNutrisi(index) {
     
     // Isi form dengan data lama
     document.getElementById('tgl-nutrisi-input').value = convertToInputDate(data.tgl);
-    document.getElementById('liters').value = data.liters;
+    document.getElementById('liter').value = data.liter;
     document.getElementById('ppm-now').value = data.ppm;
     document.getElementById('ph-now').value = data.ph;
     
@@ -1450,14 +1450,14 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
     </div>`).join("");
 }
     function hitungAB() {
-        let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
+        let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
         if(!targetPPM || !l) return alert("Isi data!");
         let selisih = targetPPM - (p || 0);
         document.getElementById('hasil-calc').innerText = selisih <= 0 ? "PPM CUKUP" : "A & B: " + ((selisih/1000)*5*l).toFixed(0) + " ml";
     }
 
     function hitungPH() {
-        let l = parseFloat(document.getElementById('liters').value);
+        let l = parseFloat(document.getElementById('liter').value);
         let cur = parseFloat(document.getElementById('ph-now').value);
         let kon = parseFloat(document.getElementById('ph-concentrate').value);
         if(!l || !cur) return alert("Isi data!");
@@ -1992,72 +1992,61 @@ function importData() {
 
 
 function simpanNutrisiRiil() {
-    // 1. Ambil elemen input
     const inputPPM = document.getElementById('ppm-now');
     const inputPH = document.getElementById('ph-now');
-    const inputLiters = document.getElementById('liters');
-    const inputTgl = document.getElementById('tgl-nutrisi-input'); // Element baru
+    const inputLiters = document.getElementById('liter');
+    const inputTgl = document.getElementById('tgl-nutrisi-input');
 
-    // Validasi: PPM, pH, dan Tanggal wajib diisi
-    if (!inputPPM.value || !inputPH.value || !inputTgl.value) {
-        return alert("Mohon isi Tanggal, angka PPM dan pH!");
+    if (!inputLiters.value || !inputPPM.value || !inputPH.value || !inputTgl.value) {
+        return alert("Mohon isi semua data!");
     }
 
-    // 2. Hitung HST berdasarkan tanggal yang dipilih (bukan tanggal hari ini)
     const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
-    if (!savedDate) {
-        return alert("Tanggal tanam belum diatur!");
-    }
-
     const dTanam = new Date(savedDate).setHours(0, 0, 0, 0);
     const dInput = new Date(inputTgl.value).setHours(0, 0, 0, 0);
-    
-    // Rumus HST dinamis
     const hst = Math.floor((dInput - dTanam) / (1000 * 60 * 60 * 24)) + 1;
 
-    if (hst < 1) {
-        return alert("Tanggal yang dipilih sebelum tanggal tanam!");
-    }
-
-    // 3. Olah data LocalStorage
     let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
 
-    // 4. Siapkan objek data
     let record = {
         hst: hst,
-        tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'), // Gunakan tanggal input
+        tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'),
+        liter: parseFloat(inputLiters.value),
         ppm: parseFloat(inputPPM.value),
-        ph: parseFloat(inputPH.value),
-        liter: inputLiters ? inputLiters.value : "0"
+        ph: parseFloat(inputPH.value)
     };
 
-    // 5. Simpan (Update jika HST sudah ada, Push jika baru)
-    let index = dailyLogs.findIndex(l => l.hst === hst);
-    if (index > -1) {
-        if(!confirm(`Data HST ${hst} sudah ada. Ingin menimpa data lama?`)) return;
-        dailyLogs[index] = record;
+    // LOGIKA EDIT VS SIMPAN BARU
+    if (typeof isEditMode !== 'undefined' && isEditMode && editType === 'nutrisi') {
+        // Jika sedang mode edit, timpa data pada index yang sedang diedit
+        dailyLogs[editIdx] = record;
+        isEditMode = false; // Kembalikan ke mode normal
+        editIdx = null;
     } else {
-        dailyLogs.push(record);
+        // Jika simpan baru, cek apakah HST sudah ada
+        let index = dailyLogs.findIndex(l => l.hst === hst);
+        if (index > -1) {
+            if(!confirm(`Data HST ${hst} sudah ada. Ingin menimpa data lama?`)) return;
+            dailyLogs[index] = record;
+        } else {
+            dailyLogs.push(record);
+        }
     }
 
-    // Urutkan data agar grafik tidak berantakan jika mengisi tanggal mundur
     dailyLogs.sort((a, b) => a.hst - b.hst);
-
     localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
 
-    // 6. Reset Form (kecuali tanggal, agar bisa isi tanggal yang sama jika perlu)
+    // Reset Form
     inputPPM.value = "";
     inputPH.value = "";
-    if (inputLiters) inputLiters.value = "";
+    inputLiters.value = "";
 
-    alert("Data Nutrisi HST " + hst + " Berhasil Disimpan!");
+    alert("Data Berhasil Diperbarui!");
     
-    if (typeof refreshAll === "function") {
-        refreshAll();
-    } else {
-        initChart();
-        renderRekapNutrisi();
-    }
+    // --- INI KUNCINYA AGAR TABEL UPDATE OTOMATIS ---
+    renderRekapNutrisi(); 
+    
+    if (typeof initChart === "function") initChart();
 }
 
 function bersihkanSemuaRiwayat() {
