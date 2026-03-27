@@ -2182,7 +2182,7 @@ function postingGajiKeBiaya() {
         let tglManual = document.getElementById('f-tgl').value;
         let tgl = tglManual || new Date().toISOString().split('T')[0];
         data.biaya.unshift({
-            tgl: tgl
+            tgl: tgl,
             k: "PELUNASAN GAJI PERIODE",
             q: 1,
             h: gajiBersih,
