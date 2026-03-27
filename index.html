@@ -2201,37 +2201,48 @@ function postingGajiKeBiaya() {
 
 function catatKasbon() {
     let nama = document.getElementById('nama-kasbon-select').value;
-    let nominal = parseFloat(document.getElementById('nominal-kasbon').value);
+    let nominalInput = document.getElementById('nominal-kasbon').value;
+    let nominal = parseFloat(nominalInput) || 0;
     
     if(!nama) return alert("Pilih nama pekerja!");
     if(!nominal || nominal <= 0) return alert("Masukkan nominal kasbon!");
 
     if(confirm(`Catat kasbon ${nama} sebesar Rp ${nominal.toLocaleString()}?`)) {
         let data = getActiveData();
-        let tgl = new Date().toLocaleDateString('id-ID');
+        // Gunakan format YYYY-MM-DD agar fungsi parseDate di renderFinance tidak error
+        let tgl = new Date().toISOString().split('T')[0]; 
 
         // 1. Simpan ke daftar biaya riil (Keuangan)
+        // PENTING: Kategori harus "KASBON PEKERJA" agar bisa dideteksi fungsi hapus
         data.biaya.unshift({
             tgl: tgl,
-            k: `KASBON: ${nama}`,
+            k: "KASBON PEKERJA", 
             q: 1,
             h: nominal,
-            total: nominal
+            total: nominal,
+            ket: "Kasbon: " + nama // Nama pekerja pindah ke keterangan
         });
 
         // 2. Simpan ke database kasbon internal periode ini
         if(!data.detailKasbon) data.detailKasbon = [];
-        data.detailKasbon.push({ nama, nominal, tgl });
         
-        data.totalKasbon = (data.totalKasbon || 0) + nominal;
+        data.detailKasbon.push({ 
+            nama: nama, 
+            nominal: nominal, 
+            tgl: tgl 
+        });
+        
+        // Update Total Kasbon (Dashboard)
+        data.totalKasbon = (parseFloat(data.totalKasbon) || 0) + nominal;
 
         saveActiveData(data);
+        
+        // Bersihkan input & Update tampilan
         document.getElementById('nominal-kasbon').value = "";
         renderFinance();
-        alert(`Kasbon ${nama} berhasil dicatat!`);
+        alert(`Kasbon ${nama} sebesar Rp ${nominal.toLocaleString()} berhasil dicatat!`);
     }
 }
-
 function backupDataJSON() {
     const allData = {};
     for (let i = 0; i < localStorage.length; i++) {
