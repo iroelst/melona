@@ -1902,41 +1902,41 @@ function hapusFinance(tipe, index) {
         if(tipe === 'jual') {
             d.jual.splice(index, 1);
         } else {
+            // 1. Ambil data yang akan dihapus
             let itemDihapus = d.biaya[index];
             if (!itemDihapus) return;
 
-            // 1. LOGIKA UNTUK PELUNASAN GAJI
-            if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
-                if (confirm("Anda menghapus pelunasan gaji. Kembalikan nominal ini ke Akumulasi Gaji (Belum Terbayar)?")) {
-                    d.akumulasiGaji = (d.akumulasiGaji || 0) + itemDihapus.total;
-                }
-            }
-            
-            // 2. LOGIKA UNTUK KASBON (DIPERBAIKI)
+            // 2. LOGIKA KHUSUS KASBON (DIPERBAIKI)
             if (itemDihapus.k === "KASBON PEKERJA") {
-                // Gunakan itemDihapus (bukan itemHapus)
-                // Kita cari di detailKasbon yang nominal dan tanggalnya sama persis
+                // Cari di detailKasbon yang nominal dan tanggalnya sama
                 let idxKasbon = (d.detailKasbon || []).findIndex(k => 
                     parseFloat(k.nominal) === parseFloat(itemDihapus.total) && 
                     k.tgl === itemDihapus.tgl
                 );
                 
                 if (idxKasbon !== -1) {
-                    // A. Kurangi totalKasbon global (Ini yang membuat Sisa Bayar bertambah)
-                    d.totalKasbon = Math.max(0, (d.totalKasbon || 0) - itemDihapus.total);
-                    
-                    // B. Hapus baris dari daftar detail kasbon
+                    // Kurangi total kasbon agar sisa bayar bertambah
+                    d.totalKasbon = Math.max(0, (d.totalKasbon || 0) - parseFloat(itemDihapus.total));
+                    // Hapus dari detail riwayat kasbon
                     d.detailKasbon.splice(idxKasbon, 1);
                 }
             }
             
-            // Hapus dari daftar biaya utama
+            // 3. LOGIKA PELUNASAN GAJI
+            if (itemDihapus.k === "PELUNASAN GAJI PERIODE") {
+                if (confirm("Pelunasan dihapus. Kembalikan nominal ke Akumulasi Gaji?")) {
+                    d.akumulasiGaji = (d.akumulasiGaji || 0) + parseFloat(itemDihapus.total);
+                }
+            }
+            
+            // Hapus dari array biaya
             d.biaya.splice(index, 1);
         }
         
+        // 4. SIMPAN DAN REFRESH
         saveActiveData(d);
         renderFinance();
-        alert("Transaksi berhasil dihapus dan saldo disesuaikan.");
+        alert("Transaksi berhasil dihapus.");
     }
 }
 
