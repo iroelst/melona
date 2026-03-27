@@ -1300,49 +1300,46 @@ let dataKerja = {
 
 let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 let activeData = getActiveData(); 
+        let penyesuaianGaji = biayaGajiSesiIni; // Default: tambah biaya baru
 
-// 1. Jika mode edit, kurangi DULU saldo dengan nilai lama
-if (isEditMode) {
-    let dataLama = logK[editIdx];
-    if (dataLama) {
-        let biayaLama = hitungBiayaDariString(dataLama.nama); 
-        // Kurangi saldo dengan biaya lama sebelum data lama dihapus
-        activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) - biayaLama);
-    }
-    // Hapus baris lama dari riwayat
-    logK.splice(editIdx, 1);
-}
+        if (isEditMode) {
+            let dataLama = logK[editIdx];
+            if (dataLama) {
+                // Hitung biaya lama untuk dikurangi dari total
+                let biayaLama = hitungBiayaDariString(dataLama.nama);
+                penyesuaianGaji = biayaGajiSesiIni - biayaLama;
+            }
+            // Hapus data lama agar tidak duplikat
+            logK.splice(editIdx, 1);
+        }
 
-// 2. Tambahkan biaya baru (baik data baru murni maupun hasil edit)
-activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
+        // Update saldo Dashboard HANYA BERDASARKAN SELISIH
+        activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) + penyesuaianGaji);
+        saveActiveData(activeData);
 
-// 3. Simpan ke Dashboard (HANYA SEKALI DI SINI)
-saveActiveData(activeData);
+        // Reset state edit
+        if (isEditMode) {
+            isEditMode = false;
+            editIdx = null;
+            const btn = document.getElementById('btn-simpan-kerja');
+            if(btn) {
+                btn.innerText = "SIMPAN AKTIVITAS";
+                btn.style.background = ""; 
+            }
+        }
 
-// 4. Reset status edit & tombol
-if (isEditMode) {
-    isEditMode = false;
-    editIdx = null;
-    const btn = document.getElementById('btn-simpan-kerja');
-    if(btn) {
-        btn.innerText = "SIMPAN AKTIVITAS";
-        btn.style.background = ""; 
-    }
-}
+        // Update riwayat log kerja
+        if(dataKerja.jenis === 'Pindah Tanam') {
+            localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
+            dataKerja.hst = 1;
+        }
 
-// 5. Simpan Log Kerja ke Greenhouse terkait
-if(dataKerja.jenis === 'Pindah Tanam') {
-    localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
-    dataKerja.hst = 1;
-}
-
-logK.unshift(dataKerja);
-localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
-
-// 6. Selesaikan proses
-document.getElementById('kerja-ket').value = "";
-loadWorkerCheckboxes();
-finishSave();
+        logK.unshift(dataKerja);
+        localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+        
+        document.getElementById('kerja-ket').value = "";
+        loadWorkerCheckboxes();
+        finishSave();
     }
 };
 
@@ -1360,7 +1357,7 @@ function hitungBiayaDariString(namaStr) {
             const bonus = parseFloat(match[4]);
             let dataMaster = masterPekerja.find(p => p.nama === nama);
             if (dataMaster) {
-                total += (parseFloat(dataMaster.gajiHarian || 0) * durasi) + 
+                total += (parseFloat(dataMaster.gajiHarian || dataMaster.gaji || 0) * durasi) +
                          (parseFloat(dataMaster.tarifLembur || 0) * lembur) + bonus;
             }
         }
