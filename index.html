@@ -1232,86 +1232,103 @@ function simpanLog(tipe) {
             prosesSimpanSemprot(valTgl, hstLog, null);
         }
     } else {
-        let biayaGajiSesiIni = 0;
-        let detailPekerja = [];
-        let masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
-        const selectedCheckboxes = document.querySelectorAll('input[name="worker_choice"]:checked');
-        
-        if(selectedCheckboxes.length === 0) return alert("Pilih minimal satu pekerja!");
+        // --- LOGIKA SIMPAN & EDIT KERJA ---
+window.simpanKerja = function() {
+    let biayaGajiSesiIni = 0;
+    let detailPekerja = [];
+    let masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    const selectedCheckboxes = document.querySelectorAll('input[name="worker_choice"]:checked');
+    const valTgl = document.getElementById('kerja-tgl').value;
+    
+    if(selectedCheckboxes.length === 0) return alert("Pilih minimal satu pekerja!");
+    if(!valTgl) return alert("Pilih tanggal!");
 
-        // --- VALIDASI BATAS MAKSIMAL 1 HARI ---
-        const tglInputIndo = new Date(valTgl).toLocaleDateString('id-ID');
-        
-        for (let cb of selectedCheckboxes) {
-            let namaPekerja = cb.value;
-            let parentRow = cb.closest('.worker-item-row');
-            let durasiBaru = parseFloat(parentRow.querySelector('.worker-duration').value);
-            let totalDurasiLama = 0;
+    const tglInputIndo = new Date(valTgl).toLocaleDateString('id-ID');
+    
+    // --- VALIDASI BATAS MAKSIMAL 1 HARI ---
+    for (let cb of selectedCheckboxes) {
+        let namaPekerja = cb.value;
+        let parentRow = cb.closest('.worker-item-row');
+        let durasiBaru = parseFloat(parentRow.querySelector('.worker-duration').value);
+        let totalDurasiLama = 0;
 
-            // Scan seluruh GreenHouse
-            ghList.forEach(gh => {
-                const logs = JSON.parse(localStorage.getItem(gh + '_kerja') || "[]");
-                logs.filter(l => l.tgl === tglInputIndo).forEach(log => {
-                    const regex = new RegExp(`${namaPekerja.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s\\(([^|]+)`, "g");
+        ghList.forEach(gh => {
+            const logs = JSON.parse(localStorage.getItem(gh + '_kerja') || "[]");
+            
+            logs.forEach((log, idx) => {
+                // JIKA MODE EDIT: Abaikan log yang sedang kita edit agar tidak terhitung double
+                if (isEditMode && editType === 'kerja' && gh === currentGH && idx === editIdx) {
+                    return; 
+                }
+
+                if (log.tgl === tglInputIndo) {
+                    // Regex untuk menangkap nama dan durasi dalam kurung: Nama (0.5H|...)
+                    const regex = new RegExp(`${namaPekerja.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s\\(([^H|]+)`, "g");
                     let match;
                     while ((match = regex.exec(log.nama)) !== null) {
                         totalDurasiLama += parseFloat(match[1]);
                     }
-                });
+                }
             });
-
-            // Cek jika total melebihi 1.0
-            if ((totalDurasiLama + durasiBaru) > 1.0) {
-                alert(`SIMPAN GAGAL!\n\n${namaPekerja} sudah bekerja ${totalDurasiLama} hari pada ${tglInputIndo}.\nAnda mencoba menambah ${durasiBaru} hari.\nTotal melebihi batas 1 hari kerja.`);
-                return; // Batalkan proses simpan secara keseluruhan
-            }
-        }
-        // --- SELESAI VALIDASI ---
-
-        // Lanjutkan proses hitung gaji jika lolos validasi
-        selectedCheckboxes.forEach((cb) => {
-            let parentRow = cb.closest('.worker-item-row');
-            let namaPekerja = cb.value;
-            let dataMaster = masterPekerja.find(p => p.nama === namaPekerja);
-            let tarifLemburPerJam = dataMaster ? parseFloat(dataMaster.tarifLembur || 0) : 0;
-            
-            let durasi = parseFloat(parentRow.querySelector('.worker-duration').value);
-            let lemburJam = parseFloat(parentRow.querySelector('.worker-overtime').value) || 0;
-            let bonusNominal = parseFloat(parentRow.querySelector('.worker-bonus').value) || 0;
-            let gajiPerHari = parseFloat(cb.getAttribute('data-gaji')) || 0;
-            
-            let totalGajiIndividu = (gajiPerHari * durasi) + (lemburJam * tarifLemburPerJam) + bonusNominal;
-            biayaGajiSesiIni += totalGajiIndividu;
-
-            let detailStr = `${namaPekerja} (${durasi}H|L:${lemburJam}|B:${bonusNominal})`;
-            detailPekerja.push(detailStr);
         });
 
-        let dataKerja = {
-            tgl: tglInputIndo,
-            hst: (hstLog <= 0) ? 0 : hstLog,
-            nama: detailPekerja.join(", "),
-            jenis: document.getElementById('kerja-jenis').value,
-            ket: document.getElementById('kerja-ket').value
-        };
-
-        let activeData = getActiveData();
-        activeData.akumulasiGaji = (activeData.akumulasiGaji || 0) + biayaGajiSesiIni;
-        saveActiveData(activeData);
-
-        if(dataKerja.jenis === 'Pindah Tanam') {
-            localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
-            dataKerja.hst = 1;
+        if ((totalDurasiLama + durasiBaru) > 1.05) { // Toleransi sedikit untuk float precision
+            alert(`SIMPAN GAGAL!\n\n${namaPekerja} sudah bekerja ${totalDurasiLama} hari pada ${tglInputIndo}.\nTotal melebihi batas 1 hari kerja.`);
+            return;
         }
-
-        let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-        logK.unshift(dataKerja);
-        localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
-        
-        document.getElementById('kerja-ket').value = "";
-        loadWorkerCheckboxes();
-        finishSave();
     }
+
+    // --- PROSES HITUNG GAJI ---
+    selectedCheckboxes.forEach((cb) => {
+        let parentRow = cb.closest('.worker-item-row');
+        let namaPekerja = cb.value;
+        let dataMaster = masterPekerja.find(p => p.nama === namaPekerja);
+        let tarifLemburPerJam = dataMaster ? parseFloat(dataMaster.tarifLembur || 0) : 0;
+        
+        let durasi = parseFloat(parentRow.querySelector('.worker-duration').value);
+        let lemburJam = parseFloat(parentRow.querySelector('.worker-overtime').value) || 0;
+        let bonusNominal = parseFloat(parentRow.querySelector('.worker-bonus').value) || 0;
+        let gajiPerHari = parseFloat(cb.getAttribute('data-gaji')) || 0;
+        
+        let totalGajiIndividu = (gajiPerHari * durasi) + (lemburJam * tarifLemburPerJam) + bonusNominal;
+        biayaGajiSesiIni += totalGajiIndividu;
+
+        detailPekerja.push(`${namaPekerja} (${durasi}H|L:${lemburJam}|B:${bonusNominal})`);
+    });
+
+    let dataKerja = {
+        tgl: tglInputIndo,
+        hst: hstLog, // Pastikan hstLog sudah terupdate berdasarkan valTgl
+        nama: detailPekerja.join(", "),
+        jenis: document.getElementById('kerja-jenis').value,
+        ket: document.getElementById('kerja-ket').value
+    };
+
+    // --- EKSEKUSI SIMPAN/UPDATE ---
+    let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+    if (isEditMode && editType === 'kerja') {
+        // Jika edit, ganti di posisi lama
+        logK[editIdx] = dataKerja;
+        isEditMode = false;
+        editIdx = null;
+        alert("Data Kerja Berhasil Diupdate!");
+    } else {
+        // Jika baru, unshift ke atas
+        logK.unshift(dataKerja);
+        alert("Data Kerja Berhasil Disimpan!");
+    }
+
+    localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+    
+    // Reset UI
+    document.getElementById('kerja-ket').value = "";
+    const btn = document.getElementById('btn-simpan-kerja');
+    if(btn) btn.innerText = "SIMPAN AKTIVITAS";
+    
+    renderRiwayatKerja(); // Refresh tabel otomatis
+    loadWorkerCheckboxes();
+    if(typeof finishSave === "function") finishSave();
 };
     
 // Fungsi pembantu khusus simpan semprot agar kode rapi
