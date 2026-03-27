@@ -1890,6 +1890,7 @@ function exportData() {
         const nutrisiExcel = dailyLogs.map(x => ({
             "HST": x.hst,
             "TANGGAL": x.tgl,
+            "AIR(LITER)": x.liter,
             "PPM RIIL": x.ppm,
             "PH RIIL": x.ph
         }));
@@ -2210,8 +2211,8 @@ async function exportPDF() {
     doc.text("1. Rekap Nutrisi Harian", 14, 60);
     doc.autoTable({
         startY: 63,
-        head: [['HST', 'Tanggal', 'PPM Riil', 'pH Riil']],
-        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, formatIndo(x.tgl), x.ppm, x.ph]),
+        head: [['HST', 'Tanggal', 'Air(Liter)', 'PPM Riil', 'pH Riil']],
+        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, formatIndo(x.tgl), x.liter, x.ppm, x.ph]),
         headStyles: { fillColor: [46, 125, 50] }
     });
 
