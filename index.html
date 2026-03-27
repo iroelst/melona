@@ -711,6 +711,7 @@ async function downloadFullReport() {
             return {
                 "Tanggal": formatIndo(x.tgl),
                 "HST": x.hst,
+                "Liter": x.liter,
                 "PPM Riil": x.ppm,
                 "Target PPM": targetHarian ? targetHarian.p : "-",
                 "pH Riil": x.ph,
@@ -1890,6 +1891,7 @@ function exportData() {
         const nutrisiExcel = dailyLogs.map(x => ({
             "HST": x.hst,
             "TANGGAL": x.tgl,
+            "LITER": x.liter,
             "PPM RIIL": x.ppm,
             "PH RIIL": x.ph
         }));
@@ -2026,6 +2028,7 @@ function simpanNutrisiRiil() {
     let record = {
         hst: hst,
         tgl: new Date(inputTgl.value).toLocaleDateString('id-ID'), // Gunakan tanggal input
+        liter:parseFloat(inputLiters.value),
         ppm: parseFloat(inputPPM.value),
         ph: parseFloat(inputPH.value),
         liter: inputLiters ? inputLiters.value : "0"
@@ -2221,9 +2224,9 @@ async function exportPDF() {
     doc.text("1. Rekap Nutrisi Harian", 14, 60);
     doc.autoTable({
         startY: 63,
-        head: [['HST', 'Tanggal', 'PPM Riil', 'pH Riil']],
-        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, formatIndo(x.tgl), x.ppm, x.ph]),
-        headStyles: { fillColor: [46, 125, 50] }
+        head: [['HST', 'Tanggal', 'Liter', 'PPM Riil', 'pH Riil']],
+        body: dailyLogs.sort((a,b) => a.hst - b.hst).map(x => [x.hst, formatIndo(x.tgl), x.liter, x.ppm, x.ph]),
+        headStyles: { fillColor: [46, 25, 100, 50] }
     });
 
 // --- 2. Tabel Penyemprotan ---
