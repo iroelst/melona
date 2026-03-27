@@ -2309,7 +2309,7 @@ async function exportPDF() {
     const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-    // --- FUNGSI PEMBANTU FORMAT TANGGAL (PENTING) ---
+    // --- FUNGSI PEMBANTU ---
     const parseDate = (dateStr) => {
         if(!dateStr) return new Date(0);
         const sep = dateStr.includes('-') ? '-' : '/';
@@ -2318,23 +2318,38 @@ async function exportPDF() {
     };
 
     const formatIndo = (dateStr) => {
-        const dObj = parseDate(dateStr);
-        if (dObj.getTime() === 0) return "-";
+        const dObj = (dateStr instanceof Date) ? dateStr : parseDate(dateStr);
+        if (dObj.getTime() <= 0) return "-";
         const dd = String(dObj.getDate()).padStart(2, '0');
         const mm = String(dObj.getMonth() + 1).padStart(2, '0');
         const yyyy = dObj.getFullYear();
         return `${dd}-${mm}-${yyyy}`;
     };
 
-    // --- LOGO ---
-   // const logoUrl = 'melona_logo.png'; 
-   // try {
-   //     doc.addImage(logoUrl, 'PNG', 160, 10, 35, 35);
-   // } catch (e) {
-   //     console.error("Logo tidak ditemukan.");
-   // }
+    // --- LOGIKA PERIODE OTOMATIS ---
+    let tglMulai = "-";
+    let tglSelesai = formatIndo(new Date()); // Default sampai hari ini
 
-    // --- Header Laporan ---
+    // 1. Ambil tanggal awal dari log kerja (kLog)
+    if (kLog && kLog.length > 0) {
+        let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+        tglMulai = formatIndo(sortedK[0].tgl);
+    }
+
+    // 2. Ambil tanggal akhir dari posting gaji terakhir di riwayat biaya
+    if (d.biaya && d.biaya.length > 0) {
+        let postingGaji = d.biaya
+            .filter(item => item.k === "PELUNASAN GAJI PERIODE")
+            .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+        
+        if (postingGaji.length > 0) {
+            tglSelesai = formatIndo(postingGaji[0].tgl);
+        }
+    }
+    
+    const periodeDisplay = `${tglMulai} s/d ${tglSelesai}`;
+
+    // --- HEADER LAPORAN ---
     doc.setFontSize(22);
     doc.setTextColor(27, 94, 32);
     doc.text("LAPORAN PRODUKSI MELON", 14, 25);
@@ -2346,8 +2361,11 @@ async function exportPDF() {
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.text(`Varietas: ${d.v} | Populasi: ${d.pop} Pohon`, 14, 42);
-    doc.text("Periode Laporan: " + periode, 14, 47);
-
+    
+    // MENAMPILKAN PERIODE OTOMATIS
+    doc.setFont(undefined, 'bold');
+    doc.text("Periode Laporan: " + periodeDisplay, 14, 48);
+    doc.setFont(undefined, 'normal');
     // --- 1. Tabel Nutrisi ---
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
