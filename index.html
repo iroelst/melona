@@ -981,7 +981,9 @@ function hapusNutrisi(index) {
         refreshAll();
     }
 }
-
+var isEditMode = false;
+    var editIdx = null;
+    var editType = null;
 
 function simpanTransaksi(tipe) {
     let data = getActiveData();
