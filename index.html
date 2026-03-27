@@ -1312,38 +1312,10 @@ for (let cb of selectedCheckboxes) {
         }
 
 let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-
-if (isEditMode) {
-    // 1. Kurangi akumulasi gaji dari data LAMA sebelum dihapus (agar saldo tidak bengkak)
-    const dataLama = logK[editIdx];
-    if (dataLama) {
-        // Kita perlu menghitung ulang biaya dari string nama data lama
-        let biayaLama = hitungBiayaDariString(dataLama.nama); 
-        let activeData = getActiveData();
-        activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) - biayaLama);
-        saveActiveData(activeData);
-    }
-
-    // 2. HAPUS data lama agar tidak ganda
-    logK.splice(editIdx, 1);
-    
-    // Reset status edit
-    isEditMode = false;
-    editIdx = null;
-}
-
-// 3. Tambahkan data baru (hasil editan atau data baru gres)
 logK.unshift(dataKerja);
 localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
 
-// Reset Form & UI
 document.getElementById('kerja-ket').value = "";
-const btnSimpan = document.getElementById('btn-simpan-kerja');
-if (btnSimpan) {
-    btnSimpan.innerText = "SIMPAN AKTIVITAS";
-    btnSimpan.style.background = ""; // Kembalikan warna asli
-}
-
 loadWorkerCheckboxes();
 finishSave();
     }
