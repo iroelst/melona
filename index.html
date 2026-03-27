@@ -1310,7 +1310,7 @@ for (let cb of selectedCheckboxes) {
             localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
             dataKerja.hst = 1;
         }
-
+let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 if (isEditMode) {
             // 1. Ambil data lama untuk mengurangi akumulasi gaji agar saldo tetap akurat
             let dataLama = logK[editIdx];
