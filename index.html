@@ -274,34 +274,98 @@
         <label>Varietas & Populasi</label>
         <div class="input-row">
             <input type="text" id="v-nama" placeholder="Varietas">
-            <input type="number" id="v-pop" placeholder="Pohon" style="width: 80px;">
-            <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
+<div id="main-app" style="display:none; padding: 10px 15px; background: #ffffff; border-bottom: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+        <div style="flex: 1; text-align: left;">
+            <span id="user-name" style="font-weight: bold; color: #333; font-size: 14px;">User</span>
         </div>
-        <div id="v-list-display" style="margin-top:10px;"></div>
-        <button class="btn" style="background:#1b5e20;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
-        <p style="font-size: 9px; color: #666; margin-top: 8px;">*Memulai periode baru akan mengarsipkan data saat ini ke Riwayat.</p>
+        <div style="flex: 1; text-align: center;">
+            <span style="font-size: 12px; color: #666; background: #eafff0; padding: 4px 10px; border-radius: 20px; border: 1px solid #d3f9d8;">
+                Status: <span style="color: #28a745; font-weight: bold;">Aktif</span>
+            </span>
+        </div>
+        <div style="flex: 1; text-align: right;">
+            <button onclick="logout()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; font-weight: bold;">Logout</button>
+        </div>
     </div>
 </div>
 
-        <div class="card" style="padding: 5px;">
-    <div style="height: 250px; width: 100%;">
-        <canvas id="ppmChart"></canvas>
+<div class="header" style="padding: 15px; background: #f8f9fa;">
+    <div class="header-top" style="display: flex; justify-content: center; align-items: center;">
+        <h3 style="margin:0; text-align: center;">Melona Monitoring System</h3>
     </div>
+    <div class="gh-manager" style="margin-top: 10px; text-align: center;">
+        <select id="gh-selector" onchange="switchGH()"></select>
+        <button class="btn-add-gh" onclick="promptAddGH()">+</button>
+        <button class="btn-add-gh" style="background:#e74c3c; color:white;" onclick="promptRemoveGH()">-</button>
+    </div>
+    <div id="top-info" style="font-size: 12px; margin-top:8px; text-align: center;">Memuat data...</div>
+    <div class="progress-container" style="margin-top: 10px;"><div id="progress-bar"></div></div>
 </div>
 
+<div class="container">
+    <div id="nutrisi" class="tab-content active">
         
-        <div class="card">
+        <div id="notif-banner" class="notif-banner">
+            <strong>📢 Info:</strong> <span id="notif-text"></span>
+        </div>
+
+        <div class="card" style="background:#fffde7; border: 1px dashed #fbc02d; padding: 10px; margin-bottom: 15px;">
+            <div onclick="toggleBackup()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                <strong style="font-size: 13px;">💾 Backup & Keamanan Data</strong>
+                <span id="arrow-icon" style="transition: transform 0.3s;">▼</span>
+            </div>
+            <div id="backup-content" style="display: none; margin-top: 15px; border-top: 1px solid #fbc02d;">
+                <p style="font-size: 10px; margin-top: 10px;">Simpan cadangan (.json) atau unduh laporan.</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <button class="btn" style="background:#2e7d32; color:white; flex:1; margin-top:0;" onclick="backupDataJSON()">💾 BACKUP</button>
+                    <button class="btn" style="background:#cfd8dc; color:#333; flex:1; margin-top:0;" onclick="importData()">🔄 RESTORE</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 11px;" onclick="exportData()">📊 EXCEL</button>
+                    <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 11px;" onclick="exportPDF()">📄 PDF</button>
+                </div>
+                <div class="storage-info" style="margin-top: 15px;">
+                    <strong>💾 Kapasitas Memori HP</strong>
+                    <div id="storage-text" style="font-size: 11px;">Digunakan: 0 KB</div>
+                    <div class="progress-container"><div id="storage-bar" class="progress-bar"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 15px;">
+            <strong>🌱 Input Varietas</strong>
+            <div class="input-row" style="margin-top: 10px;">
+                <input type="text" id="v-nama" placeholder="Varietas">
+                <input type="number" id="v-pop" placeholder="Pohon" style="width: 80px;">
+                <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
+            </div>
+            <div id="v-list-display" style="margin-top:10px;"></div>
+            <button class="btn" style="background:#1b5e20; width: 100%;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
+            <p style="font-size: 9px; color: #666; margin-top: 8px;">*Memulai periode baru akan mengarsipkan data ke Riwayat.</p>
+        </div>
+
+        <div class="card" style="padding: 10px; margin-bottom: 15px;">
+            <div style="height: 250px; width: 100%;">
+                <canvas id="ppmChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 15px;">
             <strong>🧮 Nutrisi & pH</strong>
-            <label>Tanggal Pencatatan</label>
-    <input type="date" id="tgl-nutrisi-input" style="margin-bottom: 10px;">
+            <label style="display:block; margin-top:10px;">Tanggal Pencatatan</label>
+            <input type="date" id="tgl-nutrisi-input" style="margin-bottom: 10px; width: 100%;">
+            
             <label>Liter Air & PPM Kini</label>
             <div class="input-row">
                 <input type="number" id="liters" placeholder="Liter">
                 <input type="number" id="ppm-now" placeholder="PPM">
             </div>
-            <button class="btn" onclick="hitungAB()">HITUNG DOSIS PPM</button>
-            <div id="hasil-calc" style="margin-top:10px; font-weight:bold; color:#1b5e20; text-align:center;"></div>
+            <button class="btn" style="width:100%" onclick="hitungAB()">HITUNG DOSIS PPM</button>
+            <div id="hasil-calc" style="margin:10px 0; font-weight:bold; color:#1b5e20; text-align:center;"></div>
+            
             <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+            
             <label>Koreksi pH</label>
             <div class="input-row">
                 <input type="number" id="ph-now" step="0.1" placeholder="pH Kini">
@@ -310,20 +374,40 @@
                     <option value="0.2">Konsentrasi 20%</option>
                 </select>
             </div>
-            <button class="btn-ph" onclick="hitungPH()">HITUNG DOSIS pH</button>
-            <div id="hasil-ph" style="margin-top:10px; font-weight:bold; color:#2980b9; text-align:center;"></div>
-            <div id="rekap-nutrisi-container" style="margin-top: 20px;"></div>
-        
-<button class="btn" style="background:#2ecc71; margin-top: 20px;" onclick="simpanNutrisiRiil()">
-    💾 SIMPAN DATA RIIL HARI INI
-</button>
-</div>
+            <button class="btn-ph" style="width:100%" onclick="hitungPH()">HITUNG DOSIS pH</button>
+            <div id="hasil-ph" style="margin:10px 0; font-weight:bold; color:#2980b9; text-align:center;"></div>
+            
+            <div id="rekap-nutrisi-container"></div>
+            <button class="btn" style="background:#2ecc71; margin-top: 20px; width: 100%;" onclick="simpanNutrisiRiil()">
+                💾 SIMPAN DATA RIIL HARI INI
+            </button>
+        </div>
 
-        <table>
-            <thead><tr><th>HST</th><th>PPM</th><th>pH</th><th>Fase</th></tr></thead>
-            <tbody id="tabel-nutrisi"></tbody>
-        </table>
-    </div>
+        <div class="card" style="overflow-x: auto;">
+            <strong>📋 Riwayat Nutrisi</strong>
+            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background:#f4f4f4;">
+                        <th style="padding: 8px; border: 1px solid #eee;">HST</th>
+                        <th style="padding: 8px; border: 1px solid #eee;">PPM</th>
+                        <th style="padding: 8px; border: 1px solid #eee;">pH</th>
+                        <th style="padding: 8px; border: 1px solid #eee;">Fase</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-nutrisi"></tbody>
+            </table>
+        </div>
+
+    </div> </div> ```
+
+### Hal-hal yang saya tambahkan/ubah:
+* **Pengelompokan:** Saya membungkus bagian Varietas dan Tabel Riwayat ke dalam `<div class="card">`. Ini akan memberikan jarak (*spacing*) yang lebih baik antara elemen.
+* **Responsive Table:** Menambahkan `overflow-x: auto` pada kartu tabel agar jika data HST melon Anda sudah banyak, tabel bisa di-geser ke samping (tidak merusak layar).
+* **Width 100%:** Beberapa tombol saya berikan lebar penuh agar lebih mudah ditekan menggunakan jempol di layar HP, mengingat Anda sedang membangun sistem monitoring pertanian yang sering diakses di lapangan.
+
+Apakah Anda ingin saya bantu membuatkan fungsi `toggleBackup()` supaya panah "▼" tersebut bisa berputar saat diklik?
+
+    
     <div id="semprot" class="tab-content">
     <div class="card">
     <strong>🚿 Log Penyemprotan</strong>
