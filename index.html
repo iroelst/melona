@@ -299,7 +299,7 @@
     <input type="date" id="tgl-nutrisi-input" style="margin-bottom: 10px;">
             <label>Liter Air & PPM Kini</label>
             <div class="input-row">
-                <input type="number" id="liters" placeholder="Liter">
+                <input type="number" id="liter" placeholder="Liter">
                 <input type="number" id="ppm-now" placeholder="PPM">
             </div>
             <button class="btn" onclick="hitungAB()">HITUNG DOSIS PPM</button>
@@ -1451,14 +1451,14 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
     </div>`).join("");
 }
     function hitungAB() {
-        let l = document.getElementById('liters').value; let p = document.getElementById('ppm-now').value;
+        let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
         if(!targetPPM || !l) return alert("Isi data!");
         let selisih = targetPPM - (p || 0);
         document.getElementById('hasil-calc').innerText = selisih <= 0 ? "PPM CUKUP" : "A & B: " + ((selisih/1000)*5*l).toFixed(0) + " ml";
     }
 
     function hitungPH() {
-        let l = parseFloat(document.getElementById('liters').value);
+        let l = parseFloat(document.getElementById('liter').value);
         let cur = parseFloat(document.getElementById('ph-now').value);
         let kon = parseFloat(document.getElementById('ph-concentrate').value);
         if(!l || !cur) return alert("Isi data!");
@@ -1997,11 +1997,11 @@ function simpanNutrisiRiil() {
     // 1. Ambil elemen input
     const inputPPM = document.getElementById('ppm-now');
     const inputPH = document.getElementById('ph-now');
-    const inputLiters = document.getElementById('liters');
+    const inputLiters = document.getElementById('liter');
     const inputTgl = document.getElementById('tgl-nutrisi-input'); // Element baru
 
     // Validasi: PPM, pH, dan Tanggal wajib diisi
-    if (!inputPPM.value || !inputPH.value || !inputTgl.value) {
+    if (!inputLiters.value || !inputPPM.value || !inputPH.value || !inputTgl.value) {
         return alert("Mohon isi Tanggal, angka PPM dan pH!");
     }
 
