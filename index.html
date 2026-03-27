@@ -635,6 +635,34 @@
 </div>
 
 <script>
+window.getPeriodeLaporan = function(d) {
+    let tglMulai = "-";
+    let tglSelesai = "-";
+
+    // 1. Cari tanggal paling awal dari log kerja (Awal Aktivitas)
+    if (d.workLog && d.workLog.length > 0) {
+        // Sortir untuk mendapatkan tanggal terkecil
+        let logs = [...d.workLog].sort((a, b) => new Date(a.tgl) - new Date(b.tgl));
+        tglMulai = formatIndo(parseDate(logs[0].tgl));
+    }
+
+    // 2. Cari tanggal terakhir dari Posting Gaji di riwayat biaya
+    if (d.biaya && d.biaya.length > 0) {
+        let postingGaji = d.biaya
+            .filter(item => item.k === "PELUNASAN GAJI PERIODE")
+            .sort((a, b) => new Date(b.tgl) - new Date(a.tgl)); // Sortir terbaru di atas
+        
+        if (postingGaji.length > 0) {
+            tglSelesai = formatIndo(parseDate(postingGaji[0].tgl));
+        } else {
+            // Jika belum ada posting gaji, gunakan tanggal hari ini sebagai batas berjalan
+            tglSelesai = formatIndo(new Date());
+        }
+    }
+
+    return `${tglMulai} s/d ${tglSelesai}`;
+};
+    
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
@@ -2318,7 +2346,7 @@ async function exportPDF() {
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.text(`Varietas: ${d.v} | Populasi: ${d.pop} Pohon`, 14, 42);
-    doc.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 47);
+    doc.text("Periode Laporan: " + periode, 14, 47);
 
     // --- 1. Tabel Nutrisi ---
     doc.setFontSize(12);
