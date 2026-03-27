@@ -1661,28 +1661,25 @@ function addWorker() {
     const gaji = parseFloat(document.getElementById('worker-salary').value) || 0;
     const lembur = parseFloat(document.getElementById('worker-ot-rate').value) || 0;
 
-    if (nama === "") {
-        alert("Nama pekerja harus diisi!");
-        return;
-    }
+    if (nama === "") return alert("Nama pekerja harus diisi!");
 
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     
-    // Simpan sebagai objek lengkap
+    // Gunakan 'gajiHarian' agar sinkron dengan fungsi hitungBiaya
     w.push({ 
         nama: nama, 
-        gaji: gaji, 
+        gajiHarian: gaji, 
         tarifLembur: lembur 
     });
     
     localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
 
-    // Reset Form Input
+    // Reset Form
     document.getElementById('new-worker-name').value = "";
     document.getElementById('worker-salary').value = "";
     document.getElementById('worker-ot-rate').value = "";
     
-    renderMasterPekerja(); // Panggil fungsi refresh list
+    renderMasterPekerja();
     if(typeof loadWorkerCheckboxes === "function") loadWorkerCheckboxes();
 }
 
@@ -1705,7 +1702,7 @@ function renderMasterPekerja() {
             </tr>`;
             
     w.forEach((x, index) => {
-        let gajiHarian = x.gaji || 0;
+        let gajiHarian = x.gajiHarian || x.gaji || 0;
         let tarifLembur = x.tarifLembur || 0;
 
         html += `
@@ -2653,6 +2650,7 @@ function printSlip() {
 function editWorker(index) {
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     let p = w[index];
+    let gajiValue = p.gajiHarian || p.gaji || 0;
 
     document.getElementById('edit-worker-index').value = index;
     document.getElementById('edit-worker-name').value = p.nama;
