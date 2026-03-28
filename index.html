@@ -1332,47 +1332,55 @@ let dataKerja = {
 
 let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 let activeData = getActiveData(); 
-        let penyesuaianGaji = biayaGajiSesiIni; // Default: tambah biaya baru
+let penyesuaianGaji = biayaGajiSesiIni; 
 
-        if (isEditMode) {
-            let dataLama = logK[editIdx];
-            if (dataLama) {
-                // Hitung biaya lama untuk dikurangi dari total
-                let biayaLama = hitungBiayaDariString(dataLama.nama);
-                penyesuaianGaji = biayaGajiSesiIni - biayaLama;
-            }
-            // Hapus data lama agar tidak duplikat
-            logK[editIdx] = dataKerja;
-        }
+if (isEditMode) {
+    let dataLama = logK[editIdx];
+    if (dataLama) {
+        let biayaLama = hitungBiayaDariString(dataLama.nama);
+        penyesuaianGaji = biayaGajiSesiIni - biayaLama;
+    }
+    
+    // PERBAIKAN 1: Update data di posisi aslinya
+    logK[editIdx] = dataKerja;
 
-        // Update saldo Dashboard HANYA BERDASARKAN SELISIH
-        activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) + penyesuaianGaji);
-        saveActiveData(activeData);
+    // Reset state edit
+    isEditMode = false;
+    editIdx = null;
+    const btn = document.getElementById('btn-simpan-kerja');
+    if(btn) {
+        btn.innerText = "SIMPAN AKTIVITAS";
+        btn.style.background = ""; 
+    }
+} else {
+    // PERBAIKAN 2: Hanya unshift jika data BENAR-BENAR BARU
+    logK.unshift(dataKerja);
+}
 
-        // Reset state edit
-        if (isEditMode) {
-            isEditMode = false;
-            editIdx = null;
-            const btn = document.getElementById('btn-simpan-kerja');
-            if(btn) {
-                btn.innerText = "SIMPAN AKTIVITAS";
-                btn.style.background = ""; 
-            }
-        }
+// Update saldo Dashboard
+activeData.akumulasiGaji = Math.max(0, (activeData.akumulasiGaji || 0) + penyesuaianGaji);
+saveActiveData(activeData);
 
-        // Update riwayat log kerja
-        if(dataKerja.jenis === 'Pindah Tanam') {
-            localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
-            dataKerja.hst = 1;
-        }
+// Update riwayat log kerja ke LocalStorage
+if(dataKerja.jenis === 'Pindah Tanam') {
+    localStorage.setItem(currentGH + '_tgl_tanam', valTgl);
+    dataKerja.hst = 1;
+}
 
-        logK.unshift(dataKerja);
-        localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
-        
-        document.getElementById('kerja-ket').value = "";
-        loadWorkerCheckboxes();
-        renderlogs();
-        finishSave();
+localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
+
+// Bersihkan UI dan Render Ulang
+document.getElementById('kerja-ket').value = "";
+if(typeof loadWorkerCheckboxes === "function") loadWorkerCheckboxes();
+
+// Pastikan pemanggilan fungsi render sudah benar (perhatikan huruf besar/kecil)
+if(typeof renderLogs === "function") {
+    renderLogs(); 
+} else if(typeof renderlogs === "function") {
+    renderlogs();
+}
+
+finishSave();
     }
 };
 
@@ -1443,19 +1451,29 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     alert("Data Semprot Berhasil Disimpan!");
 }
 function prepareEditKerja(index) {
+    const currentGH = localStorage.getItem('active_gh');
     const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+    
+    // index di sini adalah originalIndex yang dikirim dari tombol ✏️ di renderLogs
     const data = logs[index];
 
+    if (!data) {
+        console.error("Data tidak ditemukan pada indeks:", index);
+        return;
+    }
+
+    // Set state edit menggunakan indeks asli database
     isEditMode = true;
-    editIdx = index;
+    editIdx = index; 
     editType = 'kerja';
 
-    // 1. Isi field dasar
+    // 1. Isi field dasar (Tanggal, Jenis, Keterangan)
+    // Pastikan fungsi convertToInputDate Anda sudah benar (mengubah dd/mm/yyyy ke yyyy-mm-dd)
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // 2. Reset semua checkbox dan input pekerja ke default
+    // 2. Reset semua checkbox dan input pekerja ke kondisi awal
     const rows = document.querySelectorAll('.worker-item-row');
     rows.forEach(row => {
         row.querySelector('input[name="worker_choice"]').checked = false;
@@ -1464,14 +1482,14 @@ function prepareEditKerja(index) {
         row.querySelector('.worker-bonus').value = "0";
     });
 
-    // 3. Parsing data nama untuk mencentang kembali
+    // 3. Parsing data nama untuk mencentang kembali pekerja yang bertugas
     if (data.nama) {
-        // Pisahkan jika ada lebih dari satu pekerja (dipisah koma)
         const daftarPekerja = data.nama.split(", ");
         
         daftarPekerja.forEach(item => {
-            // Regex ini memecah: Nama (DurasiH|L:Lembur|B:Bonus)
-            const match = item.match(/(.+)\s\(([^H]+)H\|L:([^|]+)\|B:([^)]+)\)/);
+            // REGEX IMPROVED: Menangani spasi dan angka desimal dengan lebih akurat
+            // Format yang dicari: Nama Pekerja (1H|L:0|B:0)
+            const match = item.match(/(.+?)\s*\(([\d.]+)H\|L:([\d.]+)\|B:([\d.]+)\)/);
             
             if (match) {
                 const namaSaved = match[1].trim();
@@ -1479,10 +1497,10 @@ function prepareEditKerja(index) {
                 const lemburSaved = match[3];
                 const bonusSaved = match[4];
 
-                // Cari baris yang sesuai di UI
+                // Cari baris pekerja di UI yang namanya cocok
                 rows.forEach(row => {
                     const cb = row.querySelector('input[name="worker_choice"]');
-                    if (cb.value === namaSaved) {
+                    if (cb.value.trim() === namaSaved) {
                         cb.checked = true;
                         row.querySelector('.worker-duration').value = durasiSaved;
                         row.querySelector('.worker-overtime').value = lemburSaved;
@@ -1493,15 +1511,16 @@ function prepareEditKerja(index) {
         });
     }
 
-    // 4. Ubah tampilan tombol
+    // 4. Ubah tampilan tombol simpan menjadi UPDATE
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
         btn.style.background = "#f39c12"; 
     }
     
+    // Scroll otomatis ke form input agar user tahu sedang mode edit
     window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+}
     
 function finishSave() {
     updateUI(); 
@@ -1511,64 +1530,60 @@ function finishSave() {
 }
 
 function renderLogs() {
+    const currentGH = localStorage.getItem('active_gh');
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-    // Fungsi pembantu untuk mengubah string "DD/MM/YYYY" menjadi Object Date agar bisa dibandingkan
     const parseDate = (dateStr) => {
+        if(!dateStr) return 0;
         const [day, month, year] = dateStr.split('/');
-        return new Date(year, month - 1, day);
+        return new Date(year, month - 1, day).getTime();
     };
 
-    // URUTKAN SEMPROT (Berdasarkan Tanggal Terbaru ke Terlama)
-    // Jika ingin yang terlama di atas, balik urutan a dan b di dalam return
-    sLog.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+    // --- STRATEGI: Simpan Indeks Asli Sebelum Diurutkan ---
+    let sLogMapped = sLog.map((item, index) => ({ ...item, originalIndex: index }));
+    let kLogMapped = kLog.map((item, index) => ({ ...item, originalIndex: index }));
 
-    // URUTKAN KERJA (Berdasarkan Tanggal Terbaru ke Terlama)
-    kLog.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+    // Urutkan berdasarkan tanggal terbaru
+    sLogMapped.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+    kLogMapped.sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
 
     // 1. Render Riwayat Semprot
-document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
-    <div class="history-card" style="position: relative; padding: 12px; border-bottom: 1px solid #eee;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <b style="font-size: 13px;">${i.tgl} (HST ${i.hst})</b>
-            
-            <div style="display: flex; gap: 15px; align-items: center; margin-left: 10px;">
-                <span onclick="prepareEditSemprot(${index})" style="cursor:pointer; font-size: 18px; color: #f39c12;">✏️</span>
-                <span onclick="hapusItem('${currentGH}_logs', ${index})" style="cursor:pointer; font-size: 18px; color: #e74c3c;">🗑️</span>
+    document.getElementById('riwayat-semprot').innerHTML = sLogMapped.map((i) => `
+        <div class="history-card" style="position: relative; padding: 12px; border-bottom: 1px solid #eee;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <b style="font-size: 13px;">${i.tgl} (HST ${i.hst})</b>
+                <div style="display: flex; gap: 15px; align-items: center; margin-left: 10px;">
+                    <span onclick="prepareEditSemprot(${i.originalIndex})" style="cursor:pointer; font-size: 18px; color: #f39c12;">✏️</span>
+                    <span onclick="hapusItem('${currentGH}_logs', ${i.originalIndex})" style="cursor:pointer; font-size: 18px; color: #e74c3c;">🗑️</span>
+                </div>
             </div>
+            <div style="margin-top: 5px; font-size: 11px; color: #444;">
+                🧪 ${i.nut || '-'} | 🕷️ ${i.ins || '-'} | 🍄 ${i.fun || '-'}
+            </div>
+            ${i.ket ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-top: 5px;">Catatan: ${i.ket}</div>` : ''}
+            ${i.img ? `<div style="margin-top: 10px;"><img src="${i.img}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"></div>` : ''}
         </div>
+    `).join("");
 
-        <div style="margin-top: 5px; font-size: 11px; color: #444;">
-            🕷️ ${i.ins} | 🍄 ${i.fun} | 🧪 ${i.nut}
-        </div>
-        
-        ${i.ket ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-top: 5px;">Catatan: ${i.ket}</div>` : ''}
-        
-        ${i.img ? `
-            <div style="margin-top: 10px;">
-                <img src="${i.img}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd;">
-            </div>` : ''}
-    </div>
-`).join("");
+    checkLimit('riwayat-semprot', 'btn-semprot-more', sLogMapped.length);
 
-checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
-    
     // 2. Render Riwayat Kerja
-document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
-    <div class="history-card" style="border-left-color:#f39c12; position: relative; padding: 12px;">
-        <div style="display: flex; justify-content: space-between;">
-            <b>${i.tgl} (HST ${i.hst})</b>
-            <div style="display: flex; gap: 15px;">
-                <span onclick="prepareEditKerja(${index})" style="cursor:pointer; font-size: 18px;">✏️</span>
-                <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer; font-size: 18px;">🗑️</span>
+    document.getElementById('riwayat-kerja').innerHTML = kLogMapped.map((i) => `
+        <div class="history-card" style="border-left-color:#f39c12; position: relative; padding: 12px;">
+            <div style="display: flex; justify-content: space-between;">
+                <b>${i.tgl} (HST ${i.hst})</b>
+                <div style="display: flex; gap: 15px;">
+                    <span onclick="prepareEditKerja(${i.originalIndex})" style="cursor:pointer; font-size: 18px;">✏️</span>
+                    <span onclick="hapusItem('${currentGH}_kerja', ${i.originalIndex})" style="cursor:pointer; font-size: 18px;">🗑️</span>
+                </div>
             </div>
+            <div style="margin-top: 5px;">🛠️ <b>${i.jenis}</b> | 👥 ${i.nama || '-'}</div>
+            ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
         </div>
-        <div style="margin-top: 5px;">🛠️ <b>${i.jenis}</b> | 👥 ${i.nama || (i.pekerja ? i.pekerja.join(', ') : '-')}</div>
-            
-        ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
-    </div>`).join("");
-    checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
+    `).join("");
+
+    checkLimit('riwayat-kerja', 'btn-kerja-more', kLogMapped.length);
 }
     function hitungAB() {
         let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
