@@ -1990,21 +1990,25 @@ window.hapusFinance = function(tipe, index) {
                 }
             }
             
-            // 2. LOGIKA UNTUK KASBON (PERBAIKAN TYPO & TIPE DATA)
-            if (itemDihapus.k === "KASBON PEKERJA") {
-                // Gunakan itemDihapus (bukan itemHapus) + parseFloat untuk akurasi
-                let idxKasbon = (d.detailKasbon || []).findIndex(k => 
-                    Math.abs(parseFloat(k.nominal) - parseFloat(itemDihapus.total)) < 1 && 
-                    k.tgl === itemDihapus.tgl
-                );
-                
-                if (idxKasbon !== -1) {
-                    // Kurangi totalKasbon agar Sisa Bayar di Dashboard otomatis naik
-                    d.totalKasbon = Math.max(0, (parseFloat(d.totalKasbon) || 0) - parseFloat(itemDihapus.total));
-                    // Hapus dari daftar nama kasbon di bawah dashboard
-                    d.detailKasbon.splice(idxKasbon, 1);
-                }
-            }
+// 2. LOGIKA UNTUK KASBON (DITAMBAHKAN VALIDASI NAMA)
+if (itemDihapus.k === "KASBON PEKERJA") {
+    // Ambil nama pekerja dari catatan/keterangan (asumsi itemDihapus.ket berisi nama)
+    // Atau sesuaikan dengan field di mana Anda menyimpan nama pekerja pada log biaya
+    let namaTarget = itemDihapus.ket || ""; 
+
+    let idxKasbon = (d.detailKasbon || []).findIndex(k => 
+        k.nama === namaTarget && // Cocokkan nama agar tidak salah hapus orang
+        Math.abs(parseFloat(k.nominal) - parseFloat(itemDihapus.total)) < 1 && 
+        k.tgl === itemDihapus.tgl
+    );
+    
+    if (idxKasbon !== -1) {
+        // Kurangi totalKasbon agar Sisa Bayar di Dashboard otomatis naik
+        d.totalKasbon = Math.max(0, (parseFloat(d.totalKasbon) || 0) - parseFloat(itemDihapus.total));
+        // Hapus dari daftar detail kasbon
+        d.detailKasbon.splice(idxKasbon, 1);
+    }
+}
             
             d.biaya.splice(index, 1);
         }
