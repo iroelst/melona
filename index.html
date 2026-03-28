@@ -2013,6 +2013,20 @@ function lihatDetailArsip(index) {
 }
 function exportData() {
     try {
+        // --- TAMBAHKAN INI ---
+        const parseDate = (s) => {
+            if(!s) return new Date(0);
+            const sep = s.includes('-') ? '-' : '/';
+            const p = s.split(sep);
+            return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
+        };
+        const formatIndo = (s) => {
+            let d = (s instanceof Date) ? s : parseDate(s);
+            if(isNaN(d.getTime())) return "-";
+            return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+        };
+        // ---------------------
+
         const activeData = getActiveData();
         const currentGH = window.currentGH || "GH_Default";
         const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
