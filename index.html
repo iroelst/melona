@@ -1441,20 +1441,24 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     finishSave(); 
     alert("Data Semprot Berhasil Disimpan!");
 }
-window.prepareEditKerja = function(index) {
+window.prepareEditKerja = function(originalIndex) {
+    // 1. Ambil data asli dari localStorage menggunakan index asli
     const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-    const data = logs[index];
+    const data = logs[originalIndex];
 
+    if (!data) return alert("Data tidak ditemukan!");
+
+    // 2. Set State Edit menggunakan index asli
     isEditMode = true;
-    editIdx = index;
+    editIdx = originalIndex; // Ini memastikan saat simpan, data yang benar yang diganti
     editType = 'kerja';
 
-    // 1. Isi field dasar
+    // 3. Isi Field Dasar (Tanggal, Jenis, Keterangan)
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // 2. Reset semua baris pekerja ke default
+    // 4. Reset Baris Pekerja di UI
     const rows = document.querySelectorAll('.worker-item-row');
     rows.forEach(row => {
         row.querySelector('input[name="worker_choice"]').checked = false;
@@ -1463,35 +1467,36 @@ window.prepareEditKerja = function(index) {
         row.querySelector('.worker-bonus').value = "0";
     });
 
-    // 3. Parsing data nama untuk mencentang kembali (LOGIKA SINKRON)
+    // 5. Bongkar Data Nama Pekerja (Parsing Nama, Durasi, Lembur, Bonus)
     if (data.nama) {
         const daftarPekerja = data.nama.split(", ");
         
         daftarPekerja.forEach(item => {
-            // Regex ini disesuaikan dengan format pembersih data di window.onload: Nama (1H|L:0|B:0)
-            const match = item.match(/(.+)\s\(([\d.]+)H\|L:([\d.]+)\|B:([\d.]+)\)/);
+            const namaSaved = item.split(" (")[0].trim();
+            const matchIsi = item.match(/\(([^)]+)\)/);
             
-            if (match) {
-                const namaSaved = match[1].trim();
-                const durasiSaved = match[2];
-                const lemburSaved = match[3];
-                const bonusSaved = match[4];
+            if (matchIsi) {
+                const isi = matchIsi[1]; // Contoh: "1H|L:0|B:0"
+                const bagian = isi.split('|');
+                
+                const durasi = bagian[0].replace('H', '');
+                const lembur = bagian[1] ? bagian[1].replace('L:', '') : "0";
+                const bonus  = bagian[2] ? bagian[2].replace('B:', '') : "0";
 
                 rows.forEach(row => {
                     const cb = row.querySelector('input[name="worker_choice"]');
-                    // Gunakan trim agar tidak gagal karena spasi tersembunyi
                     if (cb.value.trim() === namaSaved) {
                         cb.checked = true;
-                        row.querySelector('.worker-duration').value = durasiSaved;
-                        row.querySelector('.worker-overtime').value = lemburSaved;
-                        row.querySelector('.worker-bonus').value = bonusSaved;
+                        row.querySelector('.worker-duration').value = durasi;
+                        row.querySelector('.worker-overtime').value = lembur;
+                        row.querySelector('.worker-bonus').value = bonus;
                     }
                 });
             }
         });
     }
 
-    // 4. Ubah tombol Simpan menjadi Update
+    // 6. Ubah UI Tombol
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
@@ -1558,7 +1563,7 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
         <div style="display: flex; justify-content: space-between;">
             <b>${i.tgl} (HST ${i.hst})</b>
             <div style="display: flex; gap: 15px;">
-                <span onclick="prepareEditKerja(${index})" style="cursor:pointer; font-size: 18px;">✏️</span>
+                <span onclick="prepareEditKerja(${i.originalIndex})" style="cursor:pointer; font-size: 18px;">✏️</span>
                 <span onclick="hapusItem('${currentGH}_kerja', ${index})" style="cursor:pointer; font-size: 18px;">🗑️</span>
             </div>
         </div>
