@@ -2607,64 +2607,61 @@ function generateSlipGaji() {
     const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     const pInfo = masterPekerja.find(x => x.nama === workerName);
     
-    const gajiPokok = pInfo ? pInfo.gaji : 0;
-    const tarifLembur = pInfo ? (pInfo.tarifLembur || 0) : 0; 
+    const gajiPokok = pInfo ? parseFloat(pInfo.gaji || 0) : 0;
+    const tarifLembur = pInfo ? parseFloat(pInfo.tarifLembur || 0) : 0; 
 
     let hitung1Hari = 0;
     let hitungSetengahHari = 0;
     let totalLemburJam = 0;
     let totalBonus = 0;
-    let detailPerGHHtml = "";
 
-    const allKeys = Object.keys(localStorage).filter(key => key.endsWith('_kerja'));
+    const allKeys = Object.keys(localStorage);
+    const kerjaKeys = allKeys.filter(key => key.endsWith('_kerja'));
 
-    allKeys.forEach(key => {
-        const ghName = key.replace('_kerja', '');
+    // 1. HITUNG DARI LOG KERJA
+    kerjaKeys.forEach(key => {
         const kLog = JSON.parse(localStorage.getItem(key) || "[]");
-        let subTotalHarianGH = 0;
-
         kLog.forEach(log => {
-            // Regex untuk mengambil data di dalam kurung: Nama (Durasi|L:Lembur|B:Bonus)
             const regex = new RegExp(`${workerName}\\s\\(([^|]+)\\|L:([^|]+)\\|B:([^)]+)\\)`, "g");
             let match;
             while ((match = regex.exec(log.nama)) !== null) {
                 let durasi = parseFloat(match[1]);
-                
-                // LOGIKA BARU: Memisahkan hitungan hari
-                if (durasi === 1) {
-                    hitung1Hari++;
-                } else if (durasi === 0.5) {
-                    hitungSetengahHari++;
-                }
+                if (durasi === 1) hitung1Hari++;
+                else if (durasi === 0.5) hitungSetengahHari++;
 
                 totalLemburJam += parseFloat(match[2]);
                 totalBonus += parseFloat(match[3]);
-                subTotalHarianGH += durasi;
             }
         });
-
-        if (subTotalHarianGH > 0) {
-            detailPerGHHtml += `<tr><td>Akumulasi ${ghName}</td><td align="right">${subTotalHarianGH} Hari</td></tr>`;
-        }
     });
 
+    // 2. HITUNG TOTAL KOTOR (Dibuat SEBELUM sisaGaji)
     const totalHariKerja = hitung1Hari + (hitungSetengahHari * 0.5);
     const subtotalPokok = totalHariKerja * gajiPokok;
     const subtotalLembur = totalLemburJam * tarifLembur;
+    
+    // Ini variabel yang tadi Error (Pastikan namanya sama persis)
     const totalGajiKotor = subtotalPokok + subtotalLembur + totalBonus;
 
-    // Hitung Kasbon
+    // 3. HITUNG KASBON
     let totalKasbon = 0;
-    ghList.forEach(gh => {
-        let d = JSON.parse(localStorage.getItem(gh + '_active_period'));
-        if (d && d.detailKasbon) {
-            d.detailKasbon.forEach(k => { if (k.nama === workerName) totalKasbon += k.nominal; });
+    let rincianKasbonHtml = "";
+    allKeys.filter(k => k.endsWith('_active_period')).forEach(key => {
+        let d = JSON.parse(localStorage.getItem(key) || "{}");
+        if (d.detailKasbon) {
+            d.detailKasbon.forEach(k => {
+                if (k.nama.trim().toLowerCase() === workerName.trim().toLowerCase()) {
+                    totalKasbon += parseFloat(k.nominal || 0);
+                    rincianKasbonHtml += `<tr><td style="color:#666;">- Kasbon (${k.tgl})</td><td align="right" style="color:#666;">Rp ${parseFloat(k.nominal).toLocaleString()}</td></tr>`;
+                }
+            });
         }
     });
 
+    // 4. HITUNG SISA BERSIH
     const sisaGaji = totalGajiKotor - totalKasbon;
 
-    // UPDATE TAMPILAN: Menambahkan baris detail 1 hari dan 0.5 hari
+    // 5. UPDATE TAMPILAN
     const content = `
         <table style="width:100%; font-size:12px;">
             <tr><td>Nama</td><td>: <b>${workerName}</b></td></tr>
@@ -2678,13 +2675,15 @@ function generateSlipGaji() {
         </table>
         <hr style="border: 0; border-top: 1px dashed #000;">
         <table style="width:100%; font-size:12px;">
-            <tr><td>Gaji Pokok (@Rp ${gajiPokok.toLocaleString()})</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
-            <tr><td>Lembur (${totalLemburJam} jam)</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
+            <tr><td>Gaji Pokok</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
+            <tr><td>Lembur</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
             <tr><td>Bonus</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
-            <tr style="font-weight:bold;"><td>Subtotal Gaji</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
-            <tr><td>Total Kasbon</td><td align="right" style="color:red;">- Rp ${totalKasbon.toLocaleString()}</td></tr>
+            <tr style="font-weight:bold; background:#f9f9f9;"><td>Subtotal Kotor</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
+            <tr><td colspan="2" style="padding-top:5px;"><b>Potongan Kasbon:</b></td></tr>
+            ${rincianKasbonHtml || '<tr><td colspan="2" style="color:#999;">Tidak ada potongan</td></tr>'}
+            <tr style="font-weight:bold; color:red;"><td>Total Potongan</td><td align="right">- Rp ${totalKasbon.toLocaleString()}</td></tr>
             <tr><td colspan="2"><hr style="border: 0; border-top: 1px solid #000;"></td></tr>
-            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA TERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
+            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA DITERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
         </table>
     `;
 
