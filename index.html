@@ -2013,7 +2013,6 @@ function lihatDetailArsip(index) {
 }
 function exportData() {
     try {
-        // --- TAMBAHKAN INI ---
         const parseDate = (s) => {
             if(!s) return new Date(0);
             const sep = s.includes('-') ? '-' : '/';
@@ -2025,120 +2024,101 @@ function exportData() {
             if(isNaN(d.getTime())) return "-";
             return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
         };
-        // ---------------------
 
         const activeData = getActiveData();
         const currentGH = window.currentGH || "GH_Default";
+        
+        // Pastikan pengambilan Key benar
         const dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
         const sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
         const kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
 
-        // --- LOGIKA PERIODE OTOMATIS ---
-        let tglMulai = "-";
-        let tglSelesai = new Date().toLocaleDateString('id-ID'); 
-
-        if (kLog && kLog.length > 0) {
-            // Gunakan variabel lokal jika fungsi global tidak terjangkau
-            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
-            tglMulai = formatIndo(sortedK[0].tgl);
-        }
-
-        if (activeData.biaya && activeData.biaya.length > 0) {
-            let postingGaji = activeData.biaya
-                .filter(item => item.k === "PELUNASAN GAJI PERIODE")
-                .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
-            
-            if (postingGaji.length > 0) {
-                tglSelesai = formatIndo(postingGaji[0].tgl);
-            }
-        }
-
-        const rentangPeriode = `${tglMulai} s/d ${tglSelesai}`;
-        dailyLogs.sort((a, b) => a.hst - b.hst);
-        
         const wb = XLSX.utils.book_new();
+
+        // --- LOGIKA PERIODE ---
+        let tglMulai = "-";
+        if (kLog.length > 0) {
+            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl || a.tanggal) - parseDate(b.tgl || b.tanggal));
+            tglMulai = formatIndo(sortedK[0].tgl || sortedK[0].tanggal);
+        }
+        let tglSelesai = formatIndo(new Date());
+        if (activeData.biaya && activeData.biaya.length > 0) {
+            let pg = activeData.biaya.filter(i => i.k === "PELUNASAN GAJI PERIODE").sort((a,b) => parseDate(b.tgl) - parseDate(a.tgl));
+            if (pg.length > 0) tglSelesai = formatIndo(pg[0].tgl);
+        }
 
         // --- SHEET 1: RINGKASAN ---
         const terakhir = dailyLogs.length > 0 ? dailyLogs[dailyLogs.length - 1] : { hst: "-", ppm: "-", ph: "-" };
         const summaryData = [
-            ["LAPORAN RINGKASAN PRODUKSI MELON", ""],
-            ["Nama GreenHouse", currentGH],
-            ["Periode Tanam", rentangPeriode], // Periode otomatis
-            ["Varietas Tanam", activeData.v],
+            ["LAPORAN RINGKASAN PRODUKSI MELON"],
+            ["Greenhouse", currentGH],
+            ["Periode", `${tglMulai} s/d ${tglSelesai}`],
+            ["Varietas", activeData.v],
             ["Populasi", activeData.pop + " Pohon"],
             ["", ""],
-            ["STATUS TERAKHIR", ""],
-            ["HST Terakhir", terakhir.hst],
-            ["PPM Terakhir", terakhir.ppm],
-            ["pH Terakhir", terakhir.ph]
+            ["STATUS TERAKHIR"],
+            ["HST", terakhir.hst],
+            ["PPM", terakhir.ppm],
+            ["pH", terakhir.ph]
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
 
-        // --- SHEET 2: NUTRISI ---
+        // --- SHEET 2: NUTRISI (Pengecekan Properti Alternatif) ---
         const nutrisiExcel = dailyLogs.map(x => ({
             "HST": x.hst,
-            "TANGGAL": formatIndo(x.tgl), // Menggunakan formatIndo agar rapi
-            "AIR (LITER)": x.liter,
-            "PPM RIIL": x.ppm,
-            "PH RIIL": x.ph
+            "TANGGAL": formatIndo(x.tgl || x.tanggal),
+            "AIR": x.liter || x.air || 0,
+            "PPM": x.ppm,
+            "PH": x.ph
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(nutrisiExcel), "Nutrisi_Harian");
 
-        // --- SHEET 3: PENYEMPROTAN ---
-        const semprotExcel = sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
+        // --- SHEET 3: SEMPROT ---
+        const semprotExcel = sLog.map(x => ({
             "HST": x.hst,
-            "TANGGAL": formatIndo(x.tgl),
-            "INSEKTISIDA": x.ins,
-            "FUNGISIDA": x.fun,
-            "NUTRISI": x.nut
+            "TANGGAL": formatIndo(x.tgl || x.tanggal),
+            "INSEKTISIDA": x.ins || x.insektisida || "-",
+            "FUNGISIDA": x.fun || x.fungisida || "-",
+            "NUTRISI": x.nut || x.nutrisi || "-"
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(semprotExcel), "Log_Semprot");
 
-        // --- SHEET 4: AKTIVITAS KERJA ---
-        const kerjaExcel = kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
+        // --- SHEET 4: KERJA ---
+        const kerjaExcel = kLog.map(x => ({
             "HST": x.hst,
-            "TANGGAL": formatIndo(x.tgl),
-            "JENIS PEKERJAAN": x.jenis,
-            "CATATAN": x.ket || "-",
-            "PEKERJA": x.nama
+            "TANGGAL": formatIndo(x.tgl || x.tanggal),
+            "PEKERJAAN": x.jenis || x.aktivitas || "-",
+            "CATATAN": x.ket || x.keterangan || "-",
+            "PEKERJA": x.nama || x.worker || "-"
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kerjaExcel), "Log_Kerja");
 
         // --- SHEET 5: KEUANGAN ---
         let finData = [];
-        let totalJual = 0;
-        let totalBiaya = 0;
-
+        let tj = 0, tb = 0;
         (activeData.jual || []).forEach(x => {
-            finData.push({ "TANGGAL": formatIndo(x.tgl), "TIPE": "MASUK (JUAL)", "KATEGORI": x.g, "KETERANGAN": "-", "TOTAL": x.total });
-            totalJual += x.total;
+            finData.push({ "TANGGAL": formatIndo(x.tgl), "TIPE": "MASUK", "KAT": x.g, "KET": "-", "TOTAL": x.total });
+            tj += x.total;
         });
         (activeData.biaya || []).forEach(x => {
-            finData.push({ "TANGGAL": formatIndo(x.tgl), "TIPE": "KELUAR (BIAYA)", "KATEGORI": x.k, "KETERANGAN": x.ket || "-", "TOTAL": x.total });
-            totalBiaya += x.total;
+            finData.push({ "TANGGAL": formatIndo(x.tgl), "TIPE": "KELUAR", "KAT": x.k, "KET": x.ket || "-", "TOTAL": x.total });
+            tb += x.total;
         });
-
-        // Urutkan keuangan berdasarkan tanggal
-        finData.sort((a,b) => parseDate(a.TANGGAL) - parseDate(b.TANGGAL));
-
-        const ws_finance = XLSX.utils.json_to_sheet(finData);
-        // Menambahkan baris ringkasan di akhir tabel
-        XLSX.utils.sheet_add_aoa(ws_finance, [
+        
+        const ws_f = XLSX.utils.json_to_sheet(finData);
+        XLSX.utils.sheet_add_aoa(ws_f, [
             [],
-            ["", "", "TOTAL PENJUALAN", "", totalJual],
-            ["", "", "TOTAL BIAYA", "", totalBiaya],
-            ["", "", "LABA / RUGI BERSIH", "", totalJual - totalBiaya]
+            ["", "", "TOTAL JUAL", "", tj],
+            ["", "", "TOTAL BIAYA", "", tb],
+            ["", "", "LABA BERSIH", "", tj - tb]
         ], { origin: -1 });
-        XLSX.utils.book_append_sheet(wb, ws_finance, "Keuangan");
+        XLSX.utils.book_append_sheet(wb, ws_f, "Keuangan");
 
-        // --- DOWNLOAD ---
-        const fileName = `LAPORAN_MELON_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `Laporan_Melona_${currentGH}.xlsx`);
+        alert("Excel berhasil diunduh!");
 
-        alert("Berhasil! File Excel siap diunduh.");
     } catch (err) {
-        console.error(err);
-        alert("Gagal export Excel: " + err.message);
+        alert("Gagal: " + err.message);
     }
 }
     
@@ -2171,7 +2151,6 @@ function importData() {
     };
     input.click();
 }
-
 
 function simpanNutrisiRiil() {
     const inputPPM = document.getElementById('ppm-now');
