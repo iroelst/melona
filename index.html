@@ -2710,8 +2710,9 @@ function printSlip() {
 
     // --- DATA IDENTITAS ---
     doc.setFont("courier", "normal");
-    doc.text(`Nama     ${workerName}`, 10, 22);
-    doc.text(`Tanggal  ${new Date().toLocaleDateString('id-ID')}`, 10, 27);
+    doc.text(`Nama    : ${workerName}`, 10, 22);
+    doc.text(`Tanggal : ${tgl}`, 10, 27);
+    //doc.text(`Tanggal : ${new Date().toLocaleDateString('id-ID')}`, 10, 27);
     doc.text("--------------------------------", 40, 32, { align: "center" });
 
     // --- LOGIKA EKSTRAKSI DATA DARI MODAL ---
