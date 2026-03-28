@@ -100,10 +100,38 @@
         .btn { background: #2e7d32; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .btn-ph { background: #2980b9; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .history-card { border-left: 5px solid #2e7d32; padding: 12px; margin-bottom: 10px; background: #fff; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 12px; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex;
-    align-items: center;    /* Tengah secara vertikal */
-    justify-content: center; /* Tengah secara horizontal */}
-        .modal-content { background: white; margin: 20% auto; padding: 20px; border-radius: 12px;}
+.modal { 
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0; 
+    top: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.5); 
+    
+    /* Pengaturan Tengah Monitor */
+    display: flex;
+    align-items: center;    
+    justify-content: center;
+    
+    /* Tambahan agar area luar bisa bantu scroll jika diperlukan */
+    padding: 20px; 
+    box-sizing: border-box;
+}
+
+.modal-content { 
+    background: white; 
+    padding: 20px; 
+    border-radius: 12px;
+    width: 80%; 
+    max-width: 500px; /* Batas lebar di laptop */
+    
+    /* SOLUSI SCROLL: */
+    max-height: 90vh;    /* Tinggi maksimal 90% layar */
+    overflow-y: auto;    /* Aktifkan scroll vertikal jika konten penuh */
+    position: relative;
+}
         
         .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .summary-card { background: #fff; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
