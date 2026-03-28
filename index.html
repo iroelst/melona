@@ -1441,24 +1441,20 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     finishSave(); 
     alert("Data Semprot Berhasil Disimpan!");
 }
-function prepareEditKerja(index) {
-    // 1. Ambil data asli dari localStorage menggunakan index asli
+window.prepareEditKerja = function(index) {
     const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
     const data = logs[index];
 
-    if (!data) return alert("Data tidak ditemukan!");
-
-    // 2. Set State Edit menggunakan index asli
     isEditMode = true;
-    editIdx = index; // Ini memastikan saat simpan, data yang benar yang diganti
+    editIdx = index;
     editType = 'kerja';
 
-    // 3. Isi Field Dasar (Tanggal, Jenis, Keterangan)
+    // 1. Isi field dasar
     document.getElementById('kerja-tgl').value = convertToInputDate(data.tgl);
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // 4. Reset Baris Pekerja di UI
+    // 2. Reset semua checkbox dan input pekerja ke default
     const rows = document.querySelectorAll('.worker-item-row');
     rows.forEach(row => {
         row.querySelector('input[name="worker_choice"]').checked = false;
@@ -1467,43 +1463,42 @@ function prepareEditKerja(index) {
         row.querySelector('.worker-bonus').value = "0";
     });
 
-    // 5. Bongkar Data Nama Pekerja (Parsing Nama, Durasi, Lembur, Bonus)
+    // 3. Parsing data nama untuk mencentang kembali
     if (data.nama) {
+        // Pisahkan jika ada lebih dari satu pekerja (dipisah koma)
         const daftarPekerja = data.nama.split(", ");
         
         daftarPekerja.forEach(item => {
-            const namaSaved = item.split(" (")[0].trim();
-            const matchIsi = item.match(/\(([^)]+)\)/);
+            // Regex ini memecah: Nama (DurasiH|L:Lembur|B:Bonus)
+            const match = item.match(/(.+)\s\(([^H]+)H\|L:([^|]+)\|B:([^)]+)\)/);
             
-            if (matchIsi) {
-                const isi = matchIsi[1]; // Contoh: "1H|L:0|B:0"
-                const bagian = isi.split('|');
-                
-                const durasi = bagian[0].replace('H', '');
-                const lembur = bagian[1] ? bagian[1].replace('L:', '') : "0";
-                const bonus  = bagian[2] ? bagian[2].replace('B:', '') : "0";
+            if (match) {
+                const namaSaved = match[1].trim();
+                const durasiSaved = match[2];
+                const lemburSaved = match[3];
+                const bonusSaved = match[4];
 
+                // Cari baris yang sesuai di UI
                 rows.forEach(row => {
                     const cb = row.querySelector('input[name="worker_choice"]');
-                    if (cb.value.trim() === namaSaved) {
+                    if (cb.value === namaSaved) {
                         cb.checked = true;
-                        row.querySelector('.worker-duration').value = durasi;
-                        row.querySelector('.worker-overtime').value = lembur;
-                        row.querySelector('.worker-bonus').value = bonus;
+                        row.querySelector('.worker-duration').value = durasiSaved;
+                        row.querySelector('.worker-overtime').value = lemburSaved;
+                        row.querySelector('.worker-bonus').value = bonusSaved;
                     }
                 });
             }
         });
     }
 
-    // 6. Ubah UI Tombol
+    // 4. Ubah tampilan tombol
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
         btn.style.background = "#f39c12"; 
     }
     
-    // Scroll ke form input
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
     
@@ -1571,7 +1566,6 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
             
         ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
     </div>`).join("");
-checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
 }
     function hitungAB() {
         let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
