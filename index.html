@@ -2616,23 +2616,26 @@ function generateSlipGaji() {
     let totalBonus = 0;
     let detailPerGHHtml = "";
 
-    // Ambil semua kunci untuk scan Log Kerja dan Kasbon
-    const allKeys = Object.keys(localStorage);
-    const kerjaKeys = allKeys.filter(key => key.endsWith('_kerja'));
+    const allKeys = Object.keys(localStorage).filter(key => key.endsWith('_kerja'));
 
-    // 1. HITUNG GAJI DARI LOG KERJA
-    kerjaKeys.forEach(key => {
+    allKeys.forEach(key => {
         const ghName = key.replace('_kerja', '');
         const kLog = JSON.parse(localStorage.getItem(key) || "[]");
         let subTotalHarianGH = 0;
 
         kLog.forEach(log => {
+            // Regex untuk mengambil data di dalam kurung: Nama (Durasi|L:Lembur|B:Bonus)
             const regex = new RegExp(`${workerName}\\s\\(([^|]+)\\|L:([^|]+)\\|B:([^)]+)\\)`, "g");
             let match;
             while ((match = regex.exec(log.nama)) !== null) {
                 let durasi = parseFloat(match[1]);
-                if (durasi === 1) hitung1Hari++;
-                else if (durasi === 0.5) hitungSetengahHari++;
+                
+                // LOGIKA BARU: Memisahkan hitungan hari
+                if (durasi === 1) {
+                    hitung1Hari++;
+                } else if (durasi === 0.5) {
+                    hitungSetengahHari++;
+                }
 
                 totalLemburJam += parseFloat(match[2]);
                 totalBonus += parseFloat(match[3]);
@@ -2645,7 +2648,12 @@ function generateSlipGaji() {
         }
     });
 
-   // Hitung Kasbon
+    const totalHariKerja = hitung1Hari + (hitungSetengahHari * 0.5);
+    const subtotalPokok = totalHariKerja * gajiPokok;
+    const subtotalLembur = totalLemburJam * tarifLembur;
+    const totalGajiKotor = subtotalPokok + subtotalLembur + totalBonus;
+
+    // Hitung Kasbon
     let totalKasbon = 0;
     ghList.forEach(gh => {
         let d = JSON.parse(localStorage.getItem(gh + '_active_period'));
@@ -2676,7 +2684,7 @@ function generateSlipGaji() {
             <tr style="font-weight:bold;"><td>Subtotal Gaji</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
             <tr><td>Total Kasbon</td><td align="right" style="color:red;">- Rp ${totalKasbon.toLocaleString()}</td></tr>
             <tr><td colspan="2"><hr style="border: 0; border-top: 1px solid #000;"></td></tr>
-            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA GAJI</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
+            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA TERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
         </table>
     `;
 
