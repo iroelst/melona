@@ -695,73 +695,66 @@ if ('serviceWorker' in navigator) {
     }
 
 
-// --- FITUR DOWNLOAD LAPORAN LENGKAP (VERSI STABIL MOBILE) ---
 async function downloadFullReport() {
     try {
+        // --- 0. PASTIKAN ID GH TERDEFINISI ---
+        const ghID = window.currentGH || "GH1"; // Fallback ke GH1 jika tidak terdeteksi
+        
         let d = getActiveData();
-        let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
-        let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-        let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
+        let sLog = JSON.parse(localStorage.getItem(ghID + '_logs') || "[]");
+        let kLog = JSON.parse(localStorage.getItem(ghID + '_kerja') || "[]");
+        let dailyLogs = JSON.parse(localStorage.getItem(ghID + '_daily_records') || "[]");
 
-        // --- 1. FUNGSI INTERNAL UNTUK FIX TANGGAL ---
-        const parseDate = (dateStr) => {
-            if(!dateStr) return new Date(0);
-            const sep = dateStr.includes('-') ? '-' : '/';
-            const p = dateStr.split(sep);
+        // --- 1. FUNGSI INTERNAL ---
+        const parseDate = (s) => {
+            if(!s) return new Date(0);
+            const sep = s.includes('-') ? '-' : '/';
+            const p = s.split(sep);
             return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
         };
 
-        const formatIndo = (dateStr) => {
-            if (!dateStr) return "-";
-            const dObj = (dateStr instanceof Date) ? dateStr : parseDate(dateStr);
-            if (dObj.getTime() === 0) return "-";
+        const formatIndo = (s) => {
+            if (!s) return "-";
+            const dObj = (s instanceof Date) ? s : parseDate(s);
+            if (dObj.getTime() <= 0) return "-";
             const dd = String(dObj.getDate()).padStart(2, '0');
             const mm = String(dObj.getMonth() + 1).padStart(2, '0');
-            const yyyy = dObj.getFullYear();
-            return `${dd}-${mm}-${yyyy}`;
+            return `${dd}-${mm}-${dObj.getFullYear()}`;
         };
 
         // --- 2. LOGIKA PERIODE OTOMATIS ---
         let tglMulai = "-";
-        let tglSelesai = formatIndo(new Date()); // Default hari ini jika belum ada posting gaji
-
-        // Cari awal aktivitas dari log kerja (kLog)
-        if (kLog && kLog.length > 0) {
-            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
-            tglMulai = formatIndo(sortedK[0].tgl);
+        if (kLog.length > 0) {
+            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl || a.tanggal) - parseDate(b.tgl || b.tanggal));
+            tglMulai = formatIndo(sortedK[0].tgl || sortedK[0].tanggal);
         }
-
-        // Cari tanggal terakhir dari posting gaji (d.biaya)
+        
+        let tglSelesai = formatIndo(new Date());
         if (d.biaya && d.biaya.length > 0) {
-            let postingGaji = d.biaya
-                .filter(item => item.k === "PELUNASAN GAJI PERIODE")
-                .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
-            
-            if (postingGaji.length > 0) {
-                tglSelesai = formatIndo(postingGaji[0].tgl);
-            }
+            let pg = d.biaya.filter(i => i.k === "PELUNASAN GAJI PERIODE").sort((a,b) => parseDate(b.tgl) - parseDate(a.tgl));
+            if (pg.length > 0) tglSelesai = formatIndo(pg[0].tgl);
         }
         const rentangPeriode = `${tglMulai} s/d ${tglSelesai}`;
 
         let wb = XLSX.utils.book_new();
 
-        // --- SHEET 1: RINGKASAN (DENGAN PERIODE BARU) ---
+        // --- SHEET 1: RINGKASAN ---
         let summaryData = [
             ["INFO GREENHOUSE", "KETERANGAN"],
-            ["Nama GH", currentGH],
-            ["Periode Tanam", rentangPeriode], // <--- INI PERIODE OTOMATISNYA
-            ["Varietas", d.v],
-            ["Total Populasi", d.pop + " Pohon"],
-            ["Status Tanam", localStorage.getItem(currentGH + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"],
+            ["Nama GH", ghID],
+            ["Periode Laporan", rentangPeriode],
+            ["Varietas", d.v || "-"],
+            ["Total Populasi", (d.pop || 0) + " Pohon"],
+            ["Status Tanam", localStorage.getItem(ghID + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"],
             ["Tanggal Cetak", new Date().toLocaleString('id-ID')]
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
 
-     // --- SHEET 2: NUTRISI HARIAN (URUT & FORMAT) ---
+        // --- SHEET 2: NUTRISI HARIAN ---
         let dataNutrisi = dailyLogs.sort((a,b) => a.hst - b.hst).map(x => {
             let targetHarian = (typeof jadwal !== 'undefined') ? jadwal.find(j => x.hst <= j.h) : null;
             return {
-                "Tanggal": formatIndo(x.tgl),
+                "Tanggal": formatIndo(x.tgl || x.tanggal),
                 "HST": x.hst,
                 "PPM Riil": x.ppm,
                 "Target PPM": targetHarian ? targetHarian.p : "-",
@@ -771,33 +764,32 @@ async function downloadFullReport() {
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataNutrisi), "Rekap_Nutrisi_Harian");
 
-        // --- SHEET 3: PENYEMPROTAN (URUT & FORMAT) ---
-        let dataSemprot = sLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
-            "Tanggal": formatIndo(x.tgl),
+        // --- SHEET 3: PENYEMPROTAN ---
+        let dataSemprot = sLog.sort((a,b) => parseDate(a.tgl || a.tanggal) - parseDate(b.tgl || b.tanggal)).map(x => ({
+            "Tanggal": formatIndo(x.tgl || x.tanggal),
             "HST": x.hst,
-            "Insektisida": x.ins,
-            "Fungisida": x.fun,
-            "Nutrisi": x.nut
+            "Insektisida": x.ins || x.insektisida || "-",
+            "Fungisida": x.fun || x.fungisida || "-",
+            "Nutrisi": x.nut || x.nutrisi || "-"
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataSemprot), "Penyemprotan");
 
-        // --- SHEET 4: AKTIVITAS (URUT & FORMAT) ---
-        let dataKerja = kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => ({
-            "Tanggal": formatIndo(x.tgl),
+        // --- SHEET 4: AKTIVITAS ---
+        let dataKerja = kLog.sort((a,b) => parseDate(a.tgl || a.tanggal) - parseDate(b.tgl || b.tanggal)).map(x => ({
+            "Tanggal": formatIndo(x.tgl || x.tanggal),
             "HST": x.hst,
-            "Aktivitas": x.jenis,
-            "Pekerja": x.nama,
-            "Catatan": x.ket
+            "Aktivitas": x.jenis || x.aktivitas || "-",
+            "Pekerja": x.nama || "-",
+            "Catatan": x.ket || x.keterangan || "-"
         }));
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataKerja), "Aktivitas");
 
-        // --- SHEET 5: KEUANGAN (GABUNG, URUT & FORMAT) ---
+        // --- SHEET 5: KEUANGAN ---
+        let totalJ = 0, totalB = 0;
         let finData = [
-            ...(d.jual || []).map(x => ({ tgl: x.tgl, tipe: "MASUK", kat: x.g, ket: "-", qty: x.b, harga: x.h, total: x.total })),
-            ...(d.biaya || []).map(x => ({ tgl: x.tgl, tipe: "KELUAR", kat: x.k, ket: x.ket || "-", qty: x.q, harga: x.h, total: x.total }))
+            ...(d.jual || []).map(x => { totalJ += x.total; return { tgl: x.tgl, tipe: "MASUK", kat: x.g, ket: "-", qty: x.b, harga: x.h, total: x.total }; }),
+            ...(d.biaya || []).map(x => { totalB += x.total; return { tgl: x.tgl, tipe: "KELUAR", kat: x.k, ket: x.ket || "-", qty: x.q, harga: x.h, total: x.total }; })
         ];
-        
-        // Urutkan dari tanggal terlama ke terbaru
         finData.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
 
         let dataKeuangan = finData.map(x => ({
@@ -809,11 +801,20 @@ async function downloadFullReport() {
             "Harga": x.harga,
             "Total (Rp)": x.total
         }));
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataKeuangan), "Keuangan");
+        
+        let ws_fin = XLSX.utils.json_to_sheet(dataKeuangan);
+        // Tambah ringkasan di bawah tabel keuangan
+        XLSX.utils.sheet_add_aoa(ws_fin, [
+            [],
+            ["", "", "TOTAL PENJUALAN", "", "", "", totalJ],
+            ["", "", "TOTAL BIAYA", "", "", "", totalB],
+            ["", "", "LABA / RUGI BERSIH", "", "", "", totalJ - totalB]
+        ], { origin: -1 });
+        XLSX.utils.book_append_sheet(wb, ws_fin, "Keuangan");
 
         // --- PROSES DOWNLOAD ---
-        const fileName = `Laporan_Full_Melona_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `Laporan_Full_Melona_${ghID}_${new Date().toISOString().split('T')[0]}.xlsx`);
+        alert("Download berhasil!");
 
     } catch (err) {
         console.error("Error Excel:", err);
