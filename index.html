@@ -1342,7 +1342,7 @@ let activeData = getActiveData();
                 penyesuaianGaji = biayaGajiSesiIni - biayaLama;
             }
             // Hapus data lama agar tidak duplikat
-            logK.splice(editIdx, 1);
+            logK[editIdx] = dataKerja;
         }
 
         // Update saldo Dashboard HANYA BERDASARKAN SELISIH
@@ -1371,6 +1371,7 @@ let activeData = getActiveData();
         
         document.getElementById('kerja-ket').value = "";
         loadWorkerCheckboxes();
+        renderlogs();
         finishSave();
     }
 };
@@ -1441,7 +1442,7 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     finishSave(); 
     alert("Data Semprot Berhasil Disimpan!");
 }
-window.prepareEditKerja = function(index) {
+function prepareEditKerja(index) {
     const logs = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
     const data = logs[index];
 
