@@ -1566,6 +1566,7 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
             
         ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
     </div>`).join("");
+
     // --- TAMBAHKAN LOGIKA INI AGAR TOMBOL MUNCUL ---
 const btnMore = document.getElementById('btn-kerja-more'); // Sesuaikan dengan ID di HTML
 if (btnMore) {
@@ -1574,6 +1575,7 @@ if (btnMore) {
     } else {
         btnMore.style.display = 'none';  // Sembunyikan jika 5 atau kurang
     }
+}
 }
     function hitungAB() {
         let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
