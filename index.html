@@ -1184,43 +1184,23 @@ function renderFinance() {
     document.getElementById('transaksi-detail-list').innerHTML = detailHtml || "<small>Belum ada transaksi</small>";
     checkLimit('transaksi-detail-list', 'btn-trans-more', gabungan.length);
 
-    // 5. RIWAYAT ARSIP (Sinkron dengan Logika PDF)
-let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
-
-document.getElementById('riwayat-finance').innerHTML = hist.map((h, index) => {
-    // 1. Hitung Keuangan dari data terarsip
-    let totalB = (h.biaya || []).reduce((s, i) => s + i.total, 0);
-    let totalJ = (h.jual || []).reduce((s, i) => s + i.total, 0);
-
-    // 2. LOGIKA TGL SELESAI (Copy-Paste dari Logika PDF Anda)
-    let tglSelesai = h.tgl_selesai || formatIndo(new Date()); 
-    if (h.biaya && h.biaya.length > 0) {
-        let postingGaji = h.biaya
-            .filter(item => item.k === "PELUNASAN GAJI PERIODE")
-            .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
-        
-        if (postingGaji.length > 0) {
-            tglSelesai = formatIndo(postingGaji[0].tgl);
-        }
-    }
-
-    return `
-    <div class="history-card" style="border-left: 5px solid #4caf50; padding: 12px; margin-bottom: 10px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="display:flex; justify-content:space-between; align-items: center;">
-            <div>
-                <b style="font-size:15px;">${h.v || 'Inthanon'}</b><br>
-                <small style="color:#666;">${h.tgl_mulai || '-'} - ${tglSelesai}</small>
+    // 5. RIWAYAT ARSIP
+    let hist = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
+    document.getElementById('riwayat-finance').innerHTML = hist.map((h, index) => {
+        let b = (h.biaya || []).reduce((s, i) => s + i.total, 0);
+        let j = (h.jual || []).reduce((s, i) => s + i.total, 0);
+        return `
+        <div class="history-card" style="border-left-color:#666;">
+            <div style="display:flex; justify-content:space-between;">
+                <div><b>${h.v}</b><br><small>${h.tgl_mulai} - ${h.tgl_selesai || 'Selesai'}</small></div>
+                <div style="display: flex; gap: 5px;">
+                    <button onclick="lihatDetailArsip(${index})" style="font-size:10px; padding:5px; background:#2e7d32; color:white; border:none; border-radius:4px;">DETAIL</button>
+                    <button onclick="hapusRiwayatPeriode(${index})" style="font-size:10px; padding:5px; background:#e74c3c; color:white; border:none; border-radius:4px;">HAPUS</button>
+                </div>
             </div>
-            <div style="display: flex; gap: 5px;">
-                <button onclick="lihatDetailArsip(${index})" style="font-size:10px; padding:6px 10px; background:#2e7d32; color:white; border:none; border-radius:4px;">DETAIL</button>
-                <button onclick="hapusRiwayatPeriode(${index})" style="font-size:10px; padding:6px 10px; background:#e74c3c; color:white; border:none; border-radius:4px;">HAPUS</button>
-            </div>
-        </div>
-        <div style="margin-top: 10px; font-weight: bold; color: ${totalJ - totalB >= 0 ? '#2e7d32' : '#c0392b'};">
-            Laba: Rp ${(totalJ - totalB).toLocaleString('id-ID')}
-        </div>
-    </div>`;
-}).join("");
+            <br>Laba: Rp ${(j-b).toLocaleString()}
+        </div>`;
+    }).join("");
 }
 
 function simpanLog(tipe) {
