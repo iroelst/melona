@@ -1454,7 +1454,7 @@ window.prepareEditKerja = function(index) {
     document.getElementById('kerja-jenis').value = data.jenis;
     document.getElementById('kerja-ket').value = data.ket || "";
 
-    // 2. Reset semua checkbox dan input pekerja ke default
+    // 2. Reset semua baris pekerja ke default
     const rows = document.querySelectorAll('.worker-item-row');
     rows.forEach(row => {
         row.querySelector('input[name="worker_choice"]').checked = false;
@@ -1463,14 +1463,13 @@ window.prepareEditKerja = function(index) {
         row.querySelector('.worker-bonus').value = "0";
     });
 
-    // 3. Parsing data nama untuk mencentang kembali
+    // 3. Parsing data nama untuk mencentang kembali (LOGIKA SINKRON)
     if (data.nama) {
-        // Pisahkan jika ada lebih dari satu pekerja (dipisah koma)
         const daftarPekerja = data.nama.split(", ");
         
         daftarPekerja.forEach(item => {
-            // Regex ini memecah: Nama (DurasiH|L:Lembur|B:Bonus)
-            const match = item.match(/(.+)\s\(([^H]+)H\|L:([^|]+)\|B:([^)]+)\)/);
+            // Regex ini disesuaikan dengan format pembersih data di window.onload: Nama (1H|L:0|B:0)
+            const match = item.match(/(.+)\s\(([\d.]+)H\|L:([\d.]+)\|B:([\d.]+)\)/);
             
             if (match) {
                 const namaSaved = match[1].trim();
@@ -1478,10 +1477,10 @@ window.prepareEditKerja = function(index) {
                 const lemburSaved = match[3];
                 const bonusSaved = match[4];
 
-                // Cari baris yang sesuai di UI
                 rows.forEach(row => {
                     const cb = row.querySelector('input[name="worker_choice"]');
-                    if (cb.value === namaSaved) {
+                    // Gunakan trim agar tidak gagal karena spasi tersembunyi
+                    if (cb.value.trim() === namaSaved) {
                         cb.checked = true;
                         row.querySelector('.worker-duration').value = durasiSaved;
                         row.querySelector('.worker-overtime').value = lemburSaved;
@@ -1492,13 +1491,14 @@ window.prepareEditKerja = function(index) {
         });
     }
 
-    // 4. Ubah tampilan tombol
+    // 4. Ubah tombol Simpan menjadi Update
     const btn = document.getElementById('btn-simpan-kerja');
     if (btn) {
         btn.innerText = "UPDATE AKTIVITAS";
         btn.style.background = "#f39c12"; 
     }
     
+    // Scroll ke form input
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
     
