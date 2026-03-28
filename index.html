@@ -574,7 +574,7 @@
 
 <div id="modalSlip" class="modal" style="display: none;">
     <div class="modal-content" font-family: monospace;">
-        <div id="slip-printable" style="padding: 10px; border: 1px solid #eee; background: #fff; color: #000;">
+        <div id="slip-printable" style="padding: 5px; border: 1px solid #eee; background: #fff; color: #000;">
             <center>
                 <small>Slip Gaji Karyawan - Periode Aktif</small>
             </center>
@@ -2709,8 +2709,8 @@ function printSlip() {
 
     // --- DATA IDENTITAS ---
     doc.setFont("courier", "normal");
-    doc.text(`Nama    : ${workerName}`, 10, 22);
-    doc.text(`Tanggal : ${new Date().toLocaleDateString('id-ID')}`, 10, 27);
+    doc.text(`Nama     ${workerName}`, 10, 22);
+    doc.text(`Tanggal  ${new Date().toLocaleDateString('id-ID')}`, 10, 27);
     doc.text("--------------------------------", 40, 32, { align: "center" });
 
     // --- LOGIKA EKSTRAKSI DATA DARI MODAL ---
@@ -2745,7 +2745,7 @@ function printSlip() {
         doc.text(label, 10, y);
         doc.text(value, 70, y, { align: "right" });
         
-        y += 6; // Jarak baris standar
+        y += 4; // Jarak baris standar
 
         // Tambahkan garis putus-putus setelah Total Durasi dan Subtotal Gaji
         if (label === "TOTAL DURASI" || label === "Subtotal Gaji") {
@@ -2762,7 +2762,7 @@ function printSlip() {
     doc.setFontSize(7);
     doc.text("--------------------------------", 40, y, { align: "center" });
     doc.text("Terima kasih atas kerja kerasnya!", 40, y + 5, { align: "center" });
-    doc.text("Printed by Melon Monitor System", 40, y + 9, { align: "center" });
+    doc.text("Printed by Melona Monitoring System", 40, y + 9, { align: "center" });
 
     // --- GENERATE FILE ---
     const fileName = `Slip_${workerName.replace(/\s+/g, '_')}.pdf`;
