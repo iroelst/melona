@@ -1552,6 +1552,7 @@ document.getElementById('riwayat-semprot').innerHTML = sLog.map((i, index) => `
 `).join("");
 
 checkLimit('riwayat-semprot', 'btn-semprot-more', sLog.length);
+    
     // 2. Render Riwayat Kerja
 document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
     <div class="history-card" style="border-left-color:#f39c12; position: relative; padding: 12px;">
@@ -1566,6 +1567,7 @@ document.getElementById('riwayat-kerja').innerHTML = kLog.map((i, index) => `
             
         ${i.ket ? `<div style="font-size:11px; color:#666; font-style:italic; margin-top:5px;">Ket: ${i.ket}</div>` : ''}
     </div>`).join("");
+    checkLimit('riwayat-kerja', 'btn-kerja-more', kLog.length);
 }
     function hitungAB() {
         let l = document.getElementById('liter').value; let p = document.getElementById('ppm-now').value;
