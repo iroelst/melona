@@ -2645,33 +2645,22 @@ function generateSlipGaji() {
         }
     });
 
-    // 2. HITUNG KASBON DARI SEMUA PERIODE AKTIF (PERBAIKAN DI SINI)
+   // Hitung Kasbon
     let totalKasbon = 0;
-    let rincianKasbonHtml = "";
-    
-    allKeys.filter(k => k.endsWith('_active_period')).forEach(key => {
-        let d = JSON.parse(localStorage.getItem(key) || "{}");
-        if (d.detailKasbon) {
-            d.detailKasbon.forEach(k => {
-                if (k.nama.trim().toLowerCase() === workerName.trim().toLowerCase()) {
-                    totalKasbon += parseFloat(k.nominal || 0);
-                    rincianKasbonHtml += `<tr><td style="color:#666;">- Kasbon (${k.tgl})</td><td align="right" style="color:#666;">Rp ${parseFloat(k.nominal).toLocaleString()}</td></tr>`;
-                }
-            });
+    ghList.forEach(gh => {
+        let d = JSON.parse(localStorage.getItem(gh + '_active_period'));
+        if (d && d.detailKasbon) {
+            d.detailKasbon.forEach(k => { if (k.nama === workerName) totalKasbon += k.nominal; });
         }
     });
 
-    const totalHariKerja = hitung1Hari + (hitungSetengahHari * 0.5);
-    const subtotalPokok = totalHariKerja * gajiPokok;
-    const subtotalLembur = totalLemburJam * tarifLembur;
-    const totalGajiKotor = subtotalPokok + subtotalLembur + totalBonus;
     const sisaGaji = totalGajiKotor - totalKasbon;
 
-    // 3. UPDATE TAMPILAN MODAL
+    // UPDATE TAMPILAN: Menambahkan baris detail 1 hari dan 0.5 hari
     const content = `
         <table style="width:100%; font-size:12px;">
             <tr><td>Nama</td><td>: <b>${workerName}</b></td></tr>
-            <tr><td>Tanggal Cetak</td><td>: ${new Date().toLocaleDateString('id-ID')}</td></tr>
+            <tr><td>Tanggal</td><td>: ${new Date().toLocaleDateString('id-ID')}</td></tr>
         </table>
         <hr style="border: 0; border-top: 1px dashed #000;">
         <table style="width:100%; font-size:11px; color: #444;">
@@ -2683,22 +2672,18 @@ function generateSlipGaji() {
         <table style="width:100%; font-size:12px;">
             <tr><td>Gaji Pokok (@Rp ${gajiPokok.toLocaleString()})</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
             <tr><td>Lembur (${totalLemburJam} jam)</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
-            <tr><td>Bonus/Lainnya</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
-            <tr style="font-weight:bold;"><td>Subtotal Gaji Kotor</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
-            
-            <tr><td colspan="2" style="padding-top:5px;"><b>Potongan:</b></td></tr>
-            ${rincianKasbonHtml || '<tr><td colspan="2" style="color:#999;">Tidak ada kasbon</td></tr>'}
-            <tr style="font-weight:bold; color:red;"><td>Total Kasbon</td><td align="right">- Rp ${totalKasbon.toLocaleString()}</td></tr>
-            
+            <tr><td>Bonus</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
+            <tr style="font-weight:bold;"><td>Subtotal Gaji</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
+            <tr><td>Total Kasbon</td><td align="right" style="color:red;">- Rp ${totalKasbon.toLocaleString()}</td></tr>
             <tr><td colspan="2"><hr style="border: 0; border-top: 1px solid #000;"></td></tr>
-            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA DITERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
+            <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA GAJI</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
         </table>
     `;
 
     document.getElementById('slip-detail-content').innerHTML = content;
-    const modal = document.getElementById('modalSlip');
-    modal.style.display = 'flex';
+    document.getElementById('modalSlip').style.display = 'flex';
 }
+    
 function printSlip() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
