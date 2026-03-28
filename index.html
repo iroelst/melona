@@ -2655,10 +2655,20 @@ function generateSlipGaji() {
 
     // Hitung Kasbon
     let totalKasbon = 0;
-    ghList.forEach(gh => {
-        let d = JSON.parse(localStorage.getItem(gh + '_active_period'));
+    allKeys.forEach(key => {
+        // Ambil nama GH dari key (contoh: 'MELONA_kerja' menjadi 'MELONA')
+        const ghName = key.replace('_kerja', '');
+        
+        // Ambil data periode aktif (tempat penyimpanan detailKasbon)
+        let d = JSON.parse(localStorage.getItem(ghName + '_active_period') || "null");
+        
         if (d && d.detailKasbon) {
-            d.detailKasbon.forEach(k => { if (k.nama === workerName) totalKasbon += k.nominal; });
+            d.detailKasbon.forEach(k => { 
+                // Gunakan .trim() untuk menghindari masalah spasi yang tidak sengaja terinput
+                if (k.nama.trim() === workerName.trim()) { 
+                    totalKasbon += parseFloat(k.nominal || 0); 
+                } 
+            });
         }
     });
 
