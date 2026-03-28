@@ -2679,9 +2679,7 @@ function generateSlipGaji() {
             <tr><td>Lembur</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
             <tr><td>Bonus</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
             <tr style="font-weight:bold; background:#f9f9f9;"><td>Subtotal Kotor</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
-            <tr><td colspan="2" style="padding-top:5px;"><b>Potongan Kasbon:</b></td></tr>
-            ${rincianKasbonHtml || '<tr><td colspan="2" style="color:#999;">Tidak ada potongan</td></tr>'}
-            <tr style="font-weight:bold; color:red;"><td>Total Potongan</td><td align="right">- Rp ${totalKasbon.toLocaleString()}</td></tr>
+            <tr style="font-weight:bold; color:red;"><td>Total Kasbon</td><td align="right">- Rp ${totalKasbon.toLocaleString()}</td></tr>
             <tr><td colspan="2"><hr style="border: 0; border-top: 1px solid #000;"></td></tr>
             <tr style="font-size:14px; font-weight:bold; color: #1b5e20;"><td>SISA DITERIMA</td><td align="right">Rp ${sisaGaji.toLocaleString()}</td></tr>
         </table>
