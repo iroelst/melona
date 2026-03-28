@@ -1701,7 +1701,7 @@ function renderLogs() {
 }
 
 function toggleModal(s) { 
-    document.getElementById('modalMaster').style.display = s ? 'block' : 'none'; 
+    document.getElementById('modalMaster').style.display = s ? 'flex' : 'none'; 
     if(s) renderMasterPekerja(); // Pastikan memanggil renderMasterPekerja, bukan renderWorkerMaster
 }
     
@@ -2751,7 +2751,7 @@ function editWorker(index) {
     document.getElementById('edit-worker-salary').value = p.gaji;
     document.getElementById('edit-worker-ot').value = p.tarifLembur || 0;
 
-    document.getElementById('modalEditWorker').style.display = 'block';
+    document.getElementById('modalEditWorker').style.display = 'flex';
 }
 
 // 2. Menutup Modal Edit
