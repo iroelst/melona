@@ -708,32 +708,56 @@ async function downloadFullReport() {
             if(!dateStr) return new Date(0);
             const sep = dateStr.includes('-') ? '-' : '/';
             const p = dateStr.split(sep);
-            // Handle format YYYY-MM-DD vs DD/MM/YYYY
             return sep === '-' ? new Date(p[0], p[1]-1, p[2]) : new Date(p[2], p[1]-1, p[0]);
         };
 
         const formatIndo = (dateStr) => {
-            const dObj = parseDate(dateStr);
+            if (!dateStr) return "-";
+            const dObj = (dateStr instanceof Date) ? dateStr : parseDate(dateStr);
             if (dObj.getTime() === 0) return "-";
             const dd = String(dObj.getDate()).padStart(2, '0');
             const mm = String(dObj.getMonth() + 1).padStart(2, '0');
             const yyyy = dObj.getFullYear();
-            return `${dd}-${mm}-${yyyy}`; // Hasil: dd-mm-yyyy
+            return `${dd}-${mm}-${yyyy}`;
         };
+
+        // --- 2. LOGIKA PERIODE OTOMATIS ---
+        let tglMulai = "-";
+        let tglSelesai = formatIndo(new Date()); // Default hari ini jika belum ada posting gaji
+
+        // Cari awal aktivitas dari log kerja (kLog)
+        if (kLog && kLog.length > 0) {
+            let sortedK = [...kLog].sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+            tglMulai = formatIndo(sortedK[0].tgl);
+        }
+
+        // Cari tanggal terakhir dari posting gaji (d.biaya)
+        if (d.biaya && d.biaya.length > 0) {
+            let postingGaji = d.biaya
+                .filter(item => item.k === "PELUNASAN GAJI PERIODE")
+                .sort((a, b) => parseDate(b.tgl) - parseDate(a.tgl));
+            
+            if (postingGaji.length > 0) {
+                tglSelesai = formatIndo(postingGaji[0].tgl);
+            }
+        }
+        const rentangPeriode = `${tglMulai} s/d ${tglSelesai}`;
 
         let wb = XLSX.utils.book_new();
 
-        // --- SHEET 1: RINGKASAN ---
+        // --- SHEET 1: RINGKASAN (DENGAN PERIODE BARU) ---
         let summaryData = [
             ["INFO GREENHOUSE", "KETERANGAN"],
             ["Nama GH", currentGH],
+            ["Periode Tanam", rentangPeriode], // <--- INI PERIODE OTOMATISNYA
             ["Varietas", d.v],
             ["Total Populasi", d.pop + " Pohon"],
-            ["Status Tanam", localStorage.getItem(currentGH + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"]
+            ["Status Tanam", localStorage.getItem(currentGH + '_tgl_tanam') ? "Sudah Pindah Tanam" : "Belum Pindah Tanam"],
+            ["Tanggal Cetak", new Date().toLocaleString('id-ID')]
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Ringkasan");
-        
-        // --- SHEET 2: NUTRISI HARIAN (URUT & FORMAT) ---
+
+     // --- SHEET 2: NUTRISI HARIAN (URUT & FORMAT) ---
         let dataNutrisi = dailyLogs.sort((a,b) => a.hst - b.hst).map(x => {
             let targetHarian = (typeof jadwal !== 'undefined') ? jadwal.find(j => x.hst <= j.h) : null;
             return {
