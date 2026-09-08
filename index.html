@@ -503,6 +503,11 @@
         <input type="date" id="f-tgl" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
     </div>
     <div style="margin-bottom:8px;">
+        <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">No. Transaksi</label>
+        <input type="text" id="f-no-transaksi" readonly value="001" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:#f5f5f5; box-sizing:border-box; font-weight:bold; color:#1b5e20;">
+        <small style="color:#666; font-size:9px;">Otomatis bertambah setiap transaksi biaya dan reset saat periode tanam baru dimulai.</small>
+    </div>
+    <div style="margin-bottom:8px;">
         <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Jenis Biaya</label>
         <select id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white; box-sizing:border-box;">
             <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
@@ -941,6 +946,7 @@ function mulaiPeriode() {
         localStorage.removeItem(currentGH + '_tgl_panen');
         localStorage.setItem(currentGH + '_logs', "[]");
         localStorage.setItem(currentGH + '_kerja', "[]");
+        localStorage.setItem(currentGH + '_no_transaksi_counter', '1');
 
         let newData = { 
             v_list: varietasTemp, 
@@ -1082,23 +1088,42 @@ function resetBarisBiaya(){
 }
 updateTombolBarisBiaya();
 
+function getNextNoTransaksi(){
+    const key=currentGH + '_no_transaksi_counter';
+    const next=parseInt(localStorage.getItem(key)||'1',10)||1;
+    return String(next).padStart(3,'0');
+}
+function refreshNoTransaksi(){
+    const el=document.getElementById('f-no-transaksi');
+    if(el) el.value=getNextNoTransaksi();
+}
+function incrementNoTransaksi(){
+    const key=currentGH + '_no_transaksi_counter';
+    const current=parseInt(localStorage.getItem(key)||'1',10)||1;
+    localStorage.setItem(key,String(current+1));
+    refreshNoTransaksi();
+}
+refreshNoTransaksi();
+
 window.simpanTransaksi=function(tipe){
     let data=getActiveData(); let tgl=document.getElementById('f-tgl').value||new Date().toISOString().split('T')[0]; let recordBaru={};
     if(tipe==='biaya'){
         const kat=document.getElementById('f-kat').value;
         const rows=Array.from(document.querySelectorAll('#biaya-rows .biaya-row'));
         if(!rows.length)return alert('Tambahkan minimal satu item biaya.');
-        const notaId=`NOTA-${tgl}-${Date.now()}`;
+        const noTransaksi=getNextNoTransaksi();
+        const notaId=`TRX-${noTransaksi}-${tgl}-${Date.now()}`;
         const records=[];
         for(let i=0;i<rows.length;i++){
             const row=rows[i],q=parseFloat(row.querySelector('.biaya-qty').value),h=parseFloat(row.querySelector('.biaya-harga').value),ket=row.querySelector('.biaya-ket').value;
             if(!Number.isFinite(q)||q<=0||!Number.isFinite(h)||h<=0)return alert('Mohon isi Qty dan Harga Satuan pada semua item biaya.');
-            records.push({tgl,k:kat,q,h,total:q*h,ket:ket||'-',notaId,itemNo:i+1});
+            records.push({tgl,k:kat,q,h,total:q*h,ket:ket||'-',notaId,noTransaksi,itemNo:i+1});
         }
         if(isEditMode&&editType==='biaya'){
-            data.biaya[editIdx]={...records[0],notaId:data.biaya[editIdx].notaId||notaId,itemNo:data.biaya[editIdx].itemNo||1};
+            data.biaya[editIdx]={...records[0],noTransaksi:data.biaya[editIdx].noTransaksi||noTransaksi,notaId:data.biaya[editIdx].notaId||notaId,itemNo:data.biaya[editIdx].itemNo||1};
         }else{
             records.reverse().forEach(r=>data.biaya.unshift(r));
+            incrementNoTransaksi();
         }
         resetBarisBiaya(); document.getElementById('f-tgl').value='';
     }else{let g=document.getElementById('s-grade').value,b=parseFloat(document.getElementById('s-berat').value),h=parseFloat(document.getElementById('s-harga').value);if(!b||!h)return alert('Isi berat dan harga!');recordBaru={tgl,g,b,h,total:b*h};if(isEditMode&&editType==='jual')data.jual[editIdx]=recordBaru;else data.jual.unshift(recordBaru);document.getElementById('s-berat').value='';document.getElementById('s-harga').value='';}
@@ -1107,6 +1132,7 @@ window.simpanTransaksi=function(tipe){
 };
 
 function renderFinance() {
+    refreshNoTransaksi();
     let d = getActiveData();
     document.getElementById('f-active-v').innerText = d.v;
     
@@ -2145,6 +2171,7 @@ function exportData() {
             finData.push({ 
                 "TANGGAL": x.tgl, 
                 "TIPE": "MASUK (JUAL)", 
+                "NO TRANSAKSI": "-",
                 "KATEGORI": x.g, 
                 "KETERANGAN": "-", 
                 "QTY": x.b ?? 0,
@@ -2157,6 +2184,7 @@ function exportData() {
             finData.push({ 
                 "TANGGAL": x.tgl, 
                 "TIPE": "KELUAR (BIAYA)", 
+                "NO TRANSAKSI": x.noTransaksi || "-",
                 "KATEGORI": x.k, 
                 "KETERANGAN": x.ket || "-", 
                 "QTY": x.q ?? 0,
@@ -2538,8 +2566,8 @@ async function exportPDF() {
 
     // Gabungkan data agar bisa disortir bersamaan
     let finDataGabungan = [
-        ...(d.jual || []).map(x => ({...x, tipe: "MASUK", kat: x.g, qty: x.b, harga: x.h})),
-        ...(d.biaya || []).map(x => ({...x, tipe: "KELUAR", kat: x.k, qty: x.q, harga: x.h}))
+        ...(d.jual || []).map(x => ({...x, tipe: "MASUK", noTransaksi: "-", kat: x.g, qty: x.b, harga: x.h})),
+        ...(d.biaya || []).map(x => ({...x, tipe: "KELUAR", noTransaksi: x.noTransaksi || "-", kat: x.k, qty: x.q, harga: x.h}))
     ];
 
     // Sorting dari tanggal terlama ke terbaru (cocok untuk laporan kronologis)
@@ -2553,6 +2581,7 @@ async function exportPDF() {
         return [
             formatIndo(x.tgl), 
             x.tipe, 
+            x.noTransaksi || "-",
             x.kat, 
             x.ket || "-", 
             x.qty ?? 0,
@@ -2563,11 +2592,11 @@ async function exportPDF() {
 
     doc.autoTable({
         startY: 25,
-        head: [['Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Qty', 'Harga Satuan', 'Total']],
+        head: [['Tanggal', 'Tipe', 'No. Transaksi', 'Kategori', 'Keterangan', 'Qty', 'Harga Satuan', 'Total']],
         body: finDataBody,
         headStyles: { fillColor: [239, 108, 0] },
         styles: { fontSize: 7 },
-        columnStyles: { 3: { cellWidth: 42 }, 4: { cellWidth: 14 }, 5: { cellWidth: 25 }, 6: { cellWidth: 28 } }
+        columnStyles: { 2: { cellWidth: 18 }, 4: { cellWidth: 38 }, 5: { cellWidth: 12 }, 6: { cellWidth: 24 }, 7: { cellWidth: 27 } }
     });
 
     const finalY = doc.lastAutoTable.finalY + 15;
