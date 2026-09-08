@@ -207,7 +207,7 @@
 
         <div id="payment-area" style="display: none; background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
     <h3 style="color: #333;">Aktivasi Akun</h3>
-    <p id="lock-status">Silakan lakukan pembayaran untuk mengakses sistem.</p>
+    <p id="payment-lock-status">Silakan lakukan pembayaran untuk mengakses sistem.</p>
     
     <div style="margin: 20px 0; text-align: left; background: white; padding: 15px; border-left: 5px solid #25D366;">
         <strong>Transfer Pembayaran:</strong><br>
@@ -271,7 +271,7 @@
         <span id="arrow-icon" style="transition: transform 0.3s;">▼</span>
     </div>
 
-    <div id="backup-content" style="display: none; margin-top: 15px; border-top: 1px solid #fbc02d; pt-10">
+    <div id="backup-content" style="display: none; margin-top: 15px; border-top: 1px solid #fbc02d; padding-top: 10px;">
         <p style="font-size: 10px; margin-top: 10px;">Simpan cadangan (.json) untuk restore, atau unduh laporan (.xlsx / .pdf).</p>
         
         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -532,7 +532,7 @@
         </div>
     </div>
     
-    <button class="btn" onclick="simpanTransaksi('biaya')" style="width: 100%; background: #2e7d32; color: white; padding: 10px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
+    <button id="btn-simpan-biaya" class="btn" onclick="simpanTransaksi('biaya')" style="width: 100%; background: #2e7d32; color: white; padding: 10px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
         + TAMBAH PENGELUARAN
     </button>
 </div>
@@ -571,7 +571,7 @@
 </div>
 
 <div id="modalSlip" class="modal" style="display: none;">
-    <div class="modal-content" font-family: monospace;">
+    <div class="modal-content" style="font-family: monospace;">
         <div id="slip-printable" style="padding: 5px; border: 1px solid #eee; background: #fff; color: #000;">
             <center>
                 <small>Slip Gaji Karyawan - Periode Aktif</small>
@@ -595,7 +595,7 @@
                 <input type="number" id="s-berat" placeholder="Berat (kg)">
                 <input type="number" id="s-harga" placeholder="Harga/kg">
             </div>
-            <button class="btn" style="background:#ef6c00;" onclick="simpanTransaksi('jual')">SIMPAN PENJUALAN</button>
+            <button id="btn-simpan-jual" class="btn" style="background:#ef6c00;" onclick="simpanTransaksi('jual')">SIMPAN PENJUALAN</button>
         </div>
 
         <div class="card">
@@ -1808,7 +1808,7 @@ function renderWorkerMaster() {
 
     function removeWorker(i) {
         let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]"); w.splice(i, 1);
-        localStorage.setItem('master_pekerja_v2', JSON.stringify(w)); renderWorkerMaster(); loadWorkerCheckboxes();
+        localStorage.setItem('master_pekerja_v2', JSON.stringify(w)); renderMasterPekerja(); loadWorkerCheckboxes();
     }
 function loadWorkerCheckboxes() {
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
@@ -1828,7 +1828,7 @@ function loadWorkerCheckboxes() {
     <div class="worker-item-row" style="display:flex; align-items:center; gap:5px; margin-bottom:8px; background:#fff; padding:0px 8px 8px 8px; border-radius:8px; border:1px solid #eee; justify-content: space-between;">
         
         <div style="display:flex; align-items:center; gap:8px; flex: 1; min-width: 80px; padding-top: 3px;">
-            <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gaji || 0}" style="width:18px; height:18px; margin:0;">
+            <input type="checkbox" name="worker_choice" value="${x.nama}" data-gaji="${x.gajiHarian ?? x.gaji ?? 0}" style="width:18px; height:18px; margin:0;">
             <span style="font-size:12px; font-weight:bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${x.nama}</span>
         </div>
         
@@ -1860,6 +1860,10 @@ function hapusItem(key, index) {
     if(confirm("Hapus data ini?")) {
         let data = JSON.parse(localStorage.getItem(key) || "[]");
         let itemDihapus = data[index];
+        if (!itemDihapus) {
+            alert("Data tidak ditemukan.");
+            return;
+        }
 
         // LOGIKA BARU: Cek jika yang dihapus adalah aktivitas Pindah Tanam
         if(itemDihapus.jenis === "Pindah Tanam") {
@@ -1948,7 +1952,7 @@ function editFinance(tipe, idx) {
     editType = tipe;
 
     // 2. Lempar data ke Form
-    document.getElementById('f-tgl').value = item.tgl;
+    document.getElementById('f-tgl').value = convertToInputDate(item.tgl) || item.tgl;
     
     if (tipe === 'jual') {
         document.getElementById('s-grade').value = item.g;
@@ -1994,7 +1998,7 @@ window.hapusFinance = function(tipe, index) {
 if (itemDihapus.k === "KASBON PEKERJA") {
     // Ambil nama pekerja dari catatan/keterangan (asumsi itemDihapus.ket berisi nama)
     // Atau sesuaikan dengan field di mana Anda menyimpan nama pekerja pada log biaya
-    let namaTarget = itemDihapus.ket || ""; 
+    let namaTarget = itemDihapus.namaPekerja || (itemDihapus.ket || "").replace(/^Kasbon:\s*/i, "").trim(); 
 
     let idxKasbon = (d.detailKasbon || []).findIndex(k => 
         k.nama === namaTarget && // Cocokkan nama agar tidak salah hapus orang
@@ -2181,8 +2185,11 @@ function simpanNutrisiRiil() {
     }
 
     const savedDate = localStorage.getItem(currentGH + '_tgl_tanam');
-    const dTanam = new Date(savedDate).setHours(0, 0, 0, 0);
-    const dInput = new Date(inputTgl.value).setHours(0, 0, 0, 0);
+    if (!savedDate) {
+        return alert("Belum ada tanggal pindah tanam. Simpan aktivitas 'Pindah Tanam' terlebih dahulu.");
+    }
+    const dTanam = new Date(savedDate + 'T00:00:00').getTime();
+    const dInput = new Date(inputTgl.value + 'T00:00:00').getTime();
     const hst = Math.floor((dInput - dTanam) / (1000 * 60 * 60 * 24)) + 1;
 
     let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
@@ -2305,7 +2312,8 @@ function catatKasbon() {
             q: 1,
             h: nominal,
             total: nominal,
-            ket: "Kasbon: " + nama // Nama pekerja pindah ke keterangan
+            ket: "Kasbon: " + nama,
+            namaPekerja: nama
         });
 
         // 2. Simpan ke database kasbon internal periode ini
@@ -2351,6 +2359,9 @@ function backupDataJSON() {
 }
 
 async function exportPDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        return alert("Library PDF belum berhasil dimuat. Periksa koneksi internet lalu coba lagi.");
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const d = getActiveData();
@@ -2607,7 +2618,7 @@ function generateSlipGaji() {
     const masterPekerja = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
     const pInfo = masterPekerja.find(x => x.nama === workerName);
     
-    const gajiPokok = pInfo ? parseFloat(pInfo.gaji || 0) : 0;
+    const gajiPokok = pInfo ? parseFloat(pInfo.gajiHarian ?? pInfo.gaji ?? 0) : 0;
     const tarifLembur = pInfo ? parseFloat(pInfo.tarifLembur || 0) : 0; 
 
     let hitung1Hari = 0;
@@ -2775,7 +2786,7 @@ function editWorker(index) {
 
     document.getElementById('edit-worker-index').value = index;
     document.getElementById('edit-worker-name').value = p.nama;
-    document.getElementById('edit-worker-salary').value = p.gaji;
+    document.getElementById('edit-worker-salary').value = p.gajiHarian ?? p.gaji ?? 0;
     document.getElementById('edit-worker-ot').value = p.tarifLembur || 0;
 
     document.getElementById('modalEditWorker').style.display = 'flex';
@@ -2799,7 +2810,7 @@ function saveWorkerEdit() {
     const namaLama = w[index].nama;
 
     // Simpan ke Master
-    w[index] = { nama: namaBaru, gaji: gajiBaru, tarifLembur: lemburBaru };
+    w[index] = { nama: namaBaru, gajiHarian: gajiBaru, tarifLembur: lemburBaru };
     localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
 
     // OTOMATIS SINKRON KE AKTIVITAS LAMA
@@ -3121,7 +3132,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     btnInstall.style.display = 'block';
 });
 
-btnInstall.addEventListener('click', async () => {
+if (btnInstall) btnInstall.addEventListener('click', async () => {
     if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
