@@ -309,6 +309,9 @@
             <button class="btn" style="margin-top:0; padding:10px;" onclick="tambahVarietasTemp()">+</button>
         </div>
         <div id="v-list-display" style="margin-top:10px;"></div>
+        <label style="margin-top:10px; display:block;">💰 Saldo Awal Kas Periode</label>
+        <input type="number" id="saldo-awal-periode" placeholder="Contoh: 10000000" min="0">
+        <small style="color:#666; font-size:9px;">Saldo awal adalah uang kas tersedia, bukan pendapatan dan tidak dihitung sebagai laba.</small>
         <button class="btn" style="background:#1b5e20;" onclick="mulaiPeriode()">+ MULAI PERIODE BARU</button>
         <p style="font-size: 9px; color: #666; margin-top: 8px;">*Memulai periode baru akan mengarsipkan data saat ini ke Riwayat.</p>
     </div>
@@ -494,6 +497,15 @@
                 <div class="summary-card" ><small>ROI</small><br><strong id="res-roi">0%</strong></div>
             </div>
         </div>
+        <div class="card" style="background:#fff8e1; border-left:5px solid #ef6c00;">
+            <strong>💰 Ringkasan Arus Kas</strong>
+            <div class="summary-box">
+                <div class="summary-card"><small>Saldo Awal</small><br><strong id="kas-saldo-awal">Rp 0</strong></div>
+                <div class="summary-card"><small>Total Uang Masuk</small><br><strong id="kas-masuk">Rp 0</strong></div>
+                <div class="summary-card"><small>Total Uang Keluar</small><br><strong id="kas-keluar">Rp 0</strong></div>
+                <div class="summary-card"><small>Saldo Kas Saat Ini</small><br><strong id="kas-saldo-akhir">Rp 0</strong></div>
+            </div>
+        </div>
      <div class="card" style="background:#f1f8e9; border-left:5px solid #2e7d32; padding: 15px;">
     <div style="margin-bottom:12px;">
         <strong>💰 Biaya Produksi</strong>
@@ -587,6 +599,24 @@
             <button id="btn-simpan-jual" class="btn" style="background:#ef6c00;" onclick="simpanTransaksi('jual')">SIMPAN PENJUALAN</button>
         </div>
 
+        <div class="card" style="border-left:5px solid #1565c0;">
+            <strong>🏦 Modal & Pendanaan</strong>
+            <label>Tanggal</label><input type="date" id="dana-tgl">
+            <label>Jenis Dana</label>
+            <select id="dana-jenis">
+                <option value="Tambahan Modal / Investasi">Tambahan Modal / Investasi</option>
+                <option value="Hutang / Pinjaman">Hutang / Pinjaman</option>
+                <option value="Pengembalian Modal">Pengembalian Modal</option>
+                <option value="Pembayaran Hutang">Pembayaran Hutang</option>
+            </select>
+            <label>Keterangan</label><input type="text" id="dana-ket" placeholder="Sumber atau catatan dana">
+            <label>Nominal</label><input type="number" id="dana-nominal" min="1" placeholder="0">
+            <button class="btn" style="background:#1565c0;" onclick="simpanDana()">SIMPAN TRANSAKSI DANA</button>
+            <div style="margin-top:10px; font-size:12px; color:#555;">
+              <b>Status Pendanaan:</b><br>
+              Total Modal: <span id="status-modal">Rp 0</span> · Sisa Hutang: <span id="status-hutang">Rp 0</span>
+            </div>
+        </div>
         <div class="card">
             <strong>📑 Detail Arus Kas</strong>
             <div id="transaksi-detail-list" class="riwayat-list limit-view" style="margin-top:10px;"></div>
@@ -934,7 +964,9 @@ function mulaiPeriode() {
                 tgl_mulai: tglTanamLama || "Tidak tercatat",
                 tgl_selesai: new Date().toLocaleDateString('id-ID'),
                 biaya: oldData.biaya,
-                jual: oldData.jual
+                jual: oldData.jual,
+                dana: oldData.dana || [],
+                saldoAwal: parseFloat(oldData.saldoAwal) || 0
             });
             
             localStorage.setItem(currentGH + '_history_periods', JSON.stringify(history));
@@ -953,7 +985,9 @@ function mulaiPeriode() {
             v: varietasTemp.map(x => x.nama).join(", "), 
             pop: varietasTemp.reduce((s, x) => s + x.pop, 0), 
             biaya: [], 
-            jual: [] 
+            jual: [],
+            dana: [],
+            saldoAwal: parseFloat(document.getElementById('saldo-awal-periode')?.value) || 0
         };
         saveActiveData(newData);
 
@@ -1159,6 +1193,21 @@ function renderFinance() {
     let laba = tJual - tBiaya;
     let roi = tBiaya > 0 ? (laba / tBiaya) * 100 : 0;
 
+    // ARUS KAS: modal/hutang tidak dihitung sebagai pendapatan laba rugi
+    const danaList = d.dana || [];
+    const saldoAwal = parseFloat(d.saldoAwal) || 0;
+    const danaMasuk = danaList.filter(x => x.arah === 'in').reduce((a,x)=>a+(parseFloat(x.nominal)||0),0);
+    const danaKeluar = danaList.filter(x => x.arah === 'out').reduce((a,x)=>a+(parseFloat(x.nominal)||0),0);
+    const kasMasuk = tJual + danaMasuk;
+    const kasKeluar = tBiaya + danaKeluar;
+    const saldoAkhir = saldoAwal + kasMasuk - kasKeluar;
+    const totalModal = danaList.filter(x=>x.jenis==='Tambahan Modal / Investasi').reduce((a,x)=>a+(parseFloat(x.nominal)||0),0);
+    const totalPinjam = danaList.filter(x=>x.jenis==='Hutang / Pinjaman').reduce((a,x)=>a+(parseFloat(x.nominal)||0),0);
+    const bayarHutang = danaList.filter(x=>x.jenis==='Pembayaran Hutang').reduce((a,x)=>a+(parseFloat(x.nominal)||0),0);
+    const setTxt=(id,v)=>{const el=document.getElementById(id);if(el)el.innerText='Rp '+v.toLocaleString('id-ID');};
+    setTxt('kas-saldo-awal',saldoAwal); setTxt('kas-masuk',kasMasuk); setTxt('kas-keluar',kasKeluar); setTxt('kas-saldo-akhir',saldoAkhir);
+    setTxt('status-modal',saldoAwal+totalModal); setTxt('status-hutang',Math.max(0,totalPinjam-bayarHutang));
+
     document.getElementById('res-biaya').innerText = "Rp " + tBiaya.toLocaleString();
     document.getElementById('res-jual').innerText = "Rp " + tJual.toLocaleString();
     document.getElementById('res-laba').innerText = "Rp " + laba.toLocaleString();
@@ -1194,7 +1243,8 @@ function renderFinance() {
     // 4. DETAIL TRANSAKSI GABUNGAN (URUT TERBARU & FORMAT dd-mm-yyyy)
     let gabungan = [
         ...(d.jual || []).map((x, i) => ({...x, tipe: 'in', oriIdx: i})),
-        ...(d.biaya || []).map((x, i) => ({...x, tipe: 'out', oriIdx: i}))
+        ...(d.biaya || []).map((x, i) => ({...x, tipe: 'out', oriIdx: i})),
+        ...(d.dana || []).map((x, i) => ({...x, tipe: x.arah, oriIdx: i, isDana:true}))
     ];
 
     // Sorting Descending (Terbaru di atas)
@@ -1204,7 +1254,10 @@ function renderFinance() {
     gabungan.forEach((x) => {
         const tglTampil = formatIndo(parseDate(x.tgl));
         
-        if (x.tipe === 'in') {
+        if (x.isDana) {
+            const badge = x.arah === 'in' ? 'badge-in' : 'badge-out';
+            detailHtml += `<div class="trans-item"><span class="${badge}">[${x.arah==='in'?'IN':'OUT'}] ${tglTampil} - ${x.jenis}</span><span>Rp ${(parseFloat(x.nominal)||0).toLocaleString()} <b onclick="hapusDana(${x.oriIdx})" style="color:red;cursor:pointer;margin-left:10px;">×</b></span></div><div style="font-size:11px;color:#555;margin:-6px 0 8px 0;">Ket: ${x.ket||'-'}</div>`;
+        } else if (x.tipe === 'in') {
             detailHtml += `
             <div class="trans-item">
                 <span class="badge-in">[IN] ${tglTampil} - ${x.g}</span>
@@ -3219,6 +3272,33 @@ if (btnInstall) btnInstall.addEventListener('click', async () => {
         deferredPrompt = null;
     }
 });
+
+// ===== EXTENSI KEUANGAN: MODAL, HUTANG, SALDO KAS =====
+window.simpanDana = function(){
+  const d=getActiveData();
+  const jenis=document.getElementById('dana-jenis').value;
+  const nominal=parseFloat(document.getElementById('dana-nominal').value);
+  const tgl=document.getElementById('dana-tgl').value || new Date().toISOString().slice(0,10);
+  const ket=document.getElementById('dana-ket').value.trim();
+  if(!nominal || nominal<=0) return alert('Isi nominal dana terlebih dahulu.');
+  const arah=(jenis==='Tambahan Modal / Investasi'||jenis==='Hutang / Pinjaman')?'in':'out';
+  d.dana=d.dana||[];
+  d.dana.unshift({tgl,jenis,nominal,ket:ket||'-',arah});
+  saveActiveData(d);
+  document.getElementById('dana-nominal').value=''; document.getElementById('dana-ket').value='';
+  renderFinance(); alert('Transaksi dana berhasil disimpan.');
+};
+window.hapusDana=function(i){
+  if(!confirm('Hapus transaksi dana ini?')) return;
+  const d=getActiveData(); (d.dana||[]).splice(i,1); saveActiveData(d); renderFinance();
+};
+// Pastikan periode lama yang belum punya field dana tetap kompatibel
+const _oldGetActiveData = typeof getActiveData==='function' ? getActiveData : null;
+if(_oldGetActiveData){
+  window.getActiveData=function(){
+    const d=_oldGetActiveData(); d.dana=d.dana||[]; d.saldoAwal=parseFloat(d.saldoAwal)||0; return d;
+  };
+}
 </script>
 </div>
 </body>
