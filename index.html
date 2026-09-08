@@ -627,9 +627,10 @@
         <div style="background: #f1f1f1; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
             <input type="text" id="new-worker-name" placeholder="Nama Pekerja" style="width:100%; margin-bottom:8px; padding:8px; box-sizing:border-box;">
             
-            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
-                <input type="number" id="worker-salary" placeholder="Gaji (Rp/Hari)" style="flex:1; padding:8px; box-sizing:border-box;">
-                <input type="number" id="worker-ot-rate" placeholder="Lembur (Rp/Jam)" style="flex:1; padding:8px; box-sizing:border-box;">
+            <div style="display: flex; gap: 5px; margin-bottom: 8px; flex-wrap:wrap;">
+                <input type="number" id="worker-salary" placeholder="Gaji Harian (Rp/Hari)" style="flex:1; min-width:120px; padding:8px; box-sizing:border-box;">
+                <input type="number" id="worker-fixed-salary" placeholder="Gaji Tetap (Rp)" style="flex:1; min-width:120px; padding:8px; box-sizing:border-box;">
+                <input type="number" id="worker-ot-rate" placeholder="Lembur (Rp/Jam)" style="flex:1; min-width:120px; padding:8px; box-sizing:border-box;">
             </div>
             
             <button class="btn" onclick="addWorker()" style="width:100%; font-weight:bold;">+ TAMBAH PEKERJA</button>
@@ -651,6 +652,9 @@
         
         <label>Gaji Harian (Rp)</label>
         <input type="number" id="edit-worker-salary" style="margin-bottom:10px;">
+        
+        <label>Gaji Tetap (Rp)</label>
+        <input type="number" id="edit-worker-fixed-salary" style="margin-bottom:10px;">
         
         <label>Tarif Lembur (Rp/Jam)</label>
         <input type="number" id="edit-worker-ot" style="margin-bottom:20px;">
@@ -1734,6 +1738,7 @@ function toggleModal(s) {
 function addWorker() {
     const nama = document.getElementById('new-worker-name').value.trim();
     const gaji = parseFloat(document.getElementById('worker-salary').value) || 0;
+    const gajiTetap = parseFloat(document.getElementById('worker-fixed-salary').value) || 0;
     const lembur = parseFloat(document.getElementById('worker-ot-rate').value) || 0;
 
     if (nama === "") return alert("Nama pekerja harus diisi!");
@@ -1743,7 +1748,8 @@ function addWorker() {
     // Gunakan 'gajiHarian' agar sinkron dengan fungsi hitungBiaya
     w.push({ 
         nama: nama, 
-        gajiHarian: gaji, 
+        gajiHarian: gaji,
+        gajiTetap: gajiTetap,
         tarifLembur: lembur 
     });
     
@@ -1752,6 +1758,7 @@ function addWorker() {
     // Reset Form
     document.getElementById('new-worker-name').value = "";
     document.getElementById('worker-salary').value = "";
+    document.getElementById('worker-fixed-salary').value = "";
     document.getElementById('worker-ot-rate').value = "";
     
     renderMasterPekerja();
@@ -1760,6 +1767,16 @@ function addWorker() {
 
 function renderMasterPekerja() {
     let w = JSON.parse(localStorage.getItem('master_pekerja_v2') || "[]");
+    // Kompatibilitas data lama: tambahkan field gajiTetap jika belum ada.
+    let perluSimpan = false;
+    w = w.map(p => {
+        if (p.gajiTetap === undefined || p.gajiTetap === null) {
+            perluSimpan = true;
+            return { ...p, gajiTetap: 0 };
+        }
+        return p;
+    });
+    if (perluSimpan) localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
     let container = document.getElementById('worker-list-master');
     
     if (w.length === 0) {
@@ -1772,6 +1789,7 @@ function renderMasterPekerja() {
             <tr style="background:#f4f4f4; color: #333;">
                 <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Nama</th>
                 <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Gaji/H</th>
+                <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Gaji Tetap</th>
                 <th style="padding:10px 5px; border-bottom:2px solid #ddd;">Lembur/J</th>
                 <th style="padding:10px 5px; border-bottom:2px solid #ddd; text-align:center;">Aksi</th>
             </tr>`;
@@ -1779,11 +1797,13 @@ function renderMasterPekerja() {
     w.forEach((x, index) => {
         let gajiHarian = x.gajiHarian || x.gaji || 0;
         let tarifLembur = x.tarifLembur || 0;
+        let gajiTetap = x.gajiTetap || 0;
 
         html += `
         <tr>
             <td style="padding:10px 5px; border-bottom:1px solid #eee;"><b>${x.nama}</b></td>
             <td style="padding:10px 5px; border-bottom:1px solid #eee;">Rp ${gajiHarian.toLocaleString()}</td>
+            <td style="padding:10px 5px; border-bottom:1px solid #eee;">Rp ${gajiTetap.toLocaleString()}</td>
             <td style="padding:10px 5px; border-bottom:1px solid #eee;">Rp ${tarifLembur.toLocaleString()}</td>
             <td style="padding:10px 5px; border-bottom:1px solid #eee; text-align:center; white-space:nowrap;">
                 <button onclick="editWorker(${index})" style="background:#fbc02d; color:black; border:none; border-radius:4px; padding:5px 8px; cursor:pointer; font-size:10px; margin-right:4px;">EDIT</button>
@@ -2787,6 +2807,7 @@ function editWorker(index) {
     document.getElementById('edit-worker-index').value = index;
     document.getElementById('edit-worker-name').value = p.nama;
     document.getElementById('edit-worker-salary').value = p.gajiHarian ?? p.gaji ?? 0;
+    document.getElementById('edit-worker-fixed-salary').value = p.gajiTetap ?? 0;
     document.getElementById('edit-worker-ot').value = p.tarifLembur || 0;
 
     document.getElementById('modalEditWorker').style.display = 'flex';
@@ -2802,6 +2823,7 @@ function saveWorkerEdit() {
     const index = document.getElementById('edit-worker-index').value;
     const namaBaru = document.getElementById('edit-worker-name').value.trim();
     const gajiBaru = parseFloat(document.getElementById('edit-worker-salary').value) || 0;
+    const gajiTetapBaru = parseFloat(document.getElementById('edit-worker-fixed-salary').value) || 0;
     const lemburBaru = parseFloat(document.getElementById('edit-worker-ot').value) || 0;
 
     if (!namaBaru) return alert("Nama tidak boleh kosong!");
