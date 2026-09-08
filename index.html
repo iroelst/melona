@@ -502,14 +502,15 @@
         <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Tanggal Transaksi</label>
         <input type="date" id="f-tgl" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
     </div>
+    <div style="margin-bottom:8px;">
+        <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Jenis Biaya</label>
+        <select id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white; box-sizing:border-box;">
+            <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
+        </select>
+        <small style="display:block; margin-top:4px; color:#666;">Pilih satu kali untuk semua item dalam satu nota/transaksi.</small>
+    </div>
     <div id="biaya-rows">
         <div class="biaya-row" style="margin-bottom:10px;">
-            <div style="margin-bottom:8px;">
-                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Jenis Biaya</label>
-                <select class="biaya-kat" id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white; box-sizing:border-box;">
-                    <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
-                </select>
-            </div>
             <div class="biaya-input-grid" style="display:grid; grid-template-columns:minmax(0,2fr) minmax(70px,0.8fr) minmax(110px,1.4fr) 36px; gap:6px; align-items:end;">
                 <div><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" id="f-ket" placeholder="Merk, jenis, dll..." style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;"></div>
                 <div><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" id="f-qty" placeholder="0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;"></div>
@@ -1039,13 +1040,7 @@ function hapusNutrisi(index) {
     const row = document.createElement('div');
     row.className = 'biaya-row';
     row.style.cssText = 'margin-bottom:10px;';
-    row.innerHTML = `<div style="margin-bottom:8px;">
-        <label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Jenis Biaya</label>
-        <select class="biaya-kat" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;background:white;box-sizing:border-box;">
-            <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
-        </select>
-    </div>
-    <div class="biaya-input-grid" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(70px,0.8fr) minmax(110px,1.4fr) 36px;gap:6px;align-items:end;">
+    row.innerHTML = `<div class="biaya-input-grid" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(70px,0.8fr) minmax(110px,1.4fr) 36px;gap:6px;align-items:end;">
         <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" placeholder="Merk, jenis, dll..." style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
         <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" placeholder="0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
         <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" placeholder="Rp 0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
@@ -1057,7 +1052,7 @@ function hapusNutrisi(index) {
 window.hapusBarisBiaya=function(btn){
     const c=document.getElementById('biaya-rows');
     const rows=c?c.querySelectorAll('.biaya-row'):[];
-    if(rows.length<=1)return alert('Minimal harus ada 1 baris biaya.');
+    if(rows.length<=1)return alert('Minimal harus ada 1 item biaya.');
     btn.closest('.biaya-row').remove();
     updateTombolBarisBiaya();
 };
@@ -1079,8 +1074,8 @@ function resetBarisBiaya(){
         f.querySelector('.biaya-qty').value='';
         f.querySelector('.biaya-harga').value='';
         f.querySelector('.biaya-ket').value='';
-        f.querySelector('.biaya-kat').selectedIndex=0;
     }
+    const kat=document.getElementById('f-kat'); if(kat) kat.selectedIndex=0;
     updateTombolBarisBiaya();
 }
 updateTombolBarisBiaya();
@@ -1088,9 +1083,22 @@ updateTombolBarisBiaya();
 window.simpanTransaksi=function(tipe){
     let data=getActiveData(); let tgl=document.getElementById('f-tgl').value||new Date().toISOString().split('T')[0]; let recordBaru={};
     if(tipe==='biaya'){
-        const rows=Array.from(document.querySelectorAll('#biaya-rows .biaya-row')); if(!rows.length)return alert('Tambahkan minimal satu baris biaya.'); const records=[];
-        for(const row of rows){const k=row.querySelector('.biaya-kat').value,q=parseFloat(row.querySelector('.biaya-qty').value),h=parseFloat(row.querySelector('.biaya-harga').value),ket=row.querySelector('.biaya-ket').value;if(!Number.isFinite(q)||q<=0||!Number.isFinite(h)||h<=0)return alert('Mohon isi Qty dan Harga Satuan pada semua baris biaya.');records.push({tgl,k,q,h,total:q*h,ket:ket||'-'});}
-        if(isEditMode&&editType==='biaya')data.biaya[editIdx]=records[0];else records.reverse().forEach(r=>data.biaya.unshift(r)); resetBarisBiaya(); document.getElementById('f-tgl').value='';
+        const kat=document.getElementById('f-kat').value;
+        const rows=Array.from(document.querySelectorAll('#biaya-rows .biaya-row'));
+        if(!rows.length)return alert('Tambahkan minimal satu item biaya.');
+        const notaId=`NOTA-${tgl}-${Date.now()}`;
+        const records=[];
+        for(let i=0;i<rows.length;i++){
+            const row=rows[i],q=parseFloat(row.querySelector('.biaya-qty').value),h=parseFloat(row.querySelector('.biaya-harga').value),ket=row.querySelector('.biaya-ket').value;
+            if(!Number.isFinite(q)||q<=0||!Number.isFinite(h)||h<=0)return alert('Mohon isi Qty dan Harga Satuan pada semua item biaya.');
+            records.push({tgl,k:kat,q,h,total:q*h,ket:ket||'-',notaId,itemNo:i+1});
+        }
+        if(isEditMode&&editType==='biaya'){
+            data.biaya[editIdx]={...records[0],notaId:data.biaya[editIdx].notaId||notaId,itemNo:data.biaya[editIdx].itemNo||1};
+        }else{
+            records.reverse().forEach(r=>data.biaya.unshift(r));
+        }
+        resetBarisBiaya(); document.getElementById('f-tgl').value='';
     }else{let g=document.getElementById('s-grade').value,b=parseFloat(document.getElementById('s-berat').value),h=parseFloat(document.getElementById('s-harga').value);if(!b||!h)return alert('Isi berat dan harga!');recordBaru={tgl,g,b,h,total:b*h};if(isEditMode&&editType==='jual')data.jual[editIdx]=recordBaru;else data.jual.unshift(recordBaru);document.getElementById('s-berat').value='';document.getElementById('s-harga').value='';}
     if(isEditMode){isEditMode=false;editIdx=null;editType=null;let btn=document.getElementById(tipe==='biaya'?'btn-simpan-biaya':'btn-simpan-jual');if(btn){btn.innerText=tipe==='biaya'?'+ TAMBAH PENGELUARAN':'SIMPAN TRANSAKSI';btn.style.background='#2e7d32';}}
     saveActiveData(data);renderFinance();alert('Data berhasil disimpan!');
