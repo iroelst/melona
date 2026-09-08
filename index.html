@@ -495,33 +495,26 @@
             </div>
         </div>
      <div class="card" style="background:#f1f8e9; border-left:5px solid #2e7d32; padding: 15px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div style="margin-bottom:12px;">
         <strong>💰 Biaya Produksi</strong>
-        <button type="button" onclick="tambahBarisBiaya()" title="Tambah baris biaya" style="background:#2e7d32; color:white; border:none; width:34px; height:34px; border-radius:50%; font-size:22px; font-weight:bold; cursor:pointer; line-height:30px;">+</button>
     </div>
     <div style="margin-bottom:8px;">
         <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Tanggal Transaksi</label>
         <input type="date" id="f-tgl" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
     </div>
     <div id="biaya-rows">
-        <div class="biaya-row" style="border:1px solid #d9e6d9; border-radius:8px; padding:10px; margin-bottom:10px; background:#fff;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <strong class="biaya-row-title" style="font-size:11px; color:#2e7d32;">Item Biaya 1</strong>
-                <button type="button" class="btn-hapus-biaya-row" onclick="hapusBarisBiaya(this)" style="display:none; background:#e53935; color:white; border:none; border-radius:5px; padding:4px 8px; cursor:pointer;">×</button>
-            </div>
+        <div class="biaya-row" style="margin-bottom:10px;">
             <div style="margin-bottom:8px;">
                 <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Jenis Biaya</label>
-                <select class="biaya-kat" id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white;">
+                <select class="biaya-kat" id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white; box-sizing:border-box;">
                     <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
                 </select>
             </div>
-            <div style="margin-bottom:8px;">
-                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Keterangan</label>
-                <input type="text" class="biaya-ket" id="f-ket" placeholder="Merk, jenis, dll..." style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
-            </div>
-            <div style="display:flex; gap:8px;">
-                <div style="flex:1;"><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" id="f-qty" placeholder="0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc;"></div>
-                <div style="flex:2;"><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" id="f-harga" placeholder="Rp 0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc;"></div>
+            <div class="biaya-input-grid" style="display:grid; grid-template-columns:minmax(0,2fr) minmax(70px,0.8fr) minmax(110px,1.4fr) 36px; gap:6px; align-items:end;">
+                <div><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" id="f-ket" placeholder="Merk, jenis, dll..." style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;"></div>
+                <div><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" id="f-qty" placeholder="0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;"></div>
+                <div><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" id="f-harga" placeholder="Rp 0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;"></div>
+                <button type="button" class="btn-tambah-biaya-row" onclick="tambahBarisBiaya()" title="Tambah item" style="background:#2e7d32; color:white; border:none; width:34px; height:34px; border-radius:50%; font-size:21px; font-weight:bold; cursor:pointer; line-height:30px; padding:0;">+</button>
             </div>
         </div>
     </div>
@@ -1041,18 +1034,57 @@ function hapusNutrisi(index) {
 
     // 2. Fungsi Simpan Transaksi
     window.tambahBarisBiaya = function() {
-    const container=document.getElementById('biaya-rows'); if(!container)return;
-    const rows=container.querySelectorAll('.biaya-row'); const row=document.createElement('div'); row.className='biaya-row';
-    row.style.cssText='border:1px solid #d9e6d9; border-radius:8px; padding:10px; margin-bottom:10px; background:#fff;';
-    row.innerHTML=`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><strong class="biaya-row-title" style="font-size:11px;color:#2e7d32;">Item Biaya ${rows.length+1}</strong><button type="button" class="btn-hapus-biaya-row" onclick="hapusBarisBiaya(this)" style="background:#e53935;color:white;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;">×</button></div>
-    <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Jenis Biaya</label><select class="biaya-kat" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;background:white;"><option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option></select></div>
-    <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" placeholder="Merk, jenis, dll..." style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
-    <div style="display:flex;gap:8px;"><div style="flex:1;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" placeholder="0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;"></div><div style="flex:2;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" placeholder="Rp 0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;"></div></div>`;
-    container.appendChild(row); updateNomorBarisBiaya();
+    const container = document.getElementById('biaya-rows');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'biaya-row';
+    row.style.cssText = 'margin-bottom:10px;';
+    row.innerHTML = `<div style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Jenis Biaya</label>
+        <select class="biaya-kat" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;background:white;box-sizing:border-box;">
+            <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
+        </select>
+    </div>
+    <div class="biaya-input-grid" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(70px,0.8fr) minmax(110px,1.4fr) 36px;gap:6px;align-items:end;">
+        <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" placeholder="Merk, jenis, dll..." style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" placeholder="0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" placeholder="Rp 0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
+        <button type="button" class="btn-hapus-biaya-row" onclick="hapusBarisBiaya(this)" title="Hapus item" style="background:#e53935;color:white;border:none;width:34px;height:34px;border-radius:50%;font-size:20px;font-weight:bold;cursor:pointer;line-height:30px;padding:0;">×</button>
+    </div>`;
+    container.appendChild(row);
+    updateTombolBarisBiaya();
 };
-window.hapusBarisBiaya=function(btn){const c=document.getElementById('biaya-rows');const rows=c?c.querySelectorAll('.biaya-row'):[];if(rows.length<=1)return alert('Minimal harus ada 1 baris biaya.');btn.closest('.biaya-row').remove();updateNomorBarisBiaya();};
-function updateNomorBarisBiaya(){document.querySelectorAll('#biaya-rows .biaya-row').forEach((r,i)=>{const t=r.querySelector('.biaya-row-title');if(t)t.textContent=`Item Biaya ${i+1}`;const b=r.querySelector('.btn-hapus-biaya-row');if(b)b.style.display=i===0?'none':'inline-block';});}
-function resetBarisBiaya(){const c=document.getElementById('biaya-rows');if(!c)return; c.querySelectorAll('.biaya-row').forEach((r,i)=>{if(i>0)r.remove();});const f=c.querySelector('.biaya-row');if(f){f.querySelector('.biaya-qty').value='';f.querySelector('.biaya-harga').value='';f.querySelector('.biaya-ket').value='';f.querySelector('.biaya-kat').selectedIndex=0;}updateNomorBarisBiaya();}
+window.hapusBarisBiaya=function(btn){
+    const c=document.getElementById('biaya-rows');
+    const rows=c?c.querySelectorAll('.biaya-row'):[];
+    if(rows.length<=1)return alert('Minimal harus ada 1 baris biaya.');
+    btn.closest('.biaya-row').remove();
+    updateTombolBarisBiaya();
+};
+function updateTombolBarisBiaya(){
+    const rows=document.querySelectorAll('#biaya-rows .biaya-row');
+    rows.forEach((r,i)=>{
+        const add=r.querySelector('.btn-tambah-biaya-row');
+        const del=r.querySelector('.btn-hapus-biaya-row');
+        if(add) add.style.display=i===rows.length-1?'inline-block':'none';
+        if(del) del.style.display=i===0?'none':'inline-block';
+    });
+}
+function resetBarisBiaya(){
+    const c=document.getElementById('biaya-rows');
+    if(!c)return;
+    c.querySelectorAll('.biaya-row').forEach((r,i)=>{if(i>0)r.remove();});
+    const f=c.querySelector('.biaya-row');
+    if(f){
+        f.querySelector('.biaya-qty').value='';
+        f.querySelector('.biaya-harga').value='';
+        f.querySelector('.biaya-ket').value='';
+        f.querySelector('.biaya-kat').selectedIndex=0;
+    }
+    updateTombolBarisBiaya();
+}
+updateTombolBarisBiaya();
+
 window.simpanTransaksi=function(tipe){
     let data=getActiveData(); let tgl=document.getElementById('f-tgl').value||new Date().toISOString().split('T')[0]; let recordBaru={};
     if(tipe==='biaya'){
