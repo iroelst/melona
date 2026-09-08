@@ -2256,6 +2256,80 @@ function exportData() {
         ], { origin: -1 });
         XLSX.utils.book_append_sheet(wb, ws_finance, "Keuangan");
 
+        // --- SHEET 6: LAPORAN ARUS KAS ---
+        const saldoAwalKas = parseFloat(activeData.saldoAwal) || 0;
+        const arusKas = [
+            ...(activeData.jual || []).map(x => ({
+                "TANGGAL": x.tgl,
+                "JENIS ARUS": "MASUK",
+                "SUMBER/KEGIATAN": "Penjualan - " + (x.g || "-"),
+                "NO TRANSAKSI": "-",
+                "KETERANGAN": "-",
+                "MASUK": x.total || 0,
+                "KELUAR": 0
+            })),
+            ...(activeData.biaya || []).map(x => ({
+                "TANGGAL": x.tgl,
+                "JENIS ARUS": "KELUAR",
+                "SUMBER/KEGIATAN": "Biaya - " + (x.k || "-"),
+                "NO TRANSAKSI": x.noTransaksi || "-",
+                "KETERANGAN": x.ket || "-",
+                "MASUK": 0,
+                "KELUAR": x.total || 0
+            })),
+            ...(activeData.dana || []).map(x => ({
+                "TANGGAL": x.tgl,
+                "JENIS ARUS": x.arah === "out" ? "KELUAR" : "MASUK",
+                "SUMBER/KEGIATAN": x.jenis || "Pendanaan",
+                "NO TRANSAKSI": "-",
+                "KETERANGAN": x.ket || "-",
+                "MASUK": x.arah === "in" ? (parseFloat(x.nominal) || 0) : 0,
+                "KELUAR": x.arah === "out" ? (parseFloat(x.nominal) || 0) : 0
+            }))
+        ];
+
+        const parseArusTanggal = (v) => {
+            if (!v) return new Date(0);
+            if (String(v).includes("-")) {
+                const a = String(v).split("-");
+                return new Date(a[0], a[1]-1, a[2]);
+            }
+            const a = String(v).split("/");
+            return new Date(a[2], a[1]-1, a[0]);
+        };
+        arusKas.sort((a,b) => parseArusTanggal(a["TANGGAL"]) - parseArusTanggal(b["TANGGAL"]));
+
+        let saldoBerjalan = saldoAwalKas;
+        const arusKasExcel = [
+            {
+                "TANGGAL": "-",
+                "JENIS ARUS": "SALDO AWAL",
+                "SUMBER/KEGIATAN": "Saldo awal kas periode",
+                "NO TRANSAKSI": "-",
+                "KETERANGAN": "-",
+                "MASUK": saldoAwalKas,
+                "KELUAR": 0,
+                "SALDO": saldoBerjalan
+            }
+        ];
+        arusKas.forEach(x => {
+            saldoBerjalan += (x["MASUK"] || 0) - (x["KELUAR"] || 0);
+            arusKasExcel.push({...x, "SALDO": saldoBerjalan});
+        });
+
+        const totalKasMasuk = arusKas.reduce((a,x)=>a+(x["MASUK"]||0),0);
+        const totalKasKeluar = arusKas.reduce((a,x)=>a+(x["KELUAR"]||0),0);
+        const ws_arus = XLSX.utils.json_to_sheet(arusKasExcel);
+        XLSX.utils.sheet_add_aoa(ws_arus, [
+            [],
+            ["RINGKASAN ARUS KAS", "", "", "", "", "", "", ""],
+            ["Saldo Awal", saldoAwalKas],
+            ["Total Uang Masuk", totalKasMasuk],
+            ["Total Uang Keluar", totalKasKeluar],
+            ["Saldo Kas Akhir", saldoBerjalan]
+        ], { origin: -1 });
+        XLSX.utils.book_append_sheet(wb, ws_arus, "Laporan_Arus_Kas");
+
         // --- DOWNLOAD ---
         const fileName = `LAPORAN_MELON_${currentGH}_${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);
@@ -2660,6 +2734,63 @@ async function exportPDF() {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(13);
     doc.text(`LABA/RUGI BERSIH: Rp ${(tJual - tBiaya).toLocaleString()}`, 14, finalY + 16);
+
+    // --- 5. LAPORAN ARUS KAS ---
+    doc.addPage();
+    doc.text("5. Laporan Arus Kas", 14, 20);
+
+    const saldoAwalKasPDF = parseFloat(d.saldoAwal) || 0;
+    let arusKasPDF = [
+        ...(d.jual || []).map(x => ({tgl:x.tgl, jenis:"Penjualan", ket:x.g || "-", no:"-", masuk:x.total || 0, keluar:0})),
+        ...(d.biaya || []).map(x => ({tgl:x.tgl, jenis:"Biaya - " + (x.k || "-"), ket:x.ket || "-", no:x.noTransaksi || "-", masuk:0, keluar:x.total || 0})),
+        ...(d.dana || []).map(x => ({
+            tgl:x.tgl,
+            jenis:x.jenis || "Pendanaan",
+            ket:x.ket || "-",
+            no:"-",
+            masuk:x.arah === "in" ? (parseFloat(x.nominal)||0) : 0,
+            keluar:x.arah === "out" ? (parseFloat(x.nominal)||0) : 0
+        }))
+    ].sort((a,b)=>parseDate(a.tgl)-parseDate(b.tgl));
+
+    let saldoKasBerjalan = saldoAwalKasPDF;
+    const arusKasBody = [[
+        "-", "SALDO AWAL", "Saldo awal kas periode", "-", 
+        `Rp ${saldoAwalKasPDF.toLocaleString()}`, "-", `Rp ${saldoKasBerjalan.toLocaleString()}`
+    ]];
+    let totalMasukKas = 0, totalKeluarKas = 0;
+    arusKasPDF.forEach(x => {
+        totalMasukKas += x.masuk;
+        totalKeluarKas += x.keluar;
+        saldoKasBerjalan += x.masuk - x.keluar;
+        arusKasBody.push([
+            formatIndo(x.tgl),
+            x.masuk > 0 ? "MASUK - " + x.jenis : "KELUAR - " + x.jenis,
+            x.ket,
+            x.no,
+            x.masuk ? `Rp ${x.masuk.toLocaleString()}` : "-",
+            x.keluar ? `Rp ${x.keluar.toLocaleString()}` : "-",
+            `Rp ${saldoKasBerjalan.toLocaleString()}`
+        ]);
+    });
+
+    doc.autoTable({
+        startY: 25,
+        head: [['Tanggal','Jenis Arus','Keterangan','No. Transaksi','Masuk','Keluar','Saldo']],
+        body: arusKasBody,
+        headStyles: { fillColor: [21, 101, 192] },
+        styles: { fontSize: 7, overflow: 'linebreak' },
+        columnStyles: { 2:{cellWidth:38}, 3:{cellWidth:18}, 4:{cellWidth:25}, 5:{cellWidth:25}, 6:{cellWidth:27} }
+    });
+
+    const kasY = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Saldo Awal Kas: Rp ${saldoAwalKasPDF.toLocaleString()}`, 14, kasY);
+    doc.text(`Total Uang Masuk: Rp ${totalMasukKas.toLocaleString()}`, 14, kasY + 6);
+    doc.text(`Total Uang Keluar: Rp ${totalKeluarKas.toLocaleString()}`, 14, kasY + 12);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Saldo Kas Akhir: Rp ${saldoKasBerjalan.toLocaleString()}`, 14, kasY + 18);
 
     doc.save(`LAPORAN_MELONA_${currentGH}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
