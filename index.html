@@ -495,48 +495,38 @@
             </div>
         </div>
      <div class="card" style="background:#f1f8e9; border-left:5px solid #2e7d32; padding: 15px;">
-    <strong style="display: block; margin-bottom: 12px;">💰 Biaya Produksi</strong>
-        <div style="margin-bottom: 8px;">
-        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Tanggal Transaksi</label>
-        <input type="date" id="f-tgl" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <strong>💰 Biaya Produksi</strong>
+        <button type="button" onclick="tambahBarisBiaya()" title="Tambah baris biaya" style="background:#2e7d32; color:white; border:none; width:34px; height:34px; border-radius:50%; font-size:22px; font-weight:bold; cursor:pointer; line-height:30px;">+</button>
     </div>
-
-    
-    <div style="margin-bottom: 8px;">
-        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Jenis Biaya</label>
-        <select id="f-kat" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; background: white;">
-            <option value="Benih/Bibit">Benih/Bibit</option>
-            <option value="Nutrisi AB Mix">Nutrisi AB Mix</option>
-            <option value="Nutrisi Tambahan">Nutrisi Tambahan</option>
-            <option value="Pestisida">Pestisida</option>
-            <option value="Listrik/Air">Listrik/Air</option>
-            <option value="Gaji Pekerja">Gaji Pekerja</option>
-            <option value="Perlengkapan">Perlengkapan</option>
-            <option value="Lain-lain">Lain-lain</option>
-        </select>
+    <div style="margin-bottom:8px;">
+        <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Tanggal Transaksi</label>
+        <input type="date" id="f-tgl" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
     </div>
-
-    <div style="margin-bottom: 8px;">
-        <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Keterangan</label>
-        <input type="text" id="f-ket" placeholder="Merk, jenis, dll..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box;">
-    </div>
-
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-        <div style="flex: 1;">
-            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Qty</label>
-            <input type="number" id="f-qty" placeholder="0" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
-        </div>
-        <div style="flex: 2;">
-            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 2px;">Harga Satuan</label>
-            <input type="number" id="f-harga" placeholder="Rp 0" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+    <div id="biaya-rows">
+        <div class="biaya-row" style="border:1px solid #d9e6d9; border-radius:8px; padding:10px; margin-bottom:10px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <strong class="biaya-row-title" style="font-size:11px; color:#2e7d32;">Item Biaya 1</strong>
+                <button type="button" class="btn-hapus-biaya-row" onclick="hapusBarisBiaya(this)" style="display:none; background:#e53935; color:white; border:none; border-radius:5px; padding:4px 8px; cursor:pointer;">×</button>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Jenis Biaya</label>
+                <select class="biaya-kat" id="f-kat" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; background:white;">
+                    <option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option>
+                </select>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Keterangan</label>
+                <input type="text" class="biaya-ket" id="f-ket" placeholder="Merk, jenis, dll..." style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;"><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" id="f-qty" placeholder="0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc;"></div>
+                <div style="flex:2;"><label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" id="f-harga" placeholder="Rp 0" step="any" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ccc;"></div>
+            </div>
         </div>
     </div>
-    
-    <button id="btn-simpan-biaya" class="btn" onclick="simpanTransaksi('biaya')" style="width: 100%; background: #2e7d32; color: white; padding: 10px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
-        + TAMBAH PENGELUARAN
-    </button>
+    <button id="btn-simpan-biaya" class="btn" onclick="simpanTransaksi('biaya')" style="width:100%; background:#2e7d32; color:white; padding:10px; font-weight:bold; border:none; border-radius:5px; cursor:pointer;">+ TAMBAH PENGELUARAN</button>
 </div>
-
 
 <div class="card" style="background:#fff3e0; border: 2px solid #ff9800;">
     <strong>⏳ Akumulasi Gaji (Belum Terbayar)</strong>
@@ -1050,74 +1040,29 @@ function hapusNutrisi(index) {
     var editType = null;
 
     // 2. Fungsi Simpan Transaksi
-    window.simpanTransaksi = function(tipe) {
-        let data = getActiveData();
-        let tglInput = document.getElementById('f-tgl').value;
-        let tgl = tglInput || new Date().toISOString().split('T')[0];
-        
-        let recordBaru = {};
-
-        if(tipe === 'biaya') {
-            let k = document.getElementById('f-kat').value;
-            let q = parseFloat(document.getElementById('f-qty').value);
-            let h = parseFloat(document.getElementById('f-harga').value);
-            let ket = document.getElementById('f-ket').value;
-            
-            if(!q || !h) return alert("Mohon isi jumlah dan harga!");
-            
-            recordBaru = { 
-                tgl: tgl, k: k, q: q, h: h, 
-                total: q * h, ket: ket || "-" 
-            };
-
-            // LOGIKA PENYIMPANAN BIAYA
-            if (isEditMode && editType === 'biaya') {
-                data.biaya[editIdx] = recordBaru; 
-            } else {
-                data.biaya.unshift(recordBaru); 
-            }
-
-            // Reset Input Biaya
-            document.getElementById('f-qty').value = "";
-            document.getElementById('f-harga').value = "";
-            document.getElementById('f-ket').value = ""; 
-            document.getElementById('f-tgl').value = ""; 
-
-        } else {
-            // LOGIKA PENJUALAN
-            let g = document.getElementById('s-grade').value;
-            let b = parseFloat(document.getElementById('s-berat').value);
-            let h = parseFloat(document.getElementById('s-harga').value);
-            
-            if(!b || !h) return alert("Isi berat dan harga!");
-            
-            recordBaru = { tgl: tgl, g: g, b: b, h: h, total: b*h };
-
-            if (isEditMode && editType === 'jual') {
-                data.jual[editIdx] = recordBaru; 
-            } else {
-                data.jual.unshift(recordBaru); 
-            }
-
-            document.getElementById('s-berat').value = "";
-            document.getElementById('s-harga').value = "";
-        }
-
-        // RESET STATUS EDIT SETELAH SIMPAN
-        if (isEditMode) {
-            isEditMode = false;
-            editIdx = null;
-            editType = null;
-            // Kembalikan teks tombol
-            let btnId = (tipe === 'biaya') ? 'btn-simpan-biaya' : 'btn-simpan-jual';
-            let btn = document.getElementById(btnId);
-            if(btn) btn.innerText = "SIMPAN TRANSAKSI";
-        }
-        
-        saveActiveData(data);
-        renderFinance(); 
-        alert("Data berhasil diperbarui!");
-    }
+    window.tambahBarisBiaya = function() {
+    const container=document.getElementById('biaya-rows'); if(!container)return;
+    const rows=container.querySelectorAll('.biaya-row'); const row=document.createElement('div'); row.className='biaya-row';
+    row.style.cssText='border:1px solid #d9e6d9; border-radius:8px; padding:10px; margin-bottom:10px; background:#fff;';
+    row.innerHTML=`<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;"><strong class="biaya-row-title" style="font-size:11px;color:#2e7d32;">Item Biaya ${rows.length+1}</strong><button type="button" class="btn-hapus-biaya-row" onclick="hapusBarisBiaya(this)" style="background:#e53935;color:white;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;">×</button></div>
+    <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Jenis Biaya</label><select class="biaya-kat" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;background:white;"><option value="Benih/Bibit">Benih/Bibit</option><option value="Nutrisi AB Mix">Nutrisi AB Mix</option><option value="Nutrisi Tambahan">Nutrisi Tambahan</option><option value="Pestisida">Pestisida</option><option value="Listrik/Air">Listrik/Air</option><option value="Gaji Pekerja">Gaji Pekerja</option><option value="Perlengkapan">Perlengkapan</option><option value="Lain-lain">Lain-lain</option></select></div>
+    <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Keterangan</label><input type="text" class="biaya-ket" placeholder="Merk, jenis, dll..." style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;box-sizing:border-box;"></div>
+    <div style="display:flex;gap:8px;"><div style="flex:1;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Qty</label><input type="number" class="biaya-qty" placeholder="0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;"></div><div style="flex:2;"><label style="font-size:11px;font-weight:bold;display:block;margin-bottom:2px;">Harga Satuan</label><input type="number" class="biaya-harga" placeholder="Rp 0" step="any" style="width:100%;padding:8px;border-radius:5px;border:1px solid #ccc;"></div></div>`;
+    container.appendChild(row); updateNomorBarisBiaya();
+};
+window.hapusBarisBiaya=function(btn){const c=document.getElementById('biaya-rows');const rows=c?c.querySelectorAll('.biaya-row'):[];if(rows.length<=1)return alert('Minimal harus ada 1 baris biaya.');btn.closest('.biaya-row').remove();updateNomorBarisBiaya();};
+function updateNomorBarisBiaya(){document.querySelectorAll('#biaya-rows .biaya-row').forEach((r,i)=>{const t=r.querySelector('.biaya-row-title');if(t)t.textContent=`Item Biaya ${i+1}`;const b=r.querySelector('.btn-hapus-biaya-row');if(b)b.style.display=i===0?'none':'inline-block';});}
+function resetBarisBiaya(){const c=document.getElementById('biaya-rows');if(!c)return; c.querySelectorAll('.biaya-row').forEach((r,i)=>{if(i>0)r.remove();});const f=c.querySelector('.biaya-row');if(f){f.querySelector('.biaya-qty').value='';f.querySelector('.biaya-harga').value='';f.querySelector('.biaya-ket').value='';f.querySelector('.biaya-kat').selectedIndex=0;}updateNomorBarisBiaya();}
+window.simpanTransaksi=function(tipe){
+    let data=getActiveData(); let tgl=document.getElementById('f-tgl').value||new Date().toISOString().split('T')[0]; let recordBaru={};
+    if(tipe==='biaya'){
+        const rows=Array.from(document.querySelectorAll('#biaya-rows .biaya-row')); if(!rows.length)return alert('Tambahkan minimal satu baris biaya.'); const records=[];
+        for(const row of rows){const k=row.querySelector('.biaya-kat').value,q=parseFloat(row.querySelector('.biaya-qty').value),h=parseFloat(row.querySelector('.biaya-harga').value),ket=row.querySelector('.biaya-ket').value;if(!Number.isFinite(q)||q<=0||!Number.isFinite(h)||h<=0)return alert('Mohon isi Qty dan Harga Satuan pada semua baris biaya.');records.push({tgl,k,q,h,total:q*h,ket:ket||'-'});}
+        if(isEditMode&&editType==='biaya')data.biaya[editIdx]=records[0];else records.reverse().forEach(r=>data.biaya.unshift(r)); resetBarisBiaya(); document.getElementById('f-tgl').value='';
+    }else{let g=document.getElementById('s-grade').value,b=parseFloat(document.getElementById('s-berat').value),h=parseFloat(document.getElementById('s-harga').value);if(!b||!h)return alert('Isi berat dan harga!');recordBaru={tgl,g,b,h,total:b*h};if(isEditMode&&editType==='jual')data.jual[editIdx]=recordBaru;else data.jual.unshift(recordBaru);document.getElementById('s-berat').value='';document.getElementById('s-harga').value='';}
+    if(isEditMode){isEditMode=false;editIdx=null;editType=null;let btn=document.getElementById(tipe==='biaya'?'btn-simpan-biaya':'btn-simpan-jual');if(btn){btn.innerText=tipe==='biaya'?'+ TAMBAH PENGELUARAN':'SIMPAN TRANSAKSI';btn.style.background='#2e7d32';}}
+    saveActiveData(data);renderFinance();alert('Data berhasil disimpan!');
+};
 
 function renderFinance() {
     let d = getActiveData();
@@ -2160,6 +2105,8 @@ function exportData() {
                 "TIPE": "MASUK (JUAL)", 
                 "KATEGORI": x.g, 
                 "KETERANGAN": "-", 
+                "QTY": x.b ?? 0,
+                "HARGA SATUAN": x.h ?? 0,
                 "TOTAL": x.total 
             });
             totalJual += x.total;
@@ -2170,6 +2117,8 @@ function exportData() {
                 "TIPE": "KELUAR (BIAYA)", 
                 "KATEGORI": x.k, 
                 "KETERANGAN": x.ket || "-", 
+                "QTY": x.q ?? 0,
+                "HARGA SATUAN": x.h ?? 0,
                 "TOTAL": x.total 
             });
             totalBiaya += x.total;
@@ -2547,8 +2496,8 @@ async function exportPDF() {
 
     // Gabungkan data agar bisa disortir bersamaan
     let finDataGabungan = [
-        ...(d.jual || []).map(x => ({...x, tipe: "MASUK", kat: x.g})),
-        ...(d.biaya || []).map(x => ({...x, tipe: "KELUAR", kat: x.k}))
+        ...(d.jual || []).map(x => ({...x, tipe: "MASUK", kat: x.g, qty: x.b, harga: x.h})),
+        ...(d.biaya || []).map(x => ({...x, tipe: "KELUAR", kat: x.k, qty: x.q, harga: x.h}))
     ];
 
     // Sorting dari tanggal terlama ke terbaru (cocok untuk laporan kronologis)
@@ -2564,17 +2513,19 @@ async function exportPDF() {
             x.tipe, 
             x.kat, 
             x.ket || "-", 
+            x.qty ?? 0,
+            `Rp ${(x.harga ?? 0).toLocaleString()}`,
             `Rp ${x.total.toLocaleString()}`
         ];
     });
 
     doc.autoTable({
         startY: 25,
-        head: [['Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Total']],
+        head: [['Tanggal', 'Tipe', 'Kategori', 'Keterangan', 'Qty', 'Harga Satuan', 'Total']],
         body: finDataBody,
         headStyles: { fillColor: [239, 108, 0] },
-        styles: { fontSize: 8 },
-        columnStyles: { 3: { cellWidth: 50 } }
+        styles: { fontSize: 7 },
+        columnStyles: { 3: { cellWidth: 42 }, 4: { cellWidth: 14 }, 5: { cellWidth: 25 }, 6: { cellWidth: 28 } }
     });
 
     const finalY = doc.lastAutoTable.finalY + 15;
