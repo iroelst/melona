@@ -1797,7 +1797,7 @@ function renderMasterPekerja() {
     w.forEach((x, index) => {
         let gajiHarian = x.gajiHarian || x.gaji || 0;
         let tarifLembur = x.tarifLembur || 0;
-        let gajiTetap = x.gajiTetap || 0;
+        let gajiTetap = parseFloat(x.gajiTetap || 0);
 
         html += `
         <tr>
@@ -1821,7 +1821,7 @@ function renderWorkerMaster() {
     // Perhatikan bagian x.nama di bawah ini, bukan hanya x
     document.getElementById('worker-list-master').innerHTML = w.map((x, i) => `
         <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee; font-size:12px;">
-            <span>${x.nama} (Rp ${parseFloat(x.gaji).toLocaleString()})</span>
+            <span>${x.nama} (Harian: Rp ${parseFloat(x.gajiHarian ?? x.gaji ?? 0).toLocaleString()} | Tetap: Rp ${parseFloat(x.gajiTetap || 0).toLocaleString()})</span>
             <span onclick="removeWorker(${i})" style="color:red; cursor:pointer; font-weight:bold;">✖</span>
         </div>`).join("");
 }
@@ -2639,8 +2639,9 @@ function generateSlipGaji() {
     const pInfo = masterPekerja.find(x => x.nama === workerName);
     
     const gajiPokok = pInfo ? parseFloat(pInfo.gajiHarian ?? pInfo.gaji ?? 0) : 0;
-    const tarifLembur = pInfo ? parseFloat(pInfo.tarifLembur || 0) : 0; 
-
+    const tarifLembur = pInfo ? parseFloat(pInfo.tarifLembur || 0) : 0;
+    const gajiTetap = pInfo ? parseFloat(pInfo.gajiTetap || 0) : 0;
+    
     let hitung1Hari = 0;
     let hitungSetengahHari = 0;
     let totalLemburJam = 0;
@@ -2672,7 +2673,8 @@ function generateSlipGaji() {
     const subtotalLembur = totalLemburJam * tarifLembur;
     
     // Ini variabel yang tadi Error (Pastikan namanya sama persis)
-    const totalGajiKotor = subtotalPokok + subtotalLembur + totalBonus;
+    const subtotalGajiTetap = gajiTetap;
+    const totalGajiKotor = subtotalGajiTetap + subtotalPokok + subtotalLembur + totalBonus;
 
     // 3. HITUNG KASBON
     let totalKasbon = 0;
@@ -2706,7 +2708,8 @@ function generateSlipGaji() {
         </table>
         <hr style="border: 0; border-top: 1px dashed #000;">
         <table style="width:100%; font-size:12px;">
-            <tr><td>Gaji Pokok</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
+            <tr><td>Gaji Tetap</td><td align="right">Rp ${subtotalGajiTetap.toLocaleString()}</td></tr>
+            <tr><td>Gaji Harian</td><td align="right">Rp ${subtotalPokok.toLocaleString()}</td></tr>
             <tr><td>Lembur</td><td align="right">Rp ${subtotalLembur.toLocaleString()}</td></tr>
             <tr><td>Bonus</td><td align="right">Rp ${totalBonus.toLocaleString()}</td></tr>
             <tr style="font-weight:bold; background:#f9f9f9;"><td>Subtotal Kotor</td><td align="right">Rp ${totalGajiKotor.toLocaleString()}</td></tr>
@@ -2832,7 +2835,7 @@ function saveWorkerEdit() {
     const namaLama = w[index].nama;
 
     // Simpan ke Master
-    w[index] = { nama: namaBaru, gajiHarian: gajiBaru, tarifLembur: lemburBaru };
+    w[index] = { nama: namaBaru, gajiHarian: gajiBaru, gajiTetap: gajiTetapBaru, tarifLembur: lemburBaru };
     localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
 
     // OTOMATIS SINKRON KE AKTIVITAS LAMA
