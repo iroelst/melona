@@ -22,6 +22,59 @@
         
         body { font-family: -apple-system, sans-serif; background: #f4f7f4; margin: 0; padding: 0; color: #333; }
 
+        /* Logo Melona: hijau, bulat, dan konsisten */
+        .melona-logo {
+            display: block;
+            object-fit: contain;
+            background: transparent !important;
+            border: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Lingkaran khusus logo pada layar login */
+        .login-logo-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 5px solid #2e7d32;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Ubah warna logo hitam menjadi hijau seperti header */
+        .login-logo-circle .melona-logo {
+            width: 105px !important;
+            height: 105px !important;
+            margin: 0 !important;
+            filter: brightness(0) saturate(100%) invert(39%) sepia(18%) saturate(1774%) hue-rotate(71deg) brightness(88%) contrast(88%);
+        }
+
+        /* Pastikan loader benar-benar berada di tengah layar */
+        #loading-initial {
+            box-sizing: border-box;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        #loading-initial .loading-content {
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #loading-initial .loading-content .melona-logo {
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
         #lock-screen {
             position: fixed;
             top: 0; left: 0;
@@ -186,14 +239,16 @@
 </style>
 </head>
 <body>
-    <div id="loading-initial" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:100000; display:flex; justify-content:center; align-items:center; font-family:sans-serif;">
-        <div style="text-align:center;">
-            <img src="melona_logo.png" style="width:80px; margin-bottom:10px;">
+    <div id="loading-initial" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:100000; font-family:sans-serif;">
+        <div class="loading-content">
+            <img src="melona_logo.png" class="melona-logo" alt="Melona Logo" style="width:80px; height:80px; margin-bottom:10px;">
             <p>Menghubungkan ke Melona System...</p>
         </div>
     </div>
 <div id="lock-screen">
-        <img src="melona_logo.png" alt="Melona Logo" style="width:120px; margin-bottom:20px;">
+        <div class="login-logo-circle">
+            <img src="melona_logo.png" class="melona-logo" alt="Melona Logo">
+        </div>
         <h1>Melona Monitoring System</h1>
         <p id="lock-status">Gunakan akun Google untuk masuk ke sistem.</p>
         
