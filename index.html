@@ -22,19 +22,40 @@
         
         body { font-family: -apple-system, sans-serif; background: #f4f7f4; margin: 0; padding: 0; color: #333; }
 
+        /* Layar Login: benar-benar berada di tengah pada berbagai ukuran HP */
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         #lock-screen {
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; /* Pastikan selebar layar */
-            height: 100vh; /* Pastikan setinggi layar */
+            inset: 0;
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh; /* Tinggi layar dinamis untuk Chrome/Safari mobile */
             background: #ffffff;
             display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 99999; /* Pastikan paling depan */
+            z-index: 99999;
             text-align: center;
-            padding: 20px;
+            padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #lock-screen > * {
+            flex-shrink: 0;
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            #lock-screen {
+                min-height: -webkit-fill-available;
+            }
         }
         
         .btn-login {
@@ -186,7 +207,7 @@
 </style>
 </head>
 <body>
-    <div id="loading-initial" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:100000; display:flex; justify-content:center; align-items:center; font-family:sans-serif;">
+    <div id="loading-initial" style="position:fixed; top:0; left:0; width:100%; height:100dvh; min-height:100vh; background:white; z-index:100000; display:flex; justify-content:center; align-items:center; font-family:sans-serif;">
         <div style="text-align:center;">
             <img src="melona_logo.png" style="width:80px; margin-bottom:10px;">
             <p>Menghubungkan ke Melona System...</p>
