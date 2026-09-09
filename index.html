@@ -52,14 +52,6 @@
             flex-shrink: 0;
         }
 
-        .login-logo {
-            width: clamp(160px, 42vw, 230px);
-            max-width: 65vw;
-            height: auto;
-            margin-bottom: 22px;
-            display: block;
-        }
-
         @supports (-webkit-touch-callout: none) {
             #lock-screen {
                 min-height: -webkit-fill-available;
@@ -222,7 +214,7 @@
         </div>
     </div>
 <div id="lock-screen">
-        <img src="melona_logo.png" alt="Melona Logo" class="login-logo">
+        <img src="melona_logo.png" alt="Melona Logo" style="width:120px; margin-bottom:20px;">
         <h1>Melona Monitoring System</h1>
         <p id="lock-status">Gunakan akun Google untuk masuk ke sistem.</p>
         
@@ -282,7 +274,6 @@
     <div class="gh-manager">
         <select id="gh-selector" onchange="switchGH()"></select>
         <button class="btn-add-gh" onclick="promptAddGH()">+</button>
-        <button class="btn-add-gh" style="background:#1976d2; color:white;" onclick="promptEditGH()" title="Edit Nama GH">✎</button>
         <button class="btn-add-gh" style="background:#e74c3c; color:white;" onclick="promptRemoveGH()">-</button>
     </div>
     <div id="top-info" style="font-size: 12px; margin-top:8px;">Memuat data...</div>
@@ -942,85 +933,6 @@ async function downloadFullReport() {
             localStorage.setItem('active_gh', currentGH);
             updateGHSelector();
             refreshAll();
-        }
-    }
-
-    // --- EDIT NAMA GH DENGAN MIGRASI DATA AMAN ---
-    function promptEditGH() {
-        const oldName = currentGH;
-        const input = prompt("Edit Nama GH:", oldName);
-        if (input === null) return;
-
-        const name = input.trim();
-        if (!name) return alert("Nama GH tidak boleh kosong.");
-        if (name === oldName) return;
-        if (ghList.some(gh => gh.trim().toLowerCase() === name.toLowerCase())) {
-            return alert("Nama GH sudah digunakan.");
-        }
-
-        // Ambil hanya key yang benar-benar milik GH lama.
-        const prefix = oldName + '_';
-        const keysToMove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(prefix)) keysToMove.push(key);
-        }
-
-        // Cegah data tertimpa jika ada sisa data dengan nama GH baru.
-        const newPrefix = name + '_';
-        const conflicts = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && key.startsWith(newPrefix)) conflicts.push(key);
-        }
-        if (conflicts.length > 0) {
-            return alert("Ditemukan data lama dengan nama GH baru. Ubah ke nama lain atau bersihkan data lama terlebih dahulu agar tidak ada data yang tertimpa.");
-        }
-
-        if (!confirm(`Ubah nama GH "${oldName}" menjadi "${name}"?\n\nSemua data yang tersimpan di aplikasi untuk GH ini akan dipindahkan ke nama baru. File backup, Excel, atau PDF yang sudah pernah diunduh tidak dapat diubah otomatis.`)) return;
-
-        // Simpan snapshot untuk rollback jika terjadi kegagalan saat migrasi.
-        const snapshot = {};
-        keysToMove.forEach(key => snapshot[key] = localStorage.getItem(key));
-        const oldGhList = [...ghList];
-        const oldActiveGH = localStorage.getItem('active_gh');
-
-        try {
-            // Salin seluruh data berawalan "Nama GH_" ke nama baru terlebih dahulu.
-            keysToMove.forEach(oldKey => {
-                const newKey = name + oldKey.substring(oldName.length);
-                localStorage.setItem(newKey, snapshot[oldKey]);
-            });
-
-            // Setelah semua berhasil disalin, hapus key lama.
-            keysToMove.forEach(oldKey => localStorage.removeItem(oldKey));
-
-            ghList = ghList.map(gh => gh === oldName ? name : gh);
-            currentGH = name;
-            localStorage.setItem('gh_list', JSON.stringify(ghList));
-            localStorage.setItem('active_gh', currentGH);
-
-            updateGHSelector();
-            refreshAll();
-            alert(`Nama GH berhasil diubah menjadi: ${name}\nData aplikasi GH telah dipindahkan (${keysToMove.length} data tersimpan).`);
-        } catch (error) {
-            console.error("Gagal migrasi nama GH:", error);
-
-            // Bersihkan hasil salinan parsial.
-            keysToMove.forEach(oldKey => {
-                const newKey = name + oldKey.substring(oldName.length);
-                localStorage.removeItem(newKey);
-            });
-            // Kembalikan seluruh data lama.
-            Object.keys(snapshot).forEach(key => localStorage.setItem(key, snapshot[key]));
-            ghList = oldGhList;
-            currentGH = oldActiveGH || oldName;
-            localStorage.setItem('gh_list', JSON.stringify(ghList));
-            if (oldActiveGH) localStorage.setItem('active_gh', oldActiveGH);
-
-            updateGHSelector();
-            refreshAll();
-            alert("Gagal mengubah nama GH. Data lama telah dikembalikan. Error: " + error.message);
         }
     }
 
