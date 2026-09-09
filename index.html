@@ -301,8 +301,8 @@
         </div>
 
         <div style="display: flex; gap: 10px;">
-            <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 11px;" onclick="exportData()">📊 EXCEL</button>
-            <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 11px;" onclick="exportPDF()">📄 PDF</button>
+            <button class="btn" style="background:#fbc02d; color:#333; flex:1; margin-top:0; font-size: 13px;" onclick="exportData()">📊 EXCEL</button>
+            <button class="btn" style="background:#e53935; color:white; flex:1; margin-top:0; font-size: 13px;" onclick="exportPDF()">📄 PDF</button>
         </div>
 
         <div class="storage-info">
@@ -1400,6 +1400,19 @@ function simpanLog(tipe) {
         
         if(selectedCheckboxes.length === 0) return alert("Pilih minimal satu pekerja!");
 
+        /*
+         * PENANDA GAJI TETAP PER PERIODE
+         * Gaji tetap hanya ditambahkan SEKALI untuk setiap pekerja dalam satu periode,
+         * sehingga tidak bertambah lagi setiap kali aktivitas kerja baru disimpan.
+         * Penanda ini tetap tersimpan sampai periode baru dimulai.
+         */
+        let activeDataUntukGajiTetap = getActiveData();
+        if (!Array.isArray(activeDataUntukGajiTetap.gajiTetapSudahMasuk)) {
+            activeDataUntukGajiTetap.gajiTetapSudahMasuk = [];
+        }
+        const normalisasiNamaPekerja = (nama) => String(nama || '').trim().toLowerCase();
+        let gajiTetapTambahan = 0;
+
 // --- VALIDASI BATAS MAKSIMAL 1 HARI (DIPERBAIKI) ---
 const tglInputIndo = new Date(valTgl).toLocaleDateString('id-ID');
 
@@ -1448,6 +1461,21 @@ selectedCheckboxes.forEach((cb) => {
     let totalGajiIndividu = (gajiPerHari * durasi) + (lemburJam * tarifLemburPerJam) + bonusNominal;
     biayaGajiSesiIni += totalGajiIndividu;
 
+    // Tambahkan Gaji Tetap hanya SEKALI per pekerja dalam periode aktif.
+    const namaNormal = normalisasiNamaPekerja(namaPekerja);
+    const sudahMasuk = activeDataUntukGajiTetap.gajiTetapSudahMasuk
+        .some(nama => normalisasiNamaPekerja(nama) === namaNormal);
+
+    if (!sudahMasuk) {
+        const gajiTetapPekerja = dataMaster ? parseFloat(dataMaster.gajiTetap || 0) : 0;
+        if (gajiTetapPekerja > 0) {
+            gajiTetapTambahan += gajiTetapPekerja;
+        }
+        // Tetap simpan penanda walaupun nominal saat ini 0 agar aktivitas berikutnya
+        // tidak dianggap sebagai pekerja baru dan terhitung berulang.
+        activeDataUntukGajiTetap.gajiTetapSudahMasuk.push(namaPekerja);
+    }
+
     let detailStr = `${namaPekerja} (${durasi}H|L:${lemburJam}|B:${bonusNominal})`;
     detailPekerja.push(detailStr);
 });
@@ -1461,14 +1489,16 @@ let dataKerja = {
 };
 
 let logK = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
-let activeData = getActiveData(); 
-let penyesuaianGaji = biayaGajiSesiIni; 
+let activeData = activeDataUntukGajiTetap;
+// Gaji aktivitas mengikuti selisih saat edit. Gaji tetap ditambahkan terpisah
+// hanya ketika pekerja pertama kali tercatat pada periode ini.
+let penyesuaianGaji = biayaGajiSesiIni + gajiTetapTambahan;
 
 if (isEditMode) {
     let dataLama = logK[editIdx];
     if (dataLama) {
         let biayaLama = hitungBiayaDariString(dataLama.nama);
-        penyesuaianGaji = biayaGajiSesiIni - biayaLama;
+        penyesuaianGaji = (biayaGajiSesiIni - biayaLama) + gajiTetapTambahan;
     }
     
     // PERBAIKAN 1: Update data di posisi aslinya
