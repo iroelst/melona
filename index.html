@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Payment flow: auto-register new Supabase users as is_paid=false -->
     <title>Melona Monitoring System V1</title>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="melona_logo.png">
     <link rel="apple-touch-icon" href="melona_logo.png">
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -306,12 +305,12 @@
         </div>
 
         <div class="storage-info">
-            <strong>💾 Kapasitas Memori HP</strong>
+            <strong>☁️ Penyimpanan Cloud Supabase</strong>
             <div id="storage-text">Digunakan: 0 KB</div>
             <div class="progress-container">
                 <div id="storage-bar" class="progress-bar"></div>
             </div>
-            <small style="color: #666;">*Jika memori penuh segera melakukan Backup</small>
+            <small style="color: #666;">*Data tersimpan di cloud berdasarkan akun login. Backup JSON tetap tersedia sebagai cadangan.</small>
         </div>
     </div>
 </div>
@@ -756,7 +755,46 @@ if ('serviceWorker' in navigator) {
     ];
     let targetPPM = 0; let targetPH = 6.2;
 
-    function getActiveData() {
+    
+// Standar urutan laporan: tanggal paling lama -> paling baru.
+function parseReportDate(dateStr) {
+    if (!dateStr) return new Date(0);
+    const s = String(dateStr).trim();
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        const p = s.substring(0, 10).split("-");
+        return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
+
+    const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+    if (m) {
+        return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    }
+
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date(0) : d;
+}
+
+function sortReportByDateOldestFirst(rows, dateIndex = 0) {
+    return [...rows].sort((a, b) => parseReportDate(a?.[dateIndex]) - parseReportDate(b?.[dateIndex]));
+}
+
+function sortReportObjectsByDateOldestFirst(rows, dateKey = "tgl") {
+    return rows.map((row, index) => ({ row, index })).sort((a, b) => {
+        const da = parseReportDate(a.row?.[dateKey]);
+        const db = parseReportDate(b.row?.[dateKey]);
+        const ta = da.getTime();
+        const tb = db.getTime();
+
+        // Selalu tanggal paling lama -> paling baru.
+        // Jika tanggal sama, pertahankan urutan data aslinya.
+        if (ta !== tb) return ta - tb;
+        return a.index - b.index;
+    }).map(item => item.row);
+}
+
+
+function getActiveData() {
         let d = localStorage.getItem(currentGH + '_active_period');
         return d ? JSON.parse(d) : { v: "-", pop: 0, v_list: [], biaya: [], jual: [] };
     }
@@ -764,6 +802,9 @@ if ('serviceWorker' in navigator) {
     function saveActiveData(data) {
         localStorage.setItem(currentGH + '_active_period', JSON.stringify(data));
         renderFinance();
+        // Semua perubahan data keuangan (biaya, penjualan, kasbon, gaji, dll.)
+        // harus ikut dikirim ke Supabase.
+        if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
     }
 
 // --- FITUR DOWNLOAD LAPORAN LENGKAP (VERSI STABIL MOBILE) ---
@@ -921,6 +962,7 @@ async function downloadFullReport() {
     function switchGH() {
         currentGH = document.getElementById('gh-selector').value;
         localStorage.setItem('active_gh', currentGH);
+        if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
         refreshAll();
     }
 
@@ -929,6 +971,7 @@ async function downloadFullReport() {
         if (name && !ghList.includes(name)) {
             ghList.push(name);
             localStorage.setItem('gh_list', JSON.stringify(ghList));
+            if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
             currentGH = name;
             localStorage.setItem('active_gh', currentGH);
             updateGHSelector();
@@ -1086,6 +1129,7 @@ function hapusNutrisi(index) {
         let dailyLogs = JSON.parse(localStorage.getItem(currentGH + '_daily_records') || "[]");
         dailyLogs.splice(index, 1);
         localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
+        if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
         refreshAll();
     }
 }
@@ -1326,7 +1370,7 @@ function renderFinance() {
     }).join("");
 }
 
-function simpanLog(tipe) {
+async function simpanLog(tipe) {
     let valTgl = document.getElementById(tipe + '-tgl').value; 
     if(!valTgl) return alert("Pilih tanggal dulu!");
     
@@ -1350,48 +1394,97 @@ function simpanLog(tipe) {
         const file = imgInput.files[0];
 
         if (file) {
-            // Validasi ukuran awal
-            if (file.size > 2 * 1024 * 1024) return alert("File terlalu besar! Maksimal 2MB");
-            
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function (event) {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = function () {
-    // --- PROSES CROPPING & KOMPRESI 1:1 ---
-    const canvas = document.createElement('canvas');
-    const SIZE = 600; // Ukuran standar kotak 600x600 px
-    canvas.width = SIZE;
-    canvas.height = SIZE;
-    const ctx = canvas.getContext('2d');
+            if (file.size > 2 * 1024 * 1024) {
+                return alert("File terlalu besar! Maksimal 2MB");
+            }
 
-    // Hitung koordinat untuk memotong bagian tengah (center crop)
-    let sourceX, sourceY, sourceSize;
-    if (img.width > img.height) {
-        // Foto Landscape
-        sourceSize = img.height;
-        sourceX = (img.width - img.height) / 2;
-        sourceY = 0;
-    } else {
-        // Foto Portrait
-        sourceSize = img.width;
-        sourceX = 0;
-        sourceY = (img.height - img.width) / 2;
-    }
+            try {
+                // Crop 1:1 dan kompresi seperti sebelumnya, tetapi hasilnya
+                // sekarang diupload ke Supabase Storage, bukan disimpan Base64.
+                const compressedBase64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
 
-    // Gambar ke canvas dengan teknik cropping:
-    // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
-    ctx.drawImage(img, sourceX, sourceY, sourceSize, sourceSize, 0, 0, SIZE, SIZE);
-    
-    // Simpan hasil kompresi
-    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-    prosesSimpanSemprot(valTgl, hstLog, compressedBase64);
-};
-            };
+                    reader.onload = function(event) {
+                        const img = new Image();
+
+                        img.onload = function() {
+                            const canvas = document.createElement('canvas');
+                            const SIZE = 600;
+                            canvas.width = SIZE;
+                            canvas.height = SIZE;
+
+                            const ctx = canvas.getContext('2d');
+
+                            let sourceX, sourceY, sourceSize;
+
+                            if (img.width > img.height) {
+                                sourceSize = img.height;
+                                sourceX = (img.width - img.height) / 2;
+                                sourceY = 0;
+                            } else {
+                                sourceSize = img.width;
+                                sourceX = 0;
+                                sourceY = (img.height - img.width) / 2;
+                            }
+
+                            ctx.drawImage(
+                                img,
+                                sourceX,
+                                sourceY,
+                                sourceSize,
+                                sourceSize,
+                                0,
+                                0,
+                                SIZE,
+                                SIZE
+                            );
+
+                            resolve(canvas.toDataURL('image/jpeg', 0.7));
+                        };
+
+                        img.onerror = () => reject(
+                            new Error("Foto tidak dapat diproses.")
+                        );
+
+                        img.src = event.target.result;
+                    };
+
+                    reader.onerror = () => reject(
+                        new Error("Gagal membaca foto.")
+                    );
+
+                    reader.readAsDataURL(file);
+                });
+
+                const compressedBlob =
+                    await blobFromDataUrl(compressedBase64);
+
+                const photoPath =
+                    await uploadSemprotPhoto(compressedBlob);
+
+                await prosesSimpanSemprot(
+                    valTgl,
+                    hstLog,
+                    photoPath
+                );
+
+            } catch (err) {
+                console.error("Upload foto gagal:", err);
+
+                alert(
+                    "Foto gagal diupload ke Supabase Storage.\n\n" +
+                    err.message
+                );
+            }
+
         } else {
-            prosesSimpanSemprot(valTgl, hstLog, null);
+            await prosesSimpanSemprot(
+                valTgl,
+                hstLog,
+                null
+            );
         }
+
     } else {
         let biayaGajiSesiIni = 0;
         let detailPekerja = [];
@@ -1536,6 +1629,9 @@ if(dataKerja.jenis === 'Panen') {
 
 localStorage.setItem(currentGH + '_kerja', JSON.stringify(logK));
 
+// Sinkronkan data kerja ke Supabase setelah penyimpanan lokal berhasil.
+scheduleCloudSave();
+
 // Bersihkan UI dan Render Ulang
 document.getElementById('kerja-ket').value = "";
 if(typeof loadWorkerCheckboxes === "function") loadWorkerCheckboxes();
@@ -1574,12 +1670,23 @@ function hitungBiayaDariString(namaStr) {
 }
     
 // Fungsi pembantu khusus simpan semprot agar kode rapi
-function prosesSimpanSemprot(tgl, hst, imgBase64) {
+async function prosesSimpanSemprot(tgl, hst, imgBase64) {
     let logS = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     
-    // LOGIKA FOTO: Jika ada foto baru (imgBase64), pakai itu. 
-    // Jika tidak ada tapi sedang mode edit, pakai foto lama (tempEditImg).
-    let finalImg = imgBase64 || (isEditMode ? tempEditImg : "");
+    // Foto baru adalah path Supabase Storage.
+    // Jika edit tanpa foto baru, pertahankan path foto lama.
+    const oldImg = isEditMode ? tempEditImg : "";
+    let finalImg = imgBase64 || oldImg;
+
+    if (
+        isEditMode &&
+        editType === 'semprot' &&
+        imgBase64 &&
+        oldImg &&
+        oldImg !== imgBase64
+    ) {
+        await deleteSemprotPhoto(oldImg);
+    }
 
     let dataBaru = {
         tgl: new Date(tgl).toLocaleDateString('id-ID'), // Simpan balik ke format Indo
@@ -1606,6 +1713,8 @@ function prosesSimpanSemprot(tgl, hst, imgBase64) {
     }
 
     localStorage.setItem(currentGH + '_logs', JSON.stringify(logS));
+    scheduleCloudSave();
+    scheduleCloudSave();
     
     // Reset Preview & Form
     document.getElementById('preview-semprot-edit').innerHTML = "";
@@ -1696,10 +1805,17 @@ function finishSave() {
     alert("Data berhasil disimpan!");
 }
 
-function renderLogs() {
+async function renderLogs() {
     const currentGH = localStorage.getItem('active_gh');
     let sLog = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     let kLog = JSON.parse(localStorage.getItem(currentGH + '_kerja') || "[]");
+
+    const photoUrls = {};
+    for (let idx = 0; idx < sLog.length; idx++) {
+        if (sLog[idx].img) {
+            photoUrls[idx] = await getSemprotPhotoUrl(sLog[idx].img);
+        }
+    }
 
     const parseDate = (dateStr) => {
         if(!dateStr) return 0;
@@ -1729,7 +1845,7 @@ function renderLogs() {
                 🧪 ${i.nut || '-'} | 🕷️ ${i.ins || '-'} | 🍄 ${i.fun || '-'}
             </div>
             ${i.ket ? `<div style="font-size: 11px; color: #666; font-style: italic; margin-top: 5px;">Catatan: ${i.ket}</div>` : ''}
-            ${i.img ? `<div style="margin-top: 10px;"><img src="${i.img}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"></div>` : ''}
+            ${i.img && photoUrls[i.originalIndex] ? `<div style="margin-top: 10px;"><img src="${photoUrls[i.originalIndex]}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"></div>` : ''}
         </div>
     `).join("");
 
@@ -1889,6 +2005,7 @@ function addWorker() {
     });
     
     localStorage.setItem('master_pekerja_v2', JSON.stringify(w));
+    scheduleCloudSave();
 
     // Reset Form
     document.getElementById('new-worker-name').value = "";
@@ -2118,7 +2235,7 @@ function hapusItem(key, index) {
     }
 }
 
-function prepareEditSemprot(index) {
+async function prepareEditSemprot(index) {
     const logs = JSON.parse(localStorage.getItem(currentGH + '_logs') || "[]");
     const d = logs[index];
 
@@ -2156,7 +2273,7 @@ function prepareEditSemprot(index) {
         previewContainer.innerHTML = `
             <div style="margin-top: 10px; padding: 10px; border: 1px dashed #ccc; border-radius: 8px; text-align: center; background: #f9f9f9;">
                 <p style="font-size: 11px; color: #666; margin-bottom: 5px;">📸 Foto saat ini:</p>
-                <img src="${d.img}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #2e7d32;">
+                <img src="${await getSemprotPhotoUrl(d.img)}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #2e7d32;">
                 <p style="font-size: 10px; color: #e67e22; margin-top: 5px;">*Pilih file baru jika ingin mengganti foto ini</p>
             </div>`;
     } else {
@@ -2317,7 +2434,8 @@ function exportData() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(nutrisiExcel), "Nutrisi_Harian");
 
         // --- SHEET 3: PENYEMPROTAN ---
-        const semprotExcel = sLog.map(x => ({
+        const semprotLaporan = sortReportObjectsByDateOldestFirst(sLog, "tgl");
+        const semprotExcel = semprotLaporan.map(x => ({
             "HST": x.hst,
             "TANGGAL": x.tgl,
             "INSEKTISIDA": x.ins,
@@ -2327,7 +2445,8 @@ function exportData() {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(semprotExcel), "Log_Semprot");
 
         // --- SHEET 4: AKTIVITAS KERJA (Penyesuaian Urutan) ---
-        const kerjaExcel = kLog.map(x => ({
+        const kerjaLaporan = sortReportObjectsByDateOldestFirst(kLog, "tgl");
+        const kerjaExcel = kerjaLaporan.map(x => ({
             "HST": x.hst,
             "TANGGAL": x.tgl,
             "JENIS PEKERJAAN": x.jenis,
@@ -2367,6 +2486,9 @@ function exportData() {
             });
             totalBiaya += x.total;
         });
+
+        // Hanya untuk laporan Excel: tanggal terlama -> terbaru.
+        finData.sort((a, b) => parseReportDate(a["TANGGAL"]) - parseReportDate(b["TANGGAL"]));
 
         const ws_finance = XLSX.utils.json_to_sheet(finData);
         XLSX.utils.sheet_add_aoa(ws_finance, [
@@ -2409,16 +2531,8 @@ function exportData() {
             }))
         ];
 
-        const parseArusTanggal = (v) => {
-            if (!v) return new Date(0);
-            if (String(v).includes("-")) {
-                const a = String(v).split("-");
-                return new Date(a[0], a[1]-1, a[2]);
-            }
-            const a = String(v).split("/");
-            return new Date(a[2], a[1]-1, a[0]);
-        };
-        arusKas.sort((a,b) => parseArusTanggal(a["TANGGAL"]) - parseArusTanggal(b["TANGGAL"]));
+        // Hanya untuk laporan Excel: arus kas kronologis lama -> baru.
+        arusKas.sort((a,b) => parseReportDate(a["TANGGAL"]) - parseReportDate(b["TANGGAL"]));
 
         let saldoBerjalan = saldoAwalKas;
         const arusKasExcel = [
@@ -2538,6 +2652,8 @@ function simpanNutrisiRiil() {
 
     dailyLogs.sort((a, b) => a.hst - b.hst);
     localStorage.setItem(currentGH + '_daily_records', JSON.stringify(dailyLogs));
+    // Nutrisi disimpan di key daily_records, jadi harus dijadwalkan ke Supabase.
+    if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
 
     // Reset Form
     inputPPM.value = "";
@@ -2563,6 +2679,7 @@ function bersihkanSemuaRiwayat() {
         let history = JSON.parse(localStorage.getItem(currentGH + '_history_periods') || "[]");
         history.splice(index, 1);
         localStorage.setItem(currentGH + '_history_periods', JSON.stringify(history));
+        if (typeof scheduleCloudSave === 'function') scheduleCloudSave();
         renderFinance(); // Refresh tampilan
     }
 }
@@ -2755,11 +2872,37 @@ async function exportPDF() {
     });
 
 // --- 2. Tabel Penyemprotan ---
+    // Ambil foto dari Supabase Storage dan ubah menjadi Data URL agar jsPDF dapat menanamkannya.
+    const pdfPhotoData = new Map();
+    for (const item of sLog) {
+        if (!item?.img) continue;
+        try {
+            if (String(item.img).startsWith('data:image/')) {
+                pdfPhotoData.set(item, item.img);
+            } else {
+                const signedUrl = await getSemprotPhotoUrl(item.img, 600);
+                if (!signedUrl) continue;
+                const response = await fetch(signedUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Gagal membaca foto untuk PDF'));
+                    reader.readAsDataURL(blob);
+                });
+                pdfPhotoData.set(item, dataUrl);
+            }
+        } catch (err) {
+            console.warn('Foto penyemprotan tidak dapat dimasukkan ke PDF:', err);
+        }
+    }
+
     doc.addPage();
     doc.text("2. Log Penyemprotan", 14, 20);
     
     // Siapkan data yang sudah disortir terlebih dahulu agar konsisten
-    const sortedSLog = sLog.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+    const sortedSLog = [...sLog].sort((a, b) => parseReportDate(a.tgl) - parseReportDate(b.tgl));
 
     doc.autoTable({
         startY: 25,
@@ -2782,10 +2925,12 @@ async function exportPDF() {
                 // Ambil data langsung dari array yang sudah kita sortir tadi
                 const currentRowData = sortedSLog[data.row.index];
                 
-                // VALIDASI: Cek apakah data dan properti img ada
-                if (currentRowData && currentRowData.img) {
+                // jsPDF tidak dapat langsung menanamkan URL Storage private.
+                // Gunakan Data URL hasil download dari signed URL.
+                const imageData = pdfPhotoData.get(currentRowData);
+                if (imageData) {
                     try {
-                        doc.addImage(currentRowData.img, 'JPEG', data.cell.x + 5, data.cell.y + 2, 20, 20);
+                        doc.addImage(imageData, 'JPEG', data.cell.x + 5, data.cell.y + 1, 20, 20);
                     } catch (err) {
                         console.error("Gagal menambahkan gambar ke PDF:", err);
                     }
@@ -2800,7 +2945,7 @@ async function exportPDF() {
     doc.autoTable({
         startY: 25,
         head: [['HST', 'Tanggal', 'Pekerjaan', 'Catatan', 'Pekerja']], 
-        body: kLog.sort((a,b) => parseDate(a.tgl) - parseDate(b.tgl)).map(x => [x.hst, formatIndo(x.tgl), x.jenis, x.ket || "-", x.nama]),
+        body: [...kLog].sort((a,b) => parseReportDate(a.tgl) - parseReportDate(b.tgl)).map(x => [x.hst, formatIndo(x.tgl), x.jenis, x.ket || "-", x.nama]),
         headStyles: { fillColor: [46, 125, 50] },
         styles: { fontSize: 8, overflow: 'linebreak' },
         columnStyles: { 3: { cellWidth: 55 } } 
@@ -2819,7 +2964,7 @@ async function exportPDF() {
     ];
 
     // Sorting dari tanggal terlama ke terbaru (cocok untuk laporan kronologis)
-    finDataGabungan.sort((a, b) => parseDate(a.tgl) - parseDate(b.tgl));
+    finDataGabungan.sort((a, b) => parseReportDate(a.tgl) - parseReportDate(b.tgl));
 
     // Mapping untuk body tabel
     let finDataBody = finDataGabungan.map(x => {
@@ -2861,18 +3006,66 @@ async function exportPDF() {
     doc.text("5. Laporan Arus Kas", 14, 20);
 
     const saldoAwalKasPDF = parseFloat(d.saldoAwal) || 0;
+
+    // Parser khusus arus kas: mendukung format YYYY-MM-DD,
+    // DD/MM/YYYY, DD-MM-YYYY, dan tanggal ISO dengan waktu.
+    const parseArusKasDate = (dateStr) => {
+        if (!dateStr) return new Date(0);
+
+        const s = String(dateStr).trim();
+
+        // Format input HTML: YYYY-MM-DD atau ISO datetime
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            const p = s.substring(0, 10).split("-");
+            return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+        }
+
+        // Format Indonesia: DD/MM/YYYY atau DD-MM-YYYY
+        const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+        if (m) {
+            return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+        }
+
+        const parsed = new Date(s);
+        return isNaN(parsed.getTime()) ? new Date(0) : parsed;
+    };
+
     let arusKasPDF = [
-        ...(d.jual || []).map(x => ({tgl:x.tgl, jenis:"Penjualan", ket:x.g || "-", no:"-", masuk:x.total || 0, keluar:0})),
-        ...(d.biaya || []).map(x => ({tgl:x.tgl, jenis:"Biaya - " + (x.k || "-"), ket:x.ket || "-", no:x.noTransaksi || "-", masuk:0, keluar:x.total || 0})),
-        ...(d.dana || []).map(x => ({
+        ...(d.jual || []).map((x, idx) => ({
+            tgl:x.tgl,
+            jenis:"Penjualan",
+            ket:x.g || "-",
+            no:"-",
+            masuk:parseFloat(x.total)||0,
+            keluar:0,
+            _urutan:idx
+        })),
+        ...(d.biaya || []).map((x, idx) => ({
+            tgl:x.tgl,
+            jenis:"Biaya - " + (x.k || "-"),
+            ket:x.ket || "-",
+            no:x.noTransaksi || "-",
+            masuk:0,
+            keluar:parseFloat(x.total)||0,
+            _urutan:idx
+        })),
+        ...(d.dana || []).map((x, idx) => ({
             tgl:x.tgl,
             jenis:x.jenis || "Pendanaan",
             ket:x.ket || "-",
             no:"-",
             masuk:x.arah === "in" ? (parseFloat(x.nominal)||0) : 0,
-            keluar:x.arah === "out" ? (parseFloat(x.nominal)||0) : 0
+            keluar:x.arah === "out" ? (parseFloat(x.nominal)||0) : 0,
+            _urutan:idx
         }))
-    ].sort((a,b)=>parseDate(a.tgl)-parseDate(b.tgl));
+    ];
+
+    // LAPORAN ARUS KAS: tanggal TERLAMA -> TERBARU.
+    // Jika tanggal sama, pertahankan urutan data yang ada.
+    arusKasPDF.sort((a, b) => {
+        const selisih = parseArusKasDate(a.tgl) - parseArusKasDate(b.tgl);
+        return selisih || (a._urutan - b._urutan);
+    });
 
     let saldoKasBerjalan = saldoAwalKasPDF;
     const arusKasBody = [[
@@ -2918,30 +3111,17 @@ async function exportPDF() {
 
 function updateStorageInfo() {
     let total = 0;
-    // Menghitung besar karakter dalam localStorage (1 karakter ≈ 2 bytes)
     for (let key in localStorage) {
         if (!localStorage.hasOwnProperty(key)) continue;
         total += ((localStorage[key].length + key.length) * 2);
     }
-    
-    // Konversi ke KB atau MB
-    let usedKB = (total / 1024).toFixed(2);
-    let usedMB = (total / (1024 * 1024)).toFixed(2);
-    
-    // Estimasi limit browser adalah 5MB (beberapa HP bisa 10MB)
-    let limit = 5 * 1024 * 1024; 
-    let percent = (total / limit) * 100;
-    if(percent > 100) percent = 100;
-
-    // Update UI
-    document.getElementById('storage-text').innerText = `Digunakan: ${usedMB} MB / 5.00 MB`;
+    const usedMB = (total / (1024 * 1024)).toFixed(2);
+    const limit = 50 * 1024 * 1024; // indikator lokal saja; penyimpanan utama ada di Supabase
+    let percent = Math.min(100, (total / limit) * 100);
+    const text = document.getElementById('storage-text');
+    if (text) text.innerText = supabaseReady ? `Cache perangkat: ${usedMB} MB | ☁️ Supabase aktif` : `Cache perangkat: ${usedMB} MB`;
     const bar = document.getElementById('storage-bar');
-    bar.style.width = percent + '%';
-    
-    // Ubah warna bar jika hampir penuh
-    if(percent > 80) bar.style.background = "#e74c3c"; // Merah
-    else if(percent > 50) bar.style.background = "#f39c12"; // Oranye
-    else bar.style.background = "#2e7d32"; // Hijau
+    if (bar) bar.style.width = percent + '%';
 }
 function toggleBackup() {
     const content = document.getElementById('backup-content');
@@ -3377,128 +3557,725 @@ window.onload = () => {
     console.log("🚀 Aplikasi siap & Data telah disinkronkan.");
 };
 
-  // 1. Konfigurasi Firebase
-const _k = "AIzaSyC3m3twzsoh";
-const _v = "DczU5OmNKtkzQK0nqbkjMdc";
+  // 1. Konfigurasi Supabase
 
-const firebaseConfig = {
-    apiKey: _k + _v, // Gabungkan secara dinamis
-    authDomain: "melona-monitoring-system.firebaseapp.com",
-    projectId: "melona-monitoring-system",
-    storageBucket: "melona-monitoring-system.firebasestorage.app",
-    messagingSenderId: "1068089319994",
-    appId: "1:1068089319994:web:786a8f7f708a6a1a974b03"
+const SUPABASE_URL = "https://guldxfudpculqkvgdcov.supabase.co/";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_lyp9oQrzzy2MGQulM9OfCg_XEGeUjLH";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+            storageKey: "melona-supabase-auth"
+        }
+    }
+);
+
+let supabaseReady = false;
+let cloudSyncBusy = false;
+let cloudSyncTimer = null;
+let loadingCloudData = false;
+let cloudLastSync = null;
+
+// Mencegah dua proses login/session memuat data bersamaan.
+let processingAuthUserId = null;
+let processingAuthPromise = null;
+
+
+const _nativeSetItem = Storage.prototype.setItem;
+const _nativeRemoveItem = Storage.prototype.removeItem;
+const _nativeClear = Storage.prototype.clear;
+
+function isAuthStorageKey(key) {
+    const k = String(key || '').toLowerCase();
+    return (
+        k === 'melona-supabase-auth' ||
+        k.startsWith('sb-') ||
+        k.includes('supabase') ||
+        k.includes('firebase') ||
+        k.includes('google') ||
+        k.includes('gsi_') ||
+        k.includes('auth-token') ||
+        k.includes('access_token') ||
+        k.includes('refresh_token')
+    );
+}
+
+function isApplicationStorageKey(key) {
+    return !!key && !isAuthStorageKey(key);
+}
+
+/*
+ * Jangan lagi mem-patch Storage.prototype untuk memicu sinkronisasi.
+ * Patch global dapat ikut menangkap perubahan session/auth dari library
+ * Supabase dan menyebabkan perilaku login/logout yang tidak terduga.
+ *
+ * Sinkronisasi dipanggil secara eksplisit setelah data aplikasi berubah.
+ */
+
+async function getCurrentSupabaseUser() {
+    const { data: { user }, error } = await supabaseClient.auth.getUser();
+    if (error) {
+        console.error("Supabase getUser error:", error);
+        return null;
+    }
+    return user || null;
+}
+
+async function getCurrentUserId() {
+    const user = await getCurrentSupabaseUser();
+    return user ? user.id : null;
+}
+
+function collectLocalStorageData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (isApplicationStorageKey(key)) {
+            data[key] = localStorage.getItem(key);
+        }
+    }
+    return data;
+}
+
+function clearApplicationStorageForUserSwitch() {
+    Object.keys(localStorage).forEach(key => {
+        if (isApplicationStorageKey(key)) {
+            _nativeRemoveItem.call(localStorage, key);
+        }
+    });
+
+    // Kembalikan state dasar aplikasi. Data user akan diisi dari Supabase.
+    _nativeSetItem.call(localStorage, "gh_list", JSON.stringify(["GH 1"]));
+    _nativeSetItem.call(localStorage, "active_gh", "GH 1");
+}
+
+
+const SUPABASE_PHOTO_BUCKET = "melona_foto";
+
+async function uploadSemprotPhoto(fileOrBlob) {
+    const user = await getCurrentSupabaseUser();
+    if (!user) throw new Error("Session login Supabase tidak ditemukan.");
+
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const filePath = `${user.id}/semprot/${fileName}`;
+
+    const { error } = await supabaseClient.storage
+        .from(SUPABASE_PHOTO_BUCKET)
+        .upload(filePath, fileOrBlob, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: "image/jpeg"
+        });
+
+    if (error) throw error;
+    return filePath;
+}
+
+async function getSemprotPhotoUrl(photoValue, expiresIn = 3600) {
+    if (!photoValue) return "";
+    if (String(photoValue).startsWith("data:image/")) return photoValue;
+
+    const { data, error } = await supabaseClient.storage
+        .from(SUPABASE_PHOTO_BUCKET)
+        .createSignedUrl(photoValue, expiresIn);
+
+    if (error) {
+        console.error("Gagal membuat signed URL foto:", error);
+        return "";
+    }
+    return data?.signedUrl || "";
+}
+
+async function deleteSemprotPhoto(photoValue) {
+    if (!photoValue || String(photoValue).startsWith("data:image/")) return;
+    const { error } = await supabaseClient.storage
+        .from(SUPABASE_PHOTO_BUCKET)
+        .remove([photoValue]);
+    if (error) console.warn("Foto Storage gagal dihapus:", error);
+}
+
+async function blobFromDataUrl(dataUrl) {
+    const response = await fetch(dataUrl);
+    return await response.blob();
+}
+
+async function saveCloudDataNow() {
+    if (!supabaseReady || loadingCloudData || cloudSyncBusy) return false;
+
+    const user = await getCurrentSupabaseUser();
+    if (!user) {
+        console.warn("Tidak ada session Supabase. Data cloud tidak disimpan.");
+        updateCloudStatus("⚠️ Belum login");
+        return false;
+    }
+
+    cloudSyncBusy = true;
+
+    try {
+        const payload = collectLocalStorageData();
+
+        /*
+         * Tabel melona_user_data versi ini memakai user_id sebagai pemilik data.
+         * Jika kolom user_id sudah dibuat sesuai RLS, gunakan upsert berdasarkan
+         * user_id. Email tetap tersedia di payload bila aplikasi membutuhkannya,
+         * tetapi bukan lagi identitas keamanan data.
+         */
+        const row = {
+            user_id: user.id,
+            user_email: user.email || null,
+            data: payload,
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabaseClient
+            .from("melona_user_data")
+            .upsert(row, { onConflict: "user_id" });
+
+        if (error) throw error;
+
+        cloudLastSync = new Date();
+        updateCloudStatus("☁️ Tersinkron");
+        return true;
+
+    } catch (err) {
+        console.error("Supabase save error:", err);
+        updateCloudStatus("⚠️ Gagal sinkron");
+        return false;
+
+    } finally {
+        cloudSyncBusy = false;
+    }
+}
+
+function scheduleCloudSave() {
+    if (!supabaseReady || loadingCloudData) return;
+    clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = setTimeout(() => {
+        saveCloudDataNow();
+    }, 800);
+}
+
+async function loadCloudData() {
+    if (!supabaseClient) {
+        updateCloudStatus("⚙️ Supabase belum diatur");
+        return false;
+    }
+
+    const user = await getCurrentSupabaseUser();
+    if (!user) {
+        supabaseReady = false;
+        updateCloudStatus("⚠️ Belum login");
+        return false;
+    }
+
+    updateCloudStatus("☁️ Mengambil data...");
+
+    try {
+        const { data: row, error } = await supabaseClient
+            .from("melona_user_data")
+            .select("data, updated_at")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        loadingCloudData = true;
+
+        if (row && row.data && typeof row.data === "object") {
+            /*
+             * Hapus hanya data aplikasi.
+             * Session Supabase berada di storage key terpisah dan TIDAK disentuh.
+             */
+            Object.keys(localStorage).forEach(k => {
+                if (isApplicationStorageKey(k)) {
+                    _nativeRemoveItem.call(localStorage, k);
+                }
+            });
+
+            Object.entries(row.data).forEach(([key, value]) => {
+                if (isApplicationStorageKey(key)) {
+                    _nativeSetItem.call(localStorage, key, String(value));
+                }
+            });
+
+            cloudLastSync = row.updated_at ? new Date(row.updated_at) : new Date();
+            loadingCloudData = false;
+            supabaseReady = true;
+
+            refreshAppStateFromStorage();
+            updateCloudStatus("☁️ Tersinkron");
+            return true;
+
+        } else {
+            /*
+             * Akun ini belum mempunyai data cloud.
+             * JANGAN memakai localStorage sebelumnya karena localStorage
+             * adalah milik browser/perangkat, bukan milik user.
+             * Mulai akun baru dengan data kosong agar data user lain
+             * tidak pernah ikut tersalin ke akun ini.
+             */
+            clearApplicationStorageForUserSwitch();
+
+            loadingCloudData = false;
+            supabaseReady = true;
+
+            const saved = await saveCloudDataNow();
+            refreshAppStateFromStorage();
+
+            if (saved) updateCloudStatus("☁️ Tersinkron");
+            return saved;
+        }
+
+    } catch (err) {
+        loadingCloudData = false;
+        supabaseReady = false;
+        console.error("Supabase load error:", err);
+        updateCloudStatus("⚠️ Cloud tidak terhubung");
+
+        alert(
+            "Gagal mengambil data dari Supabase.\n\n" +
+            "Periksa RLS/tabel melona_user_data dan pastikan kolom user_id tersedia.\n\n" +
+            err.message
+        );
+
+        return false;
+    }
+}
+
+function refreshAppStateFromStorage() {
+    try {
+        ghList = JSON.parse(localStorage.getItem("gh_list")) || ["GH 1"];
+    } catch (e) {
+        ghList = ["GH 1"];
+    }
+
+    currentGH = localStorage.getItem("active_gh") || ghList[0];
+
+    if (typeof updateGHSelector === "function") updateGHSelector();
+
+    if (currentGH) {
+        if (typeof renderRekapNutrisi === "function") renderRekapNutrisi();
+        if (typeof renderFinance === "function") renderFinance();
+        if (typeof renderLogs === "function") renderLogs();
+        if (typeof renderMasterPekerja === "function") renderMasterPekerja();
+        if (typeof loadWorkerCheckboxes === "function") loadWorkerCheckboxes();
+        if (typeof updateUI === "function") updateUI();
+    }
+
+    if (typeof updateStorageInfo === "function") updateStorageInfo();
+}
+
+function updateCloudStatus(text) {
+    let el = document.getElementById('cloud-sync-status');
+    if (!el) {
+        const container = document.querySelector('.header-top');
+        if (container) {
+            el = document.createElement('span');
+            el.id = 'cloud-sync-status';
+            el.style.cssText = 'position:absolute;right:10px;top:8px;font-size:10px;background:rgba(255,255,255,.15);padding:4px 7px;border-radius:12px;';
+            container.style.position = 'relative';
+            container.appendChild(el);
+        }
+    }
+    if (el) el.textContent = text;
+}
+
+window.syncSupabaseNow = async function() {
+    await saveCloudDataNow();
+    alert('☁️ Sinkronisasi selesai.');
 };
 
-// Inisialisasi Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
 
 // --- FUNGSI HELPER UNTUK MENGATUR TAMPILAN ---
 function setDisplay(login, app, loading = 'none') {
-    document.getElementById('lock-screen').style.display = login;
-    document.getElementById('main-app').style.display = app;
-    // Jika Anda menambahkan id="loading-initial" seperti saran sebelumnya:
+    const lock = document.getElementById('lock-screen');
+    const main = document.getElementById('main-app');
     const loader = document.getElementById('loading-initial');
-    if(loader) loader.style.display = loading;
+
+    if (lock) lock.style.display = login;
+    if (main) main.style.display = app;
+
+    // Loader hanya tampil selama sesi awal belum diketahui.
+    // Begitu status login diputuskan, loader wajib ditutup.
+    if (loader) {
+        loader.style.display = loading;
+    }
 }
 
 // 2. FUNGSI LOGIN
-window.loginGoogle = function() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider)
-        .then((result) => {
-            console.log("Login sukses:", result.user.email);
-        })
-        .catch((error) => {
-            alert("Gagal Login: " + error.message);
-        });
+window.loginGoogle = async function () {
+
+    try {
+
+        const redirectUrl =
+            window.location.origin +
+            window.location.pathname;
+
+        const { data, error } =
+            await supabaseClient.auth.signInWithOAuth({
+
+                provider: "google",
+
+                options: {
+                    redirectTo: redirectUrl
+                }
+
+            });
+
+        if (error) {
+            console.error(error);
+
+            alert(
+                "Gagal Login Google:\n" +
+                error.message
+            );
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Terjadi kesalahan login:\n" +
+            error.message
+        );
+
+    }
+
 };
 
 // 3. OBSERVER STATUS LOGIN
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        // 1. Cek status pembayaran
-        await cekStatus(user);
-        
-        // 2. Gunakan nama fungsi yang benar (updateGHSelector)
-        if (typeof updateGHSelector === "function") {
-            updateGHSelector(); 
-        }
+supabaseClient.auth.onAuthStateChange(
+    async (event, session) => {
 
-        // 3. Pastikan currentGH sudah terisi, lalu render
-        if (currentGH) {
-            renderRekapNutrisi();
-            if (typeof renderFinance === "function") renderFinance();
-            if (typeof renderLogs === "function") renderLogs();
-        }
-        
-        console.log("Aplikasi Melona Siap!");
-    } else {
-        setDisplay('flex', 'none');
-        document.getElementById('btn-login-google').style.display = 'block';
-        document.getElementById('payment-area').style.display = 'none';
-    }
-});
+        console.log(
+            "Supabase Auth:",
+            event,
+            session
+        );
 
-// 4. CEK STATUS PEMBAYARAN DI FIRESTORE
-async function cekStatus(user) {
-    try {
-        // Menggunakan doc(user.email) sesuai kode asli Anda
-        const userRef = db.collection('users').doc(user.email);
-        const doc = await userRef.get();
+        if (session && session.user) {
 
-        if (doc.exists && doc.data().isPaid === true) {
-            // JIKA SUDAH BAYAR: Sembunyikan login, tampilkan app
-            setDisplay('none', 'block');
-            document.getElementById('user-name').innerText = user.displayName;
+            const user = session.user;
+
+            console.log(
+                "Login berhasil:",
+                user.email
+            );
+
+            await handleSupabaseLogin(user);
+
         } else {
-            // JIKA BELUM BAYAR: Tampilkan area pembayaran di dalam lock-screen
-            setDisplay('flex', 'none');
-            document.getElementById('btn-login-google').style.display = 'none';
-            document.getElementById('payment-area').style.display = 'block';
-            document.getElementById('lock-status').innerText = "Halo " + user.displayName + ", akun Anda belum aktif.";
-            
-            if (!doc.exists) {
-                await userRef.set({
-                    nama: user.displayName,
-                    email: user.email,
-                    isPaid: false,
-                    registeredAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+
+            setDisplay("flex", "none");
+
+            const loginButton =
+                document.getElementById(
+                    "btn-login-google"
+                );
+
+            if (loginButton) {
+                loginButton.style.display =
+                    "block";
+            }
+
+        }
+
+    }
+);
+
+async function handleSupabaseLogin(user) {
+    // Supabase Auth event dan getSession() dapat sama-sama memanggil handler.
+    // Jangan biarkan dua proses login berjalan bersamaan.
+    if (processingAuthUserId === user.id && processingAuthPromise) {
+        return processingAuthPromise;
+    }
+
+    processingAuthUserId = user.id;
+
+    processingAuthPromise = (async () => {
+        try {
+            console.log("User Supabase:", user.email);
+
+            // Periksa pembayaran terlebih dahulu.
+            const paymentOK = await cekStatusSupabaseUser(user);
+
+            if (!paymentOK) {
+                return false;
+            }
+
+            /*
+             * PENTING UNTUK MULTI-USER:
+             * localStorage bukan penyimpanan per-user.
+             * Sebelum membaca data user ini dari Supabase, hapus SEMUA
+             * data aplikasi milik user sebelumnya.
+             *
+             * Storage/Auth Supabase tidak disentuh karena helper hanya
+             * menghapus key aplikasi.
+             */
+            clearApplicationStorageForUserSwitch();
+
+            // Pastikan UI belum menampilkan data lama.
+            refreshAppStateFromStorage();
+
+            setDisplay("none", "block");
+
+            const nameElement = document.getElementById("user-name");
+            if (nameElement) {
+                nameElement.innerText =
+                    user.user_metadata?.full_name ||
+                    user.user_metadata?.name ||
+                    user.email;
+            }
+
+            // Sekarang hanya mengambil row milik user.id ini.
+            const loaded = await loadCloudData();
+
+            if (!loaded) {
+                console.error("Data cloud user gagal dimuat.");
+                setDisplay("flex", "none");
+                return false;
+            }
+
+            // Render ulang setelah data user yang benar masuk.
+            refreshAppStateFromStorage();
+
+            console.log("☁️ Data user berhasil dimuat:", user.id);
+            return true;
+
+        } catch (error) {
+            console.error("Login handler error:", error);
+            setDisplay("flex", "none");
+            alert("Gagal memuat akun:\n" + error.message);
+            return false;
+
+        } finally {
+            processingAuthPromise = null;
+            processingAuthUserId = null;
+        }
+    })();
+
+    return processingAuthPromise;
+}
+
+// Cek status pembayaran berdasarkan email akun Supabase.
+// Login aplikasi sepenuhnya menggunakan Supabase Auth.
+// sekarang dilakukan oleh Supabase Auth.
+async function cekStatusSupabaseUser(user) {
+    try {
+        if (!user || !user.id || !user.email) {
+            setDisplay("flex", "none");
+            return false;
+        }
+
+        // Status pembayaran sekarang dibaca dari Supabase.
+        // Login aplikasi juga menggunakan Supabase Auth, sehingga tidak ada
+        // Tidak ada ketergantungan pada layanan autentikasi lain.
+        // Cari data pembayaran milik user yang sedang login.
+        const { data, error } = await supabaseClient
+            .from("melona_payments")
+            .select("is_paid")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Supabase payment check error:", error);
+            setDisplay("flex", "none");
+
+            const paymentArea = document.getElementById("payment-area");
+            if (paymentArea) paymentArea.style.display = "none";
+
+            alert(
+                "Tidak dapat memeriksa status pembayaran.\\n\\n" +
+                error.message
+            );
+            return false;
+        }
+
+        let paymentData = data;
+
+        // User baru: otomatis dibuat sebagai akun belum bayar.
+        // User hanya boleh membuat record dengan is_paid=false melalui RLS.
+        if (!paymentData) {
+            const namaUser =
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                user.email;
+
+            const { data: insertedData, error: insertError } =
+                await supabaseClient
+                    .from("melona_payments")
+                    .insert({
+                        user_id: user.id,
+                        email: user.email,
+                        is_paid: false,
+                        nama: namaUser
+                    })
+                    .select("is_paid")
+                    .single();
+
+            if (insertError) {
+                // Jika record dibuat hampir bersamaan oleh proses lain,
+                // coba baca kembali record tersebut.
+                const { data: retryData, error: retryError } =
+                    await supabaseClient
+                        .from("melona_payments")
+                        .select("is_paid")
+                        .eq("user_id", user.id)
+                        .maybeSingle();
+
+                if (retryError || !retryData) {
+                    console.error("Supabase payment registration error:", insertError);
+                    setDisplay("flex", "none");
+
+                    const paymentArea = document.getElementById("payment-area");
+                    if (paymentArea) paymentArea.style.display = "none";
+
+                    alert(
+                        "Tidak dapat membuat data pembayaran akun.\\n\\n" +
+                        (retryError?.message || insertError.message)
+                    );
+                    return false;
+                }
+
+                paymentData = retryData;
+            } else {
+                paymentData = insertedData;
             }
         }
+
+        if (paymentData && paymentData.is_paid === true) {
+            return true;
+        }
+
+        // Belum dibayar -> tetap di halaman pembayaran.
+        setDisplay("flex", "none");
+
+        const loginButton = document.getElementById("btn-login-google");
+        if (loginButton) loginButton.style.display = "none";
+
+        const paymentArea = document.getElementById("payment-area");
+        if (paymentArea) paymentArea.style.display = "block";
+
+        const lockStatus = document.getElementById("lock-status");
+        if (lockStatus) {
+            lockStatus.innerText =
+                "Halo " +
+                (user.user_metadata?.full_name || user.user_metadata?.name || user.email) +
+                ", akun Anda belum aktif. Silakan melakukan pembayaran.";
+        }
+
+        return false;
+
     } catch (error) {
-        console.error("Database Error:", error);
-        // Jika error (misal koneksi), tetap sembunyikan app demi keamanan
-        setDisplay('flex', 'none');
-        alert("Terjadi kesalahan sinkronisasi database.");
+        console.error("Payment status error:", error);
+        setDisplay("flex", "none");
+        alert("Tidak dapat memeriksa status pembayaran.\\n\\n" + error.message);
+        return false;
     }
 }
 
+// 4. Pastikan sesi yang sudah ada diproses saat halaman dibuka
+(async function initSupabaseSession() {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+
+        if (session && session.user) {
+            await handleSupabaseLogin(session.user);
+        } else {
+            setDisplay("flex", "none", "none");
+        }
+
+    } catch (err) {
+        console.error("Gagal memeriksa sesi Supabase:", err);
+        setDisplay("flex", "none", "none");
+    }
+})();
+
+// Pengaman: jangan biarkan layar "Menghubungkan ke Melona System..."
+// menutupi aplikasi tanpa batas waktu.
+setTimeout(() => {
+    const loader = document.getElementById('loading-initial');
+    if (loader && loader.style.display !== 'none') {
+        loader.style.display = 'none';
+    }
+}, 10000);
+
+// 5. STATUS PEMBAYARAN MENGGUNAKAN SUPABASE
+// Status pembayaran sepenuhnya dibaca dari tabel melona_payments.
+
 // 5. FUNGSI LOGOUT
-window.logout = function() {
-    auth.signOut().then(() => {
-        location.reload(); // Refresh untuk memastikan state bersih
-    });
+window.logout = async function () {
+
+    clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = null;
+    cloudSyncBusy = false;
+
+    const { error } =
+        await supabaseClient.auth.signOut();
+
+    if (error) {
+        alert(
+            "Gagal logout: " +
+            error.message
+        );
+        return;
+    }
+
+    // Hapus data aplikasi lokal saat logout.
+    // Data cloud tetap aman di Supabase.
+    clearApplicationStorageForUserSwitch();
+
+    location.reload();
 };
 
 // 6. WHATSAPP ADMIN
-window.prosesBayar = function() {
-    const user = auth.currentUser;
-    if (user) {
-        const namaUser = user.displayName;
-        const emailUser = user.email;
+window.prosesBayar = async function() {
+    // Login aplikasi menggunakan Supabase Auth.
+    // Buka tab WhatsApp segera dari aksi klik agar tidak diblokir browser,
+    // lalu isi URL setelah user Supabase berhasil diperoleh.
+    const waWindow = window.open('about:blank', '_blank');
+
+    try {
+        const { data: { user }, error } = await supabaseClient.auth.getUser();
+
+        if (error || !user) {
+            if (waWindow) waWindow.close();
+            console.error("Supabase user untuk WhatsApp tidak ditemukan:", error);
+            alert("Sesi login tidak ditemukan. Silakan login kembali.");
+            return;
+        }
+
+        const namaUser =
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email ||
+            "Pengguna Melona";
+        const emailUser = user.email || "-";
+
         const pesan = `Halo Admin, saya sudah transfer untuk aktivasi Melona Monitoring System.\n\n` +
                       `Nama: ${namaUser}\n` +
                       `Email: ${emailUser}\n` +
                       `Mohon segera diproses. Terima kasih.`;
-        
+
         const waUrl = `https://wa.me/6285779081808?text=${encodeURIComponent(pesan)}`;
-        window.open(waUrl, '_blank');
-    } else {
-        alert("Silakan login terlebih dahulu.");
+
+        if (waWindow) {
+            waWindow.location.href = waUrl;
+        } else {
+            // Fallback jika browser memblokir tab baru.
+            window.location.href = waUrl;
+        }
+
+    } catch (error) {
+        if (waWindow) waWindow.close();
+        console.error("Gagal membuka WhatsApp:", error);
+        alert("Gagal membuat konfirmasi WhatsApp: " + error.message);
     }
 };
     
